@@ -1,5 +1,8 @@
-use ori_native::{App, Effect, View};
-use ori_native_core::views::{text, window};
+use ori_native::{App, Effect};
+use ori_native_core::{
+    Align, FlexContainer, FlexItem, Justify,
+    views::{flex_row, text, window},
+};
 
 fn main() {
     let mut data = Data { count: 0 };
@@ -12,9 +15,10 @@ struct Data {
 }
 
 fn ui(_data: &Data) -> impl Effect<Data> + use<> {
-    window(view())
-}
-
-fn view() -> impl View<Data> + use<> {
-    text("hello")
+    window(
+        flex_row((text("hello"), text("wahoo")))
+            .flex(1.0)
+            .justify_contents(Justify::SpaceAround)
+            .align_items(Align::Center),
+    )
 }

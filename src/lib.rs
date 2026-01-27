@@ -1,22 +1,14 @@
 mod app;
 
 pub use app::App;
+pub use ori::*;
 
-use ori::Sub;
-use ori_native_wry as platform;
+use ori_native_gtk4 as platform;
 
-type Element = <platform::Context as ori::BaseElement>::Element;
+pub type Platform = platform::Gtk4Platform;
+pub type Context = ori_native_core::Context<Platform>;
+pub type Element = <Context as ori::Base>::Element;
 
-pub trait View<T>:
-    ori::View<platform::Context, T, Element: Sub<platform::Context, Element>>
-{
-}
+pub trait Effect<T>: ori::Effect<Context, T> {}
 
-impl<T, V> View<T> for V where
-    V: ori::View<platform::Context, T, Element: Sub<platform::Context, Element>>
-{
-}
-
-pub trait Effect<T>: ori::Effect<platform::Context, T> {}
-
-impl<T, V> Effect<T> for V where V: ori::Effect<platform::Context, T> {}
+impl<T, V> Effect<T> for V where V: ori::Effect<Context, T> {}

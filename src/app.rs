@@ -1,10 +1,9 @@
 use ori::Effect;
-use ori_native_core::NativeApp;
 
-use crate::platform;
+use crate::{Context, platform};
 
 pub struct App {
-    native: platform::App,
+    native: platform::Application,
 }
 
 impl Default for App {
@@ -16,15 +15,20 @@ impl Default for App {
 impl App {
     pub fn new() -> Self {
         Self {
-            native: platform::App::new(),
+            native: platform::Application::new(),
         }
     }
 
+    #[track_caller]
     pub fn run<T, V>(self, data: &mut T, mut ui: impl FnMut(&T) -> V)
     where
-        V: Effect<platform::Context, T> + 'static,
+        V: Effect<Context, T> + 'static,
         V::State: 'static,
     {
+        if tokio::runtime::Handle::try_current().is_ok() {
+            panic!("`App::run` cannot be called from within an async runtime.");
+        }
+
         self.native.run(data, move |data| Box::new(ui(data)));
     }
 }
