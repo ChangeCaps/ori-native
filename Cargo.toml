@@ -23,12 +23,12 @@ ori-native-gtk4 = { path = "ori-native-gtk4" }
 
 ori = { git = "https://github.com/ori-ui/ori" }
 
-taffy = "0.9"
-tokio = "1"
+taffy   = "0.9"
+tokio   = "1"
+tracing = "0.1"
 
 [dependencies]
 ori-native-core = { workspace = true }
 ori-native-gtk4 = { workspace = true }
-ori = { workspace = true }
-
-tokio = "1"
+ori             = { workspace = true }
+tokio           = { workspace = true }

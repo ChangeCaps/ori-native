@@ -18,7 +18,7 @@ where
         cx: &mut Context<P>,
         spans: Box<[TextSpan]>,
         text: String,
-    ) -> (Self, <P::Text as NativeText<P>>::Leaf) {
+    ) -> (Self, <P::Text as NativeText<P>>::Layout) {
         let (text, leaf) = P::Text::build(&mut cx.platform, spans, text);
 
         (Self { text }, leaf)
@@ -32,7 +32,7 @@ where
         &mut self,
         spans: Box<[TextSpan]>,
         text: String,
-    ) -> <P::Text as NativeText<P>>::Leaf {
+    ) -> <P::Text as NativeText<P>>::Layout {
         self.text.set_text(spans, text)
     }
 }
@@ -44,6 +44,4 @@ where
     fn widget(&self) -> &P::Widget {
         self.text.widget()
     }
-
-    fn layout(&mut self, _cx: &mut Context<P>, _node: taffy::NodeId) {}
 }

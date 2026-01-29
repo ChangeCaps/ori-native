@@ -39,6 +39,12 @@ impl From<Percent> for Length {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Direction {
+    Horizontal,
+    Vertical,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Align {
     Start,
     Center,
@@ -62,30 +68,71 @@ pub enum Justify {
     FlexEnd,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Position {
+    Relative,
+    Absolute,
+}
+
 pub trait Layout: Sized {
     fn style_mut(&mut self) -> &mut taffy::Style;
 
-    fn size(mut self, width: impl Into<AutoLength>, height: impl Into<AutoLength>) -> Self {
+    fn position(mut self, position: Position) -> Self {
+        self.style_mut().position = position.into_taffy();
+        self
+    }
+
+    fn offset(mut self, x: impl Into<AutoLength>, y: impl Into<AutoLength>) -> Self {
+        self.style_mut().inset.left = x.into().into_taffy_length_auto();
+        self.style_mut().inset.top = y.into().into_taffy_length_auto();
+        self
+    }
+
+    fn size(self, width: impl Into<AutoLength>, height: impl Into<AutoLength>) -> Self {
+        self.width(width).height(height)
+    }
+
+    fn width(mut self, width: impl Into<AutoLength>) -> Self {
         self.style_mut().size.width = width.into().into_taffy_dimension();
+        self
+    }
+
+    fn height(mut self, height: impl Into<AutoLength>) -> Self {
         self.style_mut().size.height = height.into().into_taffy_dimension();
         self
     }
 
-    fn min_size(mut self, width: impl Into<AutoLength>, height: impl Into<AutoLength>) -> Self {
-        self.style_mut().min_size.width = width.into().into_taffy_dimension();
-        self.style_mut().min_size.height = height.into().into_taffy_dimension();
+    fn min_size(self, min_width: impl Into<AutoLength>, min_height: impl Into<AutoLength>) -> Self {
+        self.min_width(min_width).min_height(min_height)
+    }
+
+    fn min_width(mut self, min_width: impl Into<AutoLength>) -> Self {
+        self.style_mut().min_size.width = min_width.into().into_taffy_dimension();
         self
     }
 
-    fn max_size(mut self, width: impl Into<AutoLength>, height: impl Into<AutoLength>) -> Self {
-        self.style_mut().max_size.width = width.into().into_taffy_dimension();
-        self.style_mut().max_size.height = height.into().into_taffy_dimension();
+    fn min_height(mut self, min_height: impl Into<AutoLength>) -> Self {
+        self.style_mut().min_size.height = min_height.into().into_taffy_dimension();
         self
     }
 
-    fn margin_all(self, width: impl Into<AutoLength>) -> Self {
+    fn max_size(self, max_width: impl Into<AutoLength>, max_height: impl Into<AutoLength>) -> Self {
+        self.max_width(max_width).max_height(max_height)
+    }
+
+    fn max_width(mut self, max_width: impl Into<AutoLength>) -> Self {
+        self.style_mut().max_size.width = max_width.into().into_taffy_dimension();
+        self
+    }
+
+    fn max_height(mut self, max_height: impl Into<AutoLength>) -> Self {
+        self.style_mut().max_size.height = max_height.into().into_taffy_dimension();
+        self
+    }
+
+    fn margin(self, width: impl Into<AutoLength>) -> Self {
         let width = width.into();
-        self.margin(width, width, width, width)
+        self.margin_all(width, width, width, width)
     }
 
     fn margin_top(mut self, width: impl Into<AutoLength>) -> Self {
@@ -108,7 +155,7 @@ pub trait Layout: Sized {
         self
     }
 
-    fn margin(
+    fn margin_all(
         self,
         top: impl Into<AutoLength>,
         right: impl Into<AutoLength>,
@@ -121,9 +168,9 @@ pub trait Layout: Sized {
             .margin_left(left)
     }
 
-    fn padding_all(self, width: impl Into<Length>) -> Self {
+    fn padding(self, width: impl Into<Length>) -> Self {
         let width = width.into();
-        self.padding(width, width, width, width)
+        self.padding_all(width, width, width, width)
     }
 
     fn padding_top(mut self, width: impl Into<Length>) -> Self {
@@ -146,7 +193,7 @@ pub trait Layout: Sized {
         self
     }
 
-    fn padding(
+    fn padding_all(
         self,
         top: impl Into<Length>,
         right: impl Into<Length>,
@@ -159,9 +206,9 @@ pub trait Layout: Sized {
             .padding_left(left)
     }
 
-    fn border_all(self, width: impl Into<Length>) -> Self {
+    fn border(self, width: impl Into<Length>) -> Self {
         let width = width.into();
-        self.border(width, width, width, width)
+        self.border_all(width, width, width, width)
     }
 
     fn border_top(mut self, width: impl Into<Length>) -> Self {
@@ -184,7 +231,7 @@ pub trait Layout: Sized {
         self
     }
 
-    fn border(
+    fn border_all(
         self,
         top: impl Into<Length>,
         right: impl Into<Length>,
@@ -195,6 +242,20 @@ pub trait Layout: Sized {
             .border_right(right)
             .border_bottom(bottom)
             .border_left(left)
+    }
+
+    fn flex(self, amount: f32) -> Self {
+        self.flex_grow(amount).flex_shrink(amount)
+    }
+
+    fn flex_grow(mut self, amount: f32) -> Self {
+        self.style_mut().flex_grow = amount;
+        self
+    }
+
+    fn flex_shrink(mut self, amount: f32) -> Self {
+        self.style_mut().flex_shrink = amount;
+        self
     }
 }
 
@@ -223,22 +284,6 @@ pub trait FlexContainer: LayoutContainer {
     }
 }
 
-pub trait FlexItem: LayoutContainer {
-    fn flex_grow(mut self, amount: f32) -> Self {
-        self.style_mut().flex_grow = amount;
-        self
-    }
-
-    fn flex_shrink(mut self, amount: f32) -> Self {
-        self.style_mut().flex_shrink = amount;
-        self
-    }
-
-    fn flex(self, amount: f32) -> Self {
-        self.flex_grow(amount).flex_shrink(amount)
-    }
-}
-
 impl AutoLength {
     fn into_taffy_dimension(self) -> taffy::Dimension {
         match self {
@@ -262,6 +307,15 @@ impl Length {
         match self {
             Length::Length(x) => taffy::LengthPercentage::length(x),
             Length::Percent(x) => taffy::LengthPercentage::percent(x),
+        }
+    }
+}
+
+impl Position {
+    fn into_taffy(self) -> taffy::Position {
+        match self {
+            Position::Relative => taffy::Position::Relative,
+            Position::Absolute => taffy::Position::Absolute,
         }
     }
 }

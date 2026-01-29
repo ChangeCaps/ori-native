@@ -1,12 +1,12 @@
 use ori::{Action, Message, Mut, Proxied, Proxy, View, ViewId, ViewMarker};
 
 use crate::{
-    Context, Pod, PodMut, ShadowView,
-    native::{HasPressable, NativePressable},
+    Context, Lifecycle, Pod, PodMut, ShadowView,
+    native::{HasPressable, NativePressable, Press},
     shadows::PressableShadow,
 };
 
-pub fn pressable<V, T>(build: impl FnMut(&T, &PressState) -> V + 'static) -> Pressable<V, T> {
+pub fn pressable<V, T>(build: impl FnMut(&T, PressState) -> V + 'static) -> Pressable<V, T> {
     Pressable::new(build)
 }
 
@@ -19,15 +19,19 @@ pub struct PressState {
 
 #[allow(clippy::type_complexity)]
 pub struct Pressable<V, T> {
-    build:    Box<dyn FnMut(&T, &PressState) -> V>,
+    build:    Box<dyn FnMut(&T, PressState) -> V>,
     on_press: Box<dyn FnMut(&mut T) -> Action>,
+    on_hover: Box<dyn FnMut(&mut T, bool) -> Action>,
+    on_focus: Box<dyn FnMut(&mut T, bool) -> Action>,
 }
 
 impl<V, T> Pressable<V, T> {
-    pub fn new(build: impl FnMut(&T, &PressState) -> V + 'static) -> Self {
+    pub fn new(build: impl FnMut(&T, PressState) -> V + 'static) -> Self {
         Self {
             build:    Box::new(build),
             on_press: Box::new(|_| Action::new()),
+            on_hover: Box::new(|_, _| Action::new()),
+            on_focus: Box::new(|_, _| Action::new()),
         }
     }
 
@@ -38,10 +42,26 @@ impl<V, T> Pressable<V, T> {
         self.on_press = Box::new(move |data| on_press(data).into());
         self
     }
+
+    pub fn on_hover<A>(mut self, mut on_hover: impl FnMut(&mut T, bool) -> A + 'static) -> Self
+    where
+        A: Into<Action>,
+    {
+        self.on_hover = Box::new(move |data, hovered| on_hover(data, hovered).into());
+        self
+    }
+
+    pub fn on_focus<A>(mut self, mut on_focus: impl FnMut(&mut T, bool) -> A + 'static) -> Self
+    where
+        A: Into<Action>,
+    {
+        self.on_focus = Box::new(move |data, focused| on_focus(data, focused).into());
+        self
+    }
 }
 
 enum PressableMessage {
-    Pressed(bool),
+    Pressed(Press),
     Hovered(bool),
     Focused(bool),
 }
@@ -62,7 +82,7 @@ where
             focused: false,
         };
 
-        let view = (self.build)(data, &press);
+        let view = (self.build)(data, press);
         let (contents, state) = view.build(cx, data);
 
         let mut shadow = PressableShadow::new(cx, contents.shadow);
@@ -112,6 +132,8 @@ where
             view_id,
             build: self.build,
             on_press: self.on_press,
+            on_hover: self.on_hover,
+            on_focus: self.on_focus,
             state,
         };
 
@@ -125,7 +147,7 @@ where
         cx: &mut Context<P>,
         data: &mut T,
     ) {
-        let view = (self.build)(data, &state.press);
+        let view = (self.build)(data, state.press);
         let pod = PodMut {
             parent: element.parent,
             node:   element.node,
@@ -144,6 +166,12 @@ where
         data: &mut T,
         message: &mut Message,
     ) -> Action {
+        if let Some(Lifecycle::Layout) = message.get()
+            && let Ok(layout) = cx.get_computed_layout(*element.node)
+        {
+            (element.shadow).set_size(layout.size.width, layout.size.height);
+        }
+
         let pod = PodMut {
             parent: element.parent,
             node:   element.node,
@@ -155,20 +183,26 @@ where
 
             match message {
                 PressableMessage::Pressed(pressed) => {
-                    state.press.pressed = pressed;
+                    state.press.pressed = matches!(pressed, Press::Pressed);
 
-                    if !pressed {
+                    if let Press::Released = pressed {
                         action |= (state.on_press)(data);
                     }
                 }
 
-                PressableMessage::Hovered(hovered) => state.press.hovered = hovered,
-                PressableMessage::Focused(focused) => state.press.focused = focused,
+                PressableMessage::Hovered(hovered) => {
+                    state.press.hovered = hovered;
+                    action |= (state.on_hover)(data, hovered);
+                }
+
+                PressableMessage::Focused(focused) => {
+                    state.press.focused = focused;
+                    action |= (state.on_focus)(data, focused);
+                }
             }
 
-            let view = (state.build)(data, &state.press);
+            let view = (state.build)(data, state.press);
             view.rebuild(pod, &mut state.state, cx, data);
-            cx.relayout();
 
             action
         } else {
@@ -196,7 +230,9 @@ where
 {
     press:    PressState,
     view_id:  ViewId,
-    build:    Box<dyn FnMut(&T, &PressState) -> V>,
+    build:    Box<dyn FnMut(&T, PressState) -> V>,
     on_press: Box<dyn FnMut(&mut T) -> Action>,
+    on_hover: Box<dyn FnMut(&mut T, bool) -> Action>,
+    on_focus: Box<dyn FnMut(&mut T, bool) -> Action>,
     state:    V::State,
 }

@@ -48,17 +48,8 @@ where
     pub fn set_corner_radii(&mut self, cx: &mut Context<P>, radii: [f32; 4]) {
         self.group.set_corner_radii(&mut cx.platform, radii);
     }
-}
 
-impl<P> Shadow<P> for GroupShadow<P>
-where
-    P: HasGroup,
-{
-    fn widget(&self) -> &P::Widget {
-        self.group.widget()
-    }
-
-    fn layout(&mut self, cx: &mut Context<P>, node: taffy::NodeId) {
+    pub fn layout(&mut self, cx: &mut Context<P>, node: taffy::NodeId) {
         if let Ok(layout) = cx.get_computed_layout(node).cloned() {
             self.group.set_size(layout.size.width, layout.size.height);
 
@@ -83,9 +74,16 @@ where
                     layout.size.height,
                 );
             }
-
-            child.shadow.layout(cx, child.node);
         }
+    }
+}
+
+impl<P> Shadow<P> for GroupShadow<P>
+where
+    P: HasGroup,
+{
+    fn widget(&self) -> &P::Widget {
+        self.group.widget()
     }
 }
 
@@ -127,7 +125,7 @@ where
     fn remove(&mut self, cx: &mut Context<P>) -> Option<AnyShadow<P>> {
         self.group.remove_child(self.index);
         let child = self.children.remove(self.index);
-        let _ = cx.remove_layout_node(child.node);
+        let _ = cx.remove_layout_child(child.node, self.index);
 
         Some(child)
     }

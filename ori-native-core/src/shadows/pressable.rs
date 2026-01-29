@@ -1,6 +1,6 @@
 use crate::{
     Context, Shadow,
-    native::{HasPressable, NativePressable},
+    native::{HasPressable, NativePressable, Press},
 };
 
 pub struct PressableShadow<P, S>
@@ -23,7 +23,7 @@ where
         }
     }
 
-    pub fn set_on_press(&mut self, on_press: impl Fn(bool) + 'static) {
+    pub fn set_on_press(&mut self, on_press: impl Fn(Press) + 'static) {
         self.pressable.set_on_press(on_press);
     }
 
@@ -34,6 +34,10 @@ where
     pub fn set_on_focus(&mut self, on_focus: impl Fn(bool) + 'static) {
         self.pressable.set_on_focus(on_focus);
     }
+
+    pub fn set_size(&mut self, width: f32, height: f32) {
+        self.pressable.set_size(width, height);
+    }
 }
 
 impl<P, S> Shadow<P> for PressableShadow<P, S>
@@ -43,13 +47,5 @@ where
 {
     fn widget(&self) -> &P::Widget {
         self.pressable.widget()
-    }
-
-    fn layout(&mut self, cx: &mut Context<P>, node: taffy::NodeId) {
-        if let Ok(layout) = cx.get_computed_layout(node) {
-            (self.pressable).set_size(layout.size.width, layout.size.height);
-        }
-
-        self.contents.layout(cx, node);
     }
 }

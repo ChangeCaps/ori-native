@@ -4,23 +4,25 @@ use crate::Color;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Font {
-    pub size:    f32,
-    pub family:  Option<Cow<'static, str>>,
-    pub weight:  Weight,
-    pub stretch: Stretch,
-    pub italic:  bool,
-    pub color:   Color,
+    pub size:         f32,
+    pub family:       Option<Cow<'static, str>>,
+    pub weight:       Weight,
+    pub stretch:      Stretch,
+    pub italic:       bool,
+    pub striketrough: bool,
+    pub color:        Color,
 }
 
 impl Default for Font {
     fn default() -> Self {
         Self {
-            size:    14.0,
-            family:  None,
-            weight:  Weight::NORMAL,
-            stretch: Stretch::Normal,
-            italic:  false,
-            color:   Color::BLACK,
+            size:         14.0,
+            family:       None,
+            weight:       Weight::NORMAL,
+            stretch:      Stretch::Normal,
+            italic:       false,
+            striketrough: false,
+            color:        Color::BLACK,
         }
     }
 }
@@ -50,11 +52,11 @@ pub enum Stretch {
     SemiExpanded,
     Expanded,
     ExtraExpanded,
-    UntraExpanded,
+    UltraExpanded,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct TextSpan {
-    pub attributes: Font,
-    pub range:      Range<usize>,
+    pub font:  Font,
+    pub range: Range<usize>,
 }

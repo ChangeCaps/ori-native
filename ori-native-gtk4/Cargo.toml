@@ -7,13 +7,19 @@ license.workspace = true
 
 [dependencies]
 ori-native-core = { workspace = true }
-ori = { workspace = true }
+ori             = { workspace = true }
+taffy           = { workspace = true }
+tracing         = { workspace = true}
 
-taffy = { workspace = true }
-
-gtk4 = "0.10"
-gdk4 = "0.10"
+gtk4  = "0.10"
+gdk4  = "0.10"
+glib  = "0.21"
+gsk4  = "0.10"
 pango = "0.21"
+
+[dependencies.graphene]
+package = "graphene-rs"
+version = "0.21"
 
 [dependencies.tokio]
 workspace = true

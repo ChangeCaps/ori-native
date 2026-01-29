@@ -3,7 +3,8 @@ use std::borrow::Cow;
 use ori::{Action, Message, Mut, View, ViewMarker};
 
 use crate::{
-    Color, Context, Font, Pod, Stretch, TextSpan, Weight, native::HasText, shadows::TextShadow,
+    Color, Context, Font, Layout, Pod, Stretch, TextSpan, Weight, native::HasText,
+    shadows::TextShadow,
 };
 
 pub fn text(text: impl Into<String>) -> Text {
@@ -11,15 +12,23 @@ pub fn text(text: impl Into<String>) -> Text {
 }
 
 pub struct Text {
-    font: Font,
-    text: String,
+    layout: taffy::Style,
+    font:   Font,
+    text:   String,
 }
 
 impl Text {
     pub fn new(text: impl Into<String>) -> Self {
         Self {
-            font: Default::default(),
-            text: text.into(),
+            layout: taffy::Style {
+                overflow: taffy::Point {
+                    x: taffy::Overflow::Hidden,
+                    y: taffy::Overflow::Hidden,
+                },
+                ..Default::default()
+            },
+            font:   Default::default(),
+            text:   text.into(),
         }
     }
 
@@ -48,9 +57,20 @@ impl Text {
         self
     }
 
+    pub fn strikethrough(mut self, strikethrough: bool) -> Self {
+        self.font.striketrough = strikethrough;
+        self
+    }
+
     pub fn color(mut self, color: Color) -> Self {
         self.font.color = color;
         self
+    }
+}
+
+impl Layout for Text {
+    fn style_mut(&mut self) -> &mut taffy::Style {
+        &mut self.layout
     }
 }
 
@@ -64,12 +84,12 @@ where
 
     fn build(self, cx: &mut Context<P>, _data: &mut T) -> (Self::Element, Self::State) {
         let spans = [TextSpan {
-            attributes: self.font.clone(),
-            range:      0..self.text.len(),
+            font:  self.font.clone(),
+            range: 0..self.text.len(),
         }];
 
         let (shadow, leaf) = TextShadow::new(cx, spans.into(), self.text.clone());
-        let node = cx.new_layout_leaf(Default::default(), leaf);
+        let node = cx.new_layout_leaf(self.layout, leaf);
 
         let pod = Pod { node, shadow };
 
@@ -83,6 +103,8 @@ where
         cx: &mut Context<P>,
         _data: &mut T,
     ) {
+        let _ = cx.set_layout_style(*element.node, self.layout);
+
         if self.font == *font && self.text == *text {
             return;
         }
@@ -91,12 +113,12 @@ where
         *text = self.text.clone();
 
         let spans = [TextSpan {
-            attributes: self.font,
-            range:      0..self.text.len(),
+            font:  self.font,
+            range: 0..self.text.len(),
         }];
 
         let leaf = element.shadow.set_text(spans.into(), self.text);
-        let _ = cx.set_layout_leaf(*element.node, leaf);
+        let _ = cx.set_leaf_layout(*element.node, leaf);
     }
 
     fn message(

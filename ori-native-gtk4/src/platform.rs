@@ -31,10 +31,7 @@ impl Platform {
         let runtime = Arc::new(tokio::runtime::Runtime::new().unwrap());
 
         let provider = gtk4::CssProvider::new();
-        provider.load_from_data(
-            "textview { background: transparent; }
-             textview text { background: transparent; }",
-        );
+        provider.load_from_data(include_str!("default.css"));
 
         gtk4::style_context_add_provider_for_display(
             &display,

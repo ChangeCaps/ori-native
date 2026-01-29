@@ -1,5 +1,6 @@
 mod color;
 mod context;
+mod lifecycle;
 mod platform;
 mod shadow;
 mod style;
@@ -11,10 +12,12 @@ pub mod views;
 
 pub use color::Color;
 pub use context::{BoxedEffect, Context, LayoutLeaf};
+pub use lifecycle::Lifecycle;
 pub use platform::Platform;
 pub use shadow::{AnyShadow, Pod, PodMut, Shadow, ShadowView};
 pub use style::{
-    Align, AutoLength, FlexContainer, FlexItem, Justify, Layout, LayoutContainer, Length, Percent,
+    Align, AutoLength, Direction, FlexContainer, Justify, Layout, LayoutContainer, Length, Percent,
+    Position,
 };
 pub use text::{Font, Stretch, TextSpan, Weight};
 

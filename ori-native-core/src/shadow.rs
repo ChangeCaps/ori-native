@@ -9,8 +9,15 @@ where
     P: Platform,
 {
     fn widget(&self) -> &P::Widget;
+}
 
-    fn layout(&mut self, cx: &mut Context<P>, node: taffy::NodeId);
+impl<P> Shadow<P> for Box<dyn Shadow<P>>
+where
+    P: Platform,
+{
+    fn widget(&self) -> &P::Widget {
+        self.as_ref().widget()
+    }
 }
 
 pub trait ShadowView<P, T>: View<Context<P>, T, Element = Pod<Self::Shadow>>
@@ -48,6 +55,16 @@ pub struct PodMut<'a, T> {
     pub parent: taffy::NodeId,
     pub node:   &'a mut taffy::NodeId,
     pub shadow: &'a mut T,
+}
+
+impl<T> PodMut<'_, T> {
+    pub fn reborrow(&mut self) -> PodMut<'_, T> {
+        PodMut {
+            parent: self.parent,
+            node:   self.node,
+            shadow: self.shadow,
+        }
+    }
 }
 
 impl<T> Element for Pod<T> {

@@ -1,34 +1,38 @@
 use ori::{Action, Message, Mut, View, ViewMarker, ViewSeq};
-use taffy::FlexDirection;
 
 use crate::{
-    AnyShadow, Color, Context, FlexContainer, FlexItem, Layout, LayoutContainer, Pod,
+    AnyShadow, Color, Context, Direction, FlexContainer, Layout, LayoutContainer, Lifecycle, Pod,
     native::HasGroup, shadows::GroupShadow,
 };
 
 pub fn row<V>(contents: V) -> Flex<V> {
-    Flex::new(contents, FlexDirection::Row)
+    Flex::new(contents, Direction::Horizontal)
 }
 
 pub fn column<V>(contents: V) -> Flex<V> {
-    Flex::new(contents, FlexDirection::Column)
+    Flex::new(contents, Direction::Vertical)
 }
 
 pub struct Flex<V> {
     contents:         V,
-    style:            taffy::Style,
+    layout:           taffy::Style,
     background_color: Color,
     border_color:     Color,
     corner_radii:     [f32; 4],
 }
 
 impl<V> Flex<V> {
-    pub fn new(contents: V, direction: FlexDirection) -> Self {
+    pub fn new(contents: V, direction: Direction) -> Self {
+        let flex_direction = match direction {
+            Direction::Horizontal => taffy::FlexDirection::Row,
+            Direction::Vertical => taffy::FlexDirection::Column,
+        };
+
         Self {
             contents,
-            style: taffy::Style {
+            layout: taffy::Style {
                 display: taffy::Display::Flex,
-                flex_direction: direction,
+                flex_direction,
                 ..Default::default()
             },
             background_color: Color::TRANSPARENT,
@@ -47,8 +51,8 @@ impl<V> Flex<V> {
         self
     }
 
-    pub fn corner_all(self, radius: f32) -> Self {
-        self.corner(radius, radius, radius, radius)
+    pub fn corner(self, radius: f32) -> Self {
+        self.corner_all(radius, radius, radius, radius)
     }
 
     pub fn corner_top_left(mut self, radius: f32) -> Self {
@@ -71,7 +75,7 @@ impl<V> Flex<V> {
         self
     }
 
-    pub fn corner(
+    pub fn corner_all(
         self,
         top_left: f32,
         top_right: f32,
@@ -87,12 +91,11 @@ impl<V> Flex<V> {
 
 impl<V> Layout for Flex<V> {
     fn style_mut(&mut self) -> &mut taffy::Style {
-        &mut self.style
+        &mut self.layout
     }
 }
 
 impl<V> LayoutContainer for Flex<V> {}
-impl<V> FlexItem for Flex<V> {}
 impl<V> FlexContainer for Flex<V> {}
 
 impl<V> ViewMarker for Flex<V> {}
@@ -105,7 +108,7 @@ where
     type State = V::State;
 
     fn build(self, cx: &mut Context<P>, data: &mut T) -> (Self::Element, Self::State) {
-        let node = cx.new_layout_node(self.style, &[]);
+        let node = cx.new_layout_node(self.layout, &[]);
 
         let mut shadow = GroupShadow::new(cx);
         shadow.set_background_color(cx, self.background_color);
@@ -128,7 +131,7 @@ where
         cx: &mut Context<P>,
         data: &mut T,
     ) {
-        let _ = cx.set_layout_style(*element.node, self.style);
+        let _ = cx.set_layout_style(*element.node, self.layout);
         (element.shadow).set_background_color(cx, self.background_color);
         (element.shadow).set_border_color(cx, self.border_color);
         (element.shadow).set_corner_radii(cx, self.corner_radii);
@@ -148,6 +151,10 @@ where
         data: &mut T,
         message: &mut Message,
     ) -> Action {
+        if let Some(Lifecycle::Layout) = message.get() {
+            element.shadow.layout(cx, *element.node);
+        }
+
         V::seq_message(
             &mut element.shadow.elements(*element.node),
             state,

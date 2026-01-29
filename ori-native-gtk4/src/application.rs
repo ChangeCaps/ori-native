@@ -2,8 +2,8 @@ use gtk4::{
     gio::{self, prelude::ApplicationExt},
     glib,
 };
-use ori::{AnyState, AnyView, Message, Proxy, View};
-use ori_native_core::{BoxedEffect, Context};
+use ori::{Effect, Message, Proxy};
+use ori_native_core::Context;
 
 use crate::Platform;
 
@@ -20,7 +20,11 @@ impl Application {
         Self {}
     }
 
-    pub fn run<T>(self, data: &mut T, ui: impl FnMut(&T) -> BoxedEffect<Platform, T>) {
+    pub fn run<T, V>(self, data: &mut T, ui: impl FnMut(&T) -> V)
+    where
+        V: Effect<Context<Platform>, T>,
+    {
+        Self::init_log();
         gtk4::init().unwrap();
 
         let (sender, mut receiver) = tokio::sync::mpsc::unbounded_channel();
@@ -50,7 +54,43 @@ impl Application {
                 && let Some(event) = receiver.recv().await
             {
                 state.handle_event(event);
+
+                // handle all events before giving control back to gtk
+                while let Ok(event) = receiver.try_recv() {
+                    state.handle_event(event);
+                }
             }
+
+            state.teardown();
+        });
+    }
+
+    fn init_log() {
+        glib::log_set_writer_func(|level, fields| {
+            let mut message = None;
+
+            for field in fields {
+                if field.key() == "MESSAGE" {
+                    message = field.value_str()
+                }
+            }
+
+            let message = message.unwrap_or("<no message>");
+
+            match level {
+                glib::LogLevel::Error | glib::LogLevel::Critical => {
+                    tracing::error!(target: "glib", "{message}")
+                }
+
+                glib::LogLevel::Message | glib::LogLevel::Info => {
+                    tracing::info!(target: "glib", "{message}")
+                }
+
+                glib::LogLevel::Warning => tracing::warn!(target: "glib", "{message}"),
+                glib::LogLevel::Debug => tracing::debug!(target: "glib", "{message}"),
+            }
+
+            glib::LogWriterOutput::Handled
         });
     }
 }
@@ -64,17 +104,21 @@ pub(crate) enum Event {
     Message(Message),
 }
 
-struct State<'a, T, B> {
+struct State<'a, T, V, B>
+where
+    V: Effect<Context<Platform>, T>,
+{
     data:    &'a mut T,
     build:   B,
-    state:   Option<AnyState<Context<Platform>, T, ()>>,
+    state:   Option<V::State>,
     context: Context<Platform>,
     running: bool,
 }
 
-impl<T, B> State<'_, T, B>
+impl<T, V, B> State<'_, T, V, B>
 where
-    B: FnMut(&T) -> BoxedEffect<Platform, T>,
+    V: Effect<Context<Platform>, T>,
+    B: FnMut(&T) -> V,
 {
     fn handle_event(&mut self, event: Event) {
         match event {
@@ -97,7 +141,7 @@ where
 
             Event::Message(mut event) => {
                 if let Some(ref mut state) = self.state {
-                    let action = Box::<dyn AnyView<_, _, _>>::message(
+                    let action = V::message(
                         (),
                         state,
                         &mut self.context,
@@ -108,6 +152,12 @@ where
                     self.context.platform.proxy.action(action);
                 }
             }
+        }
+    }
+
+    fn teardown(mut self) {
+        if let Some(state) = self.state {
+            V::teardown((), state, &mut self.context);
         }
     }
 }

@@ -1,0 +1,19 @@
+use crate::{Direction, Platform};
+
+pub trait HasScroll: Platform {
+    type Scroll: NativeScroll<Self>;
+}
+
+pub trait NativeScroll<P>
+where
+    P: Platform,
+{
+    fn widget(&self) -> &P::Widget;
+
+    fn build(platform: &mut P, contents: &P::Widget) -> Self;
+    fn teardown(self, platform: &mut P);
+
+    fn set_size(&mut self, width: f32, height: f32);
+
+    fn set_direction(&mut self, direction: Direction);
+}

@@ -1,4 +1,4 @@
-use gdk4::glib::subclass::types::ObjectSubclassIsExt;
+use glib::subclass::types::ObjectSubclassIsExt;
 use gtk4::prelude::{AccessibleExt, WidgetExt};
 use ori_native_core::{
     Color,
@@ -45,16 +45,19 @@ impl NativeGroup<Platform> for Group {
     }
 
     fn set_size(&mut self, width: f32, height: f32) {
-        self.group.set_size(width as i32, height as i32);
+        self.group.set_size(
+            width.round() as i32,
+            height.round() as i32,
+        );
     }
 
     fn set_child_layout(&mut self, index: usize, x: f32, y: f32, width: f32, height: f32) {
         self.group.set_child_layout(
             index,
-            x as i32,
-            y as i32,
-            width as i32,
-            height as i32,
+            x.round() as i32,
+            y.round() as i32,
+            width.round() as i32,
+            height.round() as i32,
         );
     }
 
@@ -183,13 +186,11 @@ impl GroupWidget {
 mod imp {
     use std::cell::{Cell, RefCell};
 
-    use gdk4::glib::subclass::types::ObjectSubclassExt;
+    use glib::subclass::{
+        object::ObjectImpl,
+        types::{ObjectSubclass, ObjectSubclassExt},
+    };
     use gtk4::{
-        glib::{
-            self,
-            subclass::{object::ObjectImpl, types::ObjectSubclass},
-        },
-        graphene, gsk,
         prelude::{SnapshotExt, SnapshotExtManual, WidgetExt},
         subclass::widget::{WidgetClassExt, WidgetImpl, WidgetImplExt},
     };
@@ -232,7 +233,7 @@ mod imp {
 
     #[glib::object_subclass]
     impl ObjectSubclass for GroupWidget {
-        const NAME: &'static str = "Group";
+        const NAME: &'static str = "OriGroup";
         type Type = super::GroupWidget;
         type ParentType = gtk4::Widget;
 
@@ -241,14 +242,20 @@ mod imp {
         }
     }
 
-    impl ObjectImpl for GroupWidget {}
+    impl ObjectImpl for GroupWidget {
+        fn dispose(&self) {
+            for child in self.children.borrow().iter() {
+                child.widget.unparent();
+            }
+        }
+    }
 
     impl WidgetImpl for GroupWidget {
         fn snapshot(&self, snapshot: &gtk4::Snapshot) {
             let alloc = self.obj().allocation();
             let [tl, tr, br, bl] = self.corner_radii.get();
 
-            let rect = gsk::RoundedRect::new(
+            let rect = gsk4::RoundedRect::new(
                 graphene::Rect::new(
                     0.0,
                     0.0,
@@ -301,19 +308,15 @@ mod imp {
             }
 
             match orientation {
-                gtk4::Orientation::Horizontal => (
-                    self.width.get(),
-                    self.width.get(),
-                    -1,
-                    -1,
-                ),
+                gtk4::Orientation::Horizontal => {
+                    let width = self.width.get();
+                    (width, width, -1, -1)
+                }
 
-                gtk4::Orientation::Vertical => (
-                    self.height.get(),
-                    self.height.get(),
-                    -1,
-                    -1,
-                ),
+                gtk4::Orientation::Vertical => {
+                    let height = self.height.get();
+                    (height, height, -1, -1)
+                }
 
                 _ => (-1, -1, -1, -1),
             }

@@ -13,7 +13,16 @@ struct Data {
 fn ui(data: &Data) -> impl Effect<Data> + use<> {
     window(
         column((
-            button(),
+            pressable(|_, state| {
+                if state.pressed {
+                    text("Pressed!")
+                } else if state.hovered {
+                    text("Hovered!")
+                } else {
+                    text("Press me!")
+                }
+            })
+            .on_press(|data: &mut Data| data.count += 1),
             text(format!("Pressed {} times.", data.count)),
         ))
         .flex(1.0)
@@ -21,22 +30,4 @@ fn ui(data: &Data) -> impl Effect<Data> + use<> {
         .justify_contents(Justify::Center)
         .align_items(Align::Center),
     )
-}
-
-fn button() -> impl View<Data> + use<> {
-    pressable(|_, state| {
-        row(if state.pressed {
-            text("Pressed!")
-        } else {
-            text("Press me!")
-        })
-        .background_color(if state.hovered {
-            Color::CYAN.darken(0.1)
-        } else {
-            Color::CYAN
-        })
-        .padding_all(8.0)
-        .corner_all(8.0)
-    })
-    .on_press(|data: &mut Data| data.count += 1)
 }

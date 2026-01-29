@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use gtk4::prelude::{AccessibleExt, WidgetExt};
-use ori_native_core::native::{HasPressable, NativePressable};
+use ori_native_core::native::{HasPressable, NativePressable, Press};
 
 use crate::{Platform, widgets::group::GroupWidget};
 
@@ -38,7 +38,7 @@ impl NativePressable<Platform> for Pressable {
         (self.widget).set_child_layout(0, 0, 0, width as i32, height as i32);
     }
 
-    fn set_on_press(&mut self, on_press: impl Fn(bool) + 'static) {
+    fn set_on_press(&mut self, on_press: impl Fn(Press) + 'static) {
         if let Some(press) = self.press.take() {
             self.widget.remove_controller(&press);
         }
@@ -48,12 +48,17 @@ impl NativePressable<Platform> for Pressable {
         let controller = gtk4::GestureClick::new();
         controller.connect_pressed({
             let on_press = on_press.clone();
-            move |_, _, _, _| on_press(true)
+            move |_, _, _, _| on_press(Press::Pressed)
         });
 
         controller.connect_released({
             let on_press = on_press.clone();
-            move |_, _, _, _| on_press(false)
+            move |_, _, _, _| on_press(Press::Released)
+        });
+
+        controller.connect_unpaired_release({
+            let on_press = on_press.clone();
+            move |_, _, _, _, _| on_press(Press::Cancelled)
         });
 
         self.press = Some(controller.clone());

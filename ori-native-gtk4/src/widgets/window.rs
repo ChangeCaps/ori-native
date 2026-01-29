@@ -1,13 +1,14 @@
-use gtk4::{
-    glib::subclass::types::ObjectSubclassIsExt,
-    prelude::{GtkWindowExt, WidgetExt},
-};
+use std::{cell::Cell, rc::Rc, time::Duration};
+
+use glib::subclass::types::ObjectSubclassIsExt;
+use gtk4::prelude::{GtkWindowExt, WidgetExt};
 use ori_native_core::native::{HasWindow, NativeWindow};
 
 use crate::Platform;
 
 pub struct Window {
-    window: ApplicationWindow,
+    window:         ApplicationWindow,
+    previous_frame: Rc<Cell<Option<i64>>>,
 }
 
 impl NativeWindow<Platform> for Window {
@@ -16,7 +17,10 @@ impl NativeWindow<Platform> for Window {
         window.set_child(Some(contents));
         window.show();
 
-        Self { window }
+        Self {
+            window,
+            previous_frame: Default::default(),
+        }
     }
 
     fn teardown(self, _platform: &mut Platform) {}
@@ -26,6 +30,24 @@ impl NativeWindow<Platform> for Window {
             self.window.width() as u32,
             self.window.height() as u32,
         )
+    }
+
+    fn set_on_animation_frame(&mut self, on_frame: impl Fn(Duration) + 'static) {
+        if let Some(frame_clock) = self.window.frame_clock() {
+            let previous = self.previous_frame.clone();
+
+            frame_clock.connect_before_paint(move |frame_clock| {
+                let frame_time = frame_clock.frame_time();
+
+                if let Some(previous) = previous.replace(Some(frame_time)) {
+                    let delta = frame_time - previous;
+
+                    if delta > 100 {
+                        on_frame(Duration::from_micros(delta as u64));
+                    }
+                }
+            });
+        }
     }
 
     fn set_on_close_requested(&mut self, on_close_requested: impl Fn() + 'static) {
@@ -41,6 +63,19 @@ impl NativeWindow<Platform> for Window {
 
     fn set_min_size(&mut self, width: u32, height: u32) {
         self.window.set_size_request(width as i32, height as i32);
+    }
+
+    fn start_animating(&mut self) {
+        if let Some(frame_clock) = self.window.frame_clock() {
+            frame_clock.begin_updating();
+            self.previous_frame.set(None);
+        }
+    }
+
+    fn stop_animating(&mut self) {
+        if let Some(frame_clock) = self.window.frame_clock() {
+            frame_clock.end_updating();
+        }
     }
 }
 
@@ -84,16 +119,11 @@ impl ApplicationWindow {
 mod imp {
     use std::cell::RefCell;
 
-    use gtk4::{
-        glib::{
-            self,
-            subclass::{object::ObjectImpl, types::ObjectSubclass},
-        },
-        subclass::{
-            prelude::ApplicationWindowImpl,
-            widget::{WidgetImpl, WidgetImplExt},
-            window::WindowImpl,
-        },
+    use glib::subclass::{object::ObjectImpl, types::ObjectSubclass};
+    use gtk4::subclass::{
+        prelude::ApplicationWindowImpl,
+        widget::{WidgetImpl, WidgetImplExt},
+        window::WindowImpl,
     };
 
     pub(super) struct ApplicationWindow {

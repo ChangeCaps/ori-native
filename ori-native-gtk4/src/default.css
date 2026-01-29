@@ -1,0 +1,15 @@
+textview {
+    background: transparent;
+}
+
+textview text {
+    background: transparent;
+}
+
+scrolledwindow scrollbar.horizontal slider {
+    min-width: 0;
+}
+
+scrolledwindow scrollbar.vertical slider {
+    min-height: 0;
+}
