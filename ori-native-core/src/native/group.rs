@@ -1,6 +1,6 @@
 use ori::{Elements, Mut};
 
-use crate::{AnyShadow, Color, Context, NativeWidget, Platform, PodMut};
+use crate::{BoxedWidget, Color, Context, NativeWidget, Platform, PodMut};
 
 pub trait HasGroup: Platform {
     type Group: NativeGroup<Self>;
@@ -34,7 +34,7 @@ where
     P: HasGroup,
 {
     group:    P::Group,
-    children: Vec<AnyShadow<P>>,
+    children: Vec<BoxedWidget<P>>,
 }
 
 impl<P> Group<P>
@@ -52,7 +52,7 @@ where
         self.group.teardown(&mut cx.platform);
     }
 
-    pub fn elements(&mut self, node: taffy::NodeId) -> impl Elements<Context<P>, AnyShadow<P>> {
+    pub fn elements(&mut self, node: taffy::NodeId) -> impl Elements<Context<P>, BoxedWidget<P>> {
         GroupElements {
             node,
             index: 0,
@@ -118,14 +118,14 @@ where
     node:     taffy::NodeId,
     index:    usize,
     group:    &'a mut P::Group,
-    children: &'a mut Vec<AnyShadow<P>>,
+    children: &'a mut Vec<BoxedWidget<P>>,
 }
 
-impl<P> Elements<Context<P>, AnyShadow<P>> for GroupElements<'_, P>
+impl<P> Elements<Context<P>, BoxedWidget<P>> for GroupElements<'_, P>
 where
     P: HasGroup,
 {
-    fn next(&mut self, _cx: &mut Context<P>) -> Option<Mut<'_, AnyShadow<P>>> {
+    fn next(&mut self, _cx: &mut Context<P>) -> Option<Mut<'_, BoxedWidget<P>>> {
         let child = self.children.get_mut(self.index)?;
         self.index += 1;
 
@@ -138,7 +138,7 @@ where
         Some(pod)
     }
 
-    fn insert(&mut self, cx: &mut Context<P>, element: AnyShadow<P>) {
+    fn insert(&mut self, cx: &mut Context<P>, element: BoxedWidget<P>) {
         let _ = cx.insert_layout_child(self.node, self.index, element.node);
 
         self.group.insert_child(self.index, element.widget.widget());
@@ -146,10 +146,10 @@ where
         self.index += 1;
     }
 
-    fn remove(&mut self, cx: &mut Context<P>) -> Option<AnyShadow<P>> {
+    fn remove(&mut self, cx: &mut Context<P>) -> Option<BoxedWidget<P>> {
         self.group.remove_child(self.index);
         let child = self.children.remove(self.index);
-        let _ = cx.remove_layout_child(child.node, self.index);
+        let _ = cx.remove_layout_child(self.node, self.index);
 
         Some(child)
     }

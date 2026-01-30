@@ -11,7 +11,7 @@ pub mod views;
 
 pub use color::Color;
 pub use context::{BoxedEffect, Context, LayoutLeaf};
-pub use element::{AnyShadow, NativeWidget, Pod, PodMut, WidgetView};
+pub use element::{BoxedWidget, NativeWidget, Pod, PodMut, WidgetView};
 pub use lifecycle::Lifecycle;
 pub use platform::Platform;
 pub use style::{

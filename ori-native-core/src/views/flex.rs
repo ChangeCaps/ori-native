@@ -1,7 +1,7 @@
 use ori::{Action, Message, Mut, View, ViewMarker, ViewSeq};
 
 use crate::{
-    AnyShadow, BorderLayout, Color, ContainerLayout, Context, Direction, FlexLayout, Layout,
+    BorderLayout, BoxedWidget, Color, ContainerLayout, Context, Direction, FlexLayout, Layout,
     Lifecycle, Pod,
     native::{Group, HasGroup},
 };
@@ -104,7 +104,7 @@ impl<V> ViewMarker for Flex<V> {}
 impl<P, T, V> View<Context<P>, T> for Flex<V>
 where
     P: HasGroup,
-    V: ViewSeq<Context<P>, T, AnyShadow<P>>,
+    V: ViewSeq<Context<P>, T, BoxedWidget<P>>,
 {
     type Element = Pod<Group<P>>;
     type State = V::State;

@@ -17,6 +17,16 @@ struct Todo {
     done: bool,
 }
 
+mod theme {
+    use ori_native::Color;
+
+    pub const BACKGROUND: Color = Color::hex("#1e1e1e");
+    pub const BORDER: Color = Color::hex("#4d4d4d");
+    pub const SUCCESS: Color = Color::hex("#9af079");
+    pub const DANGER: Color = Color::hex("#f05d51");
+    pub const TEXT: Color = Color::hex("#f9f9f8");
+}
+
 fn ui(data: &Data) -> impl Effect<Data> + use<> {
     effects((
         window(
@@ -28,11 +38,12 @@ fn ui(data: &Data) -> impl Effect<Data> + use<> {
                 .width(300.0)
                 .align_items(Align::Stretch)
                 .border(1.0)
-                .border_color(Color::BLACK),
+                .border_color(theme::BORDER),
             )
             .flex(1.0)
             .justify_contents(Justify::Center)
-            .align_items(Align::Center),
+            .align_items(Align::Center)
+            .background_color(theme::BACKGROUND),
         ),
         receive(|data: &mut Data, Remove(index)| {
             data.todos.remove(index);
@@ -49,6 +60,8 @@ fn input() -> impl View<Data> + use<> {
                 .placeholder("What do you want to do?")
                 .newline(Newline::None)
                 .accept_tab(false)
+                .color(theme::TEXT)
+                .placeholder_color(theme::TEXT.fade(0.6))
                 .on_change(|(name, _), text| *name = text)
                 .on_submit(|(name, data), text| {
                     add_todo(data, text);
@@ -76,17 +89,17 @@ fn todos(data: &Data) -> impl View<Data> + use<> {
     column(vscroll(column(todos)))
         .max_height(400.0)
         .border_top(1.0)
-        .border_color(Color::BLACK)
+        .border_color(theme::BORDER)
 }
 
 fn todo(index: usize, _todo: &Todo) -> impl View<Data> + use<> {
-    let view = pressable(move |todo: &Todo, _| {
+    let view = pressable(move |todo: &Todo, state| {
         let name = if todo.done {
             text(&todo.name)
-                .color(Color::BLACK.fade(0.7))
+                .color(theme::TEXT.fade(0.6))
                 .strikethrough(true)
         } else {
-            text(&todo.name)
+            text(&todo.name).color(theme::TEXT)
         };
 
         row((
@@ -97,8 +110,14 @@ fn todo(index: usize, _todo: &Todo) -> impl View<Data> + use<> {
         .gap(8.0)
         .padding(8.0)
         .border_top(if index > 0 { 1.0 } else { 0.0 })
-        .border_color(Color::BLACK)
+        .border_color(theme::BORDER)
         .justify_contents(Justify::SpaceBetween)
+        .align_items(Align::Center)
+        .background_color(if state.hovered {
+            theme::BACKGROUND.lighten(0.02)
+        } else {
+            Color::TRANSPARENT
+        })
     })
     .on_press(|todo: &mut Todo| todo.done = !todo.done);
 
@@ -108,21 +127,25 @@ fn todo(index: usize, _todo: &Todo) -> impl View<Data> + use<> {
 }
 
 fn done(todo: &Todo) -> impl View<Todo> + use<> {
-    row(todo.done.then(|| text("x").color(Color::GREEN)))
-        .size(24.0, 24.0)
+    let icon = (todo.done).then(|| image(include_bytes!("check.svg")).tint(theme::SUCCESS));
+
+    row(icon)
+        .size(28.0, 28.0)
         .border(1.0)
-        .corners(12.0)
-        .border_color(Color::BLACK)
+        .corners(14.0)
+        .border_color(theme::BORDER)
         .justify_contents(Justify::Center)
         .align_items(Align::Center)
 }
 
 fn remove<T>(index: usize) -> impl View<T> {
     pressable(|_, _| {
-        row(text("x"))
-            .size(24.0, 24.0)
+        let icon = image(include_bytes!("xmark.svg")).tint(theme::TEXT);
+
+        row(icon)
+            .size(28.0, 28.0)
             .corners(8.0)
-            .background_color(Color::RED)
+            .background_color(theme::DANGER)
             .justify_contents(Justify::Center)
             .align_items(Align::Center)
     })

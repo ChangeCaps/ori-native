@@ -190,7 +190,7 @@ impl NativeTextInput<Platform> for TextInput {
         );
     }
 
-    fn get_layout(&mut self, _platform: &mut Platform) -> impl LayoutLeaf<Platform> + use<> {
+    fn get_layout(&mut self, _platform: &mut Platform) -> impl LayoutLeaf<Platform> {
         Layout {
             view:             self.view.clone(),
             font:             self.font.clone(),
@@ -263,7 +263,10 @@ fn font_style(font: &Font) -> String {
     let style = format!("font-style: {style};");
     let color = format!(
         "color: rgba({}, {}, {}, {});",
-        font.color.r, font.color.g, font.color.b, font.color.a,
+        font.color.r * 255.0,
+        font.color.g * 255.0,
+        font.color.b * 255.0,
+        font.color.a,
     );
 
     family + &size + &weight + &stretch + &style + strikethrough + &color

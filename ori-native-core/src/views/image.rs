@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use ori::{Action, Message, Mut, View, ViewMarker};
 
 use crate::{
-    Context, Layout, Pod,
+    Color, Context, Layout, Pod,
     native::{HasImage, NativeImage},
 };
 
@@ -14,6 +14,7 @@ pub fn image(data: impl Into<Cow<'static, [u8]>>) -> Image {
 pub struct Image {
     style: taffy::Style,
     data:  Cow<'static, [u8]>,
+    tint:  Option<Color>,
 }
 
 impl Image {
@@ -21,7 +22,13 @@ impl Image {
         Self {
             style: Default::default(),
             data,
+            tint: None,
         }
+    }
+
+    pub fn tint(mut self, tint: impl Into<Option<Color>>) -> Self {
+        self.tint = tint.into();
+        self
     }
 }
 
@@ -41,9 +48,11 @@ where
 
     fn build(self, cx: &mut Context<P>, _data: &mut T) -> (Self::Element, Self::State) {
         let mut widget = P::Image::build(&mut cx.platform);
-        let _ = widget.load_data(&mut cx.platform, self.data);
+        widget.set_tint(self.tint);
 
-        let node = cx.new_layout_node(self.style, &[]);
+        let layout = widget.load_data(&mut cx.platform, self.data).unwrap();
+
+        let node = cx.new_layout_leaf(self.style, layout);
 
         let pod = Pod { node, widget };
 

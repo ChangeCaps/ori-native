@@ -22,5 +22,5 @@ where
     fn set_placeholder_font(&mut self, platform: &mut P, font: Font);
     fn set_placeholder_text(&mut self, platform: &mut P, text: String);
 
-    fn get_layout(&mut self, platform: &mut P) -> impl LayoutLeaf<P> + use<Self, P>;
+    fn get_layout(&mut self, platform: &mut P) -> impl LayoutLeaf<P>;
 }

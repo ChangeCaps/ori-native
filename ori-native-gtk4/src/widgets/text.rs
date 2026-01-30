@@ -43,6 +43,8 @@ impl NativeText<Platform> for Text {
 
     fn set_text(&mut self, spans: Box<[TextSpan]>, text: String) -> Self::Layout {
         let buffer = self.view.buffer();
+        buffer.set_text("");
+
         let tag_table = buffer.tag_table();
         let mut iter = buffer.start_iter();
 

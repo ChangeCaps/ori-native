@@ -2,9 +2,9 @@ use std::any::Any;
 
 use ori::{Action, AnyView, Base, Message, Provider, Proxied, Proxy, ViewId};
 
-use crate::{AnyShadow, Platform, views::WindowMessage};
+use crate::{BoxedWidget, Platform, views::WindowMessage};
 
-pub trait LayoutLeaf<P> {
+pub trait LayoutLeaf<P>: 'static {
     fn measure(
         &mut self,
         platform: &mut P,
@@ -203,7 +203,7 @@ where
 pub type BoxedEffect<P, T> = Box<dyn AnyView<Context<P>, T, ()>>;
 
 impl<P> Base for Context<P> {
-    type Element = AnyShadow<P>;
+    type Element = BoxedWidget<P>;
 }
 
 impl<P> Proxied for Context<P>

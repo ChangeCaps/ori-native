@@ -42,7 +42,7 @@ impl<T> Element for Pod<T> {
         Self: 'a;
 }
 
-pub type AnyShadow<P> = Pod<Box<dyn NativeWidget<P>>>;
+pub type BoxedWidget<P> = Pod<Box<dyn NativeWidget<P>>>;
 
 pub trait WidgetView<P, T>: View<Context<P>, T, Element = Pod<Self::Widget>>
 where
@@ -67,23 +67,27 @@ where
     fn widget(&self) -> &P::Widget;
 }
 
-impl<P, T> Is<Context<P>, AnyShadow<P>> for Pod<T>
+impl<P, T> Is<Context<P>, BoxedWidget<P>> for Pod<T>
 where
     P: Platform,
     T: NativeWidget<P>,
 {
-    fn replace(_cx: &mut Context<P>, _other: Mut<'_, AnyShadow<P>>, _this: Self) -> AnyShadow<P> {
+    fn replace(
+        _cx: &mut Context<P>,
+        _other: Mut<'_, BoxedWidget<P>>,
+        _this: Self,
+    ) -> BoxedWidget<P> {
         todo!()
     }
 
-    fn upcast(_cx: &mut Context<P>, this: Self) -> AnyShadow<P> {
+    fn upcast(_cx: &mut Context<P>, this: Self) -> BoxedWidget<P> {
         Pod {
             node:   this.node,
             widget: Box::new(this.widget),
         }
     }
 
-    fn downcast(this: AnyShadow<P>) -> Result<Self, AnyShadow<P>> {
+    fn downcast(this: BoxedWidget<P>) -> Result<Self, BoxedWidget<P>> {
         if this.widget.as_ref().type_id() == TypeId::of::<T>() {
             let shadow = *Box::<dyn Any>::downcast(this.widget)
                 .expect("type should be correct, as it was just checked");
@@ -97,7 +101,9 @@ where
         }
     }
 
-    fn downcast_mut(this: Mut<'_, AnyShadow<P>>) -> Result<Self::Mut<'_>, Mut<'_, AnyShadow<P>>> {
+    fn downcast_mut(
+        this: Mut<'_, BoxedWidget<P>>,
+    ) -> Result<Self::Mut<'_>, Mut<'_, BoxedWidget<P>>> {
         if this.widget.as_ref().type_id() == TypeId::of::<T>() {
             let shadow = <dyn Any>::downcast_mut(this.widget.as_mut())
                 .expect("type should be correct, as it was just checked");
