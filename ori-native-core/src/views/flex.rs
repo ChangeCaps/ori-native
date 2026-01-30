@@ -2,7 +2,8 @@ use ori::{Action, Message, Mut, View, ViewMarker, ViewSeq};
 
 use crate::{
     AnyShadow, BorderLayout, Color, ContainerLayout, Context, Direction, FlexLayout, Layout,
-    Lifecycle, Pod, native::HasGroup, shadows::GroupShadow,
+    Lifecycle, Pod,
+    native::{Group, HasGroup},
 };
 
 pub fn row<V>(contents: V) -> Flex<V> {
@@ -105,13 +106,13 @@ where
     P: HasGroup,
     V: ViewSeq<Context<P>, T, AnyShadow<P>>,
 {
-    type Element = Pod<GroupShadow<P>>;
+    type Element = Pod<Group<P>>;
     type State = V::State;
 
     fn build(self, cx: &mut Context<P>, data: &mut T) -> (Self::Element, Self::State) {
         let node = cx.new_layout_node(self.layout, &[]);
 
-        let mut shadow = GroupShadow::new(cx);
+        let mut shadow = Group::new(cx);
         shadow.set_background_color(cx, self.background_color);
         shadow.set_border_color(cx, self.border_color);
         shadow.set_corner_radii(cx, self.corner_radii);
@@ -120,7 +121,10 @@ where
             .contents
             .seq_build(&mut shadow.elements(node), cx, data);
 
-        let pod = Pod { node, shadow };
+        let pod = Pod {
+            node,
+            widget: shadow,
+        };
 
         (pod, state)
     }
@@ -133,12 +137,12 @@ where
         data: &mut T,
     ) {
         let _ = cx.set_layout_style(*element.node, self.layout);
-        (element.shadow).set_background_color(cx, self.background_color);
-        (element.shadow).set_border_color(cx, self.border_color);
-        (element.shadow).set_corner_radii(cx, self.corner_radii);
+        (element.widget).set_background_color(cx, self.background_color);
+        (element.widget).set_border_color(cx, self.border_color);
+        (element.widget).set_corner_radii(cx, self.corner_radii);
 
         self.contents.seq_rebuild(
-            &mut element.shadow.elements(*element.node),
+            &mut element.widget.elements(*element.node),
             state,
             cx,
             data,
@@ -153,11 +157,11 @@ where
         message: &mut Message,
     ) -> Action {
         if let Some(Lifecycle::Layout) = message.get() {
-            element.shadow.layout(cx, *element.node);
+            element.widget.layout(cx, *element.node);
         }
 
         V::seq_message(
-            &mut element.shadow.elements(*element.node),
+            &mut element.widget.elements(*element.node),
             state,
             cx,
             data,
@@ -167,12 +171,12 @@ where
 
     fn teardown(mut element: Self::Element, state: Self::State, cx: &mut Context<P>) {
         V::seq_teardown(
-            &mut element.shadow.elements(element.node),
+            &mut element.widget.elements(element.node),
             state,
             cx,
         );
 
-        element.shadow.teardown(cx);
+        element.widget.teardown(cx);
         let _ = cx.remove_layout_node(element.node);
     }
 }

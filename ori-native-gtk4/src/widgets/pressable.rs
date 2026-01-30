@@ -1,9 +1,16 @@
 use std::sync::Arc;
 
 use gtk4::prelude::{AccessibleExt, WidgetExt};
-use ori_native_core::native::{HasPressable, NativePressable, Press};
+use ori_native_core::{
+    NativeWidget,
+    native::{HasPressable, NativePressable, Press},
+};
 
 use crate::{Platform, widgets::group::GroupWidget};
+
+impl HasPressable for Platform {
+    type Pressable = Pressable;
+}
 
 pub struct Pressable {
     widget: GroupWidget,
@@ -12,11 +19,13 @@ pub struct Pressable {
     focus:  Option<gtk4::EventControllerFocus>,
 }
 
-impl NativePressable<Platform> for Pressable {
+impl NativeWidget<Platform> for Pressable {
     fn widget(&self) -> &gtk4::Widget {
         self.widget.as_ref()
     }
+}
 
+impl NativePressable<Platform> for Pressable {
     fn build(_plaform: &mut Platform, contents: &gtk4::Widget) -> Self {
         let widget = GroupWidget::new();
         widget.insert_child(0, contents);
@@ -108,8 +117,4 @@ impl NativePressable<Platform> for Pressable {
         self.focus = Some(controller.clone());
         self.widget.add_controller(controller);
     }
-}
-
-impl HasPressable for Platform {
-    type Pressable = Pressable;
 }

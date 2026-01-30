@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use ori::{Action, Message, Mut, View, ViewMarker};
 
-use crate::{Context, Platform, ShadowView};
+use crate::{Context, Platform, WidgetView};
 
 #[allow(clippy::type_complexity)]
 pub fn animate<P, T, U, V>(
@@ -10,10 +10,10 @@ pub fn animate<P, T, U, V>(
     rebuild: impl FnOnce(&mut U) -> bool,
     animate: impl FnMut(&mut U, Duration) -> bool,
     build: impl Fn(&U, &T) -> V,
-) -> impl ShadowView<P, T>
+) -> impl WidgetView<P, T>
 where
     P: Platform,
-    V: ShadowView<P, T>,
+    V: WidgetView<P, T>,
 {
     Animate::new(initial, rebuild, animate, build)
 }
@@ -46,7 +46,7 @@ where
     G: FnOnce(&mut U) -> bool,
     H: FnMut(&mut U, Duration) -> bool,
     I: Fn(&U, &T) -> V,
-    V: ShadowView<P, T>,
+    V: WidgetView<P, T>,
 {
     type Element = V::Element;
     type State = (H, I, U, bool, V::State);

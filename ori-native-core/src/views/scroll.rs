@@ -1,9 +1,8 @@
 use ori::{Action, Message, Mut, View, ViewMarker};
 
 use crate::{
-    Context, Direction, Layout, Lifecycle, Pod, ShadowView,
+    Context, Direction, Layout, Lifecycle, NativeWidget, Pod, WidgetView,
     native::{HasScroll, NativeScroll},
-    shadows::ScrollShadow,
 };
 
 pub fn hscroll<V>(contents: V) -> Scroll<V> {
@@ -63,35 +62,39 @@ impl<V> ViewMarker for Scroll<V> {}
 impl<P, T, V> View<Context<P>, T> for Scroll<V>
 where
     P: HasScroll,
-    V: ShadowView<P, T>,
+    V: WidgetView<P, T>,
 {
-    type Element = Pod<ScrollShadow<P, V::Shadow>>;
-    type State = V::State;
+    type Element = Pod<P::Scroll>;
+    type State = (V::Element, V::State);
 
     fn build(self, cx: &mut Context<P>, data: &mut T) -> (Self::Element, Self::State) {
         let (contents, state) = self.contents.build(cx, data);
         let node = cx.new_layout_node(self.style, &[contents.node]);
 
-        let mut shadow = ScrollShadow::new(cx, contents);
-        shadow.set_direction(self.direction);
+        let mut widget = P::Scroll::build(
+            &mut cx.platform,
+            contents.widget.widget(),
+        );
 
-        let pod = Pod { node, shadow };
+        widget.set_direction(self.direction);
 
-        (pod, state)
+        let pod = Pod { node, widget };
+
+        (pod, (contents, state))
     }
 
     fn rebuild(
         self,
         element: Mut<'_, Self::Element>,
-        state: &mut Self::State,
+        (contents, state): &mut Self::State,
         cx: &mut Context<P>,
         data: &mut T,
     ) {
         let _ = cx.set_layout_style(*element.node, self.style);
-        element.shadow.set_direction(self.direction);
+        element.widget.set_direction(self.direction);
 
         self.contents.rebuild(
-            element.shadow.element(*element.node),
+            contents.as_mut(*element.node),
             state,
             cx,
             data,
@@ -100,7 +103,7 @@ where
 
     fn message(
         element: Mut<'_, Self::Element>,
-        state: &mut Self::State,
+        (contents, state): &mut Self::State,
         cx: &mut Context<P>,
         data: &mut T,
         message: &mut Message,
@@ -108,11 +111,11 @@ where
         if let Some(Lifecycle::Layout) = message.get()
             && let Ok(layout) = cx.get_computed_layout(*element.node)
         {
-            (element.shadow).set_size(layout.size.width, layout.size.height);
+            (element.widget).set_size(layout.size.width, layout.size.height);
         }
 
         V::message(
-            element.shadow.element(*element.node),
+            contents.as_mut(*element.node),
             state,
             cx,
             data,
@@ -120,8 +123,8 @@ where
         )
     }
 
-    fn teardown(element: Self::Element, state: Self::State, cx: &mut Context<P>) {
-        V::teardown(element.shadow.contents, state, cx);
-        element.shadow.scroll.teardown(&mut cx.platform);
+    fn teardown(element: Self::Element, (contents, state): Self::State, cx: &mut Context<P>) {
+        V::teardown(contents, state, cx);
+        element.widget.teardown(&mut cx.platform);
     }
 }

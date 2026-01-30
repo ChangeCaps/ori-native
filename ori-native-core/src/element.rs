@@ -4,41 +4,9 @@ use ori::{Element, Is, Mut, View};
 
 use crate::{Context, Platform};
 
-pub trait Shadow<P>: Any
-where
-    P: Platform,
-{
-    fn widget(&self) -> &P::Widget;
-}
-
-impl<P> Shadow<P> for Box<dyn Shadow<P>>
-where
-    P: Platform,
-{
-    fn widget(&self) -> &P::Widget {
-        self.as_ref().widget()
-    }
-}
-
-pub trait ShadowView<P, T>: View<Context<P>, T, Element = Pod<Self::Shadow>>
-where
-    P: Platform,
-{
-    type Shadow: Shadow<P>;
-}
-
-impl<P, T, V, S> ShadowView<P, T> for V
-where
-    P: Platform,
-    V: View<Context<P>, T, Element = Pod<S>>,
-    S: Shadow<P>,
-{
-    type Shadow = S;
-}
-
 pub struct Pod<T> {
     pub node:   taffy::NodeId,
-    pub shadow: T,
+    pub widget: T,
 }
 
 impl<T> Pod<T> {
@@ -46,7 +14,7 @@ impl<T> Pod<T> {
         PodMut {
             parent,
             node: &mut self.node,
-            shadow: &mut self.shadow,
+            widget: &mut self.widget,
         }
     }
 }
@@ -54,7 +22,7 @@ impl<T> Pod<T> {
 pub struct PodMut<'a, T> {
     pub parent: taffy::NodeId,
     pub node:   &'a mut taffy::NodeId,
-    pub shadow: &'a mut T,
+    pub widget: &'a mut T,
 }
 
 impl<T> PodMut<'_, T> {
@@ -62,7 +30,7 @@ impl<T> PodMut<'_, T> {
         PodMut {
             parent: self.parent,
             node:   self.node,
-            shadow: self.shadow,
+            widget: self.widget,
         }
     }
 }
@@ -74,12 +42,35 @@ impl<T> Element for Pod<T> {
         Self: 'a;
 }
 
-pub type AnyShadow<P> = Pod<Box<dyn Shadow<P>>>;
+pub type AnyShadow<P> = Pod<Box<dyn NativeWidget<P>>>;
+
+pub trait WidgetView<P, T>: View<Context<P>, T, Element = Pod<Self::Widget>>
+where
+    P: Platform,
+{
+    type Widget: NativeWidget<P>;
+}
+
+impl<P, T, V, W> WidgetView<P, T> for V
+where
+    P: Platform,
+    V: View<Context<P>, T, Element = Pod<W>>,
+    W: NativeWidget<P>,
+{
+    type Widget = W;
+}
+
+pub trait NativeWidget<P>: Any
+where
+    P: Platform,
+{
+    fn widget(&self) -> &P::Widget;
+}
 
 impl<P, T> Is<Context<P>, AnyShadow<P>> for Pod<T>
 where
     P: Platform,
-    T: Shadow<P>,
+    T: NativeWidget<P>,
 {
     fn replace(_cx: &mut Context<P>, _other: Mut<'_, AnyShadow<P>>, _this: Self) -> AnyShadow<P> {
         todo!()
@@ -88,18 +79,18 @@ where
     fn upcast(_cx: &mut Context<P>, this: Self) -> AnyShadow<P> {
         Pod {
             node:   this.node,
-            shadow: Box::new(this.shadow),
+            widget: Box::new(this.widget),
         }
     }
 
     fn downcast(this: AnyShadow<P>) -> Result<Self, AnyShadow<P>> {
-        if this.shadow.as_ref().type_id() == TypeId::of::<T>() {
-            let shadow = *Box::<dyn Any>::downcast(this.shadow)
+        if this.widget.as_ref().type_id() == TypeId::of::<T>() {
+            let shadow = *Box::<dyn Any>::downcast(this.widget)
                 .expect("type should be correct, as it was just checked");
 
             Ok(Pod {
-                node: this.node,
-                shadow,
+                node:   this.node,
+                widget: shadow,
             })
         } else {
             Err(this)
@@ -107,14 +98,14 @@ where
     }
 
     fn downcast_mut(this: Mut<'_, AnyShadow<P>>) -> Result<Self::Mut<'_>, Mut<'_, AnyShadow<P>>> {
-        if this.shadow.as_ref().type_id() == TypeId::of::<T>() {
-            let shadow = <dyn Any>::downcast_mut(this.shadow.as_mut())
+        if this.widget.as_ref().type_id() == TypeId::of::<T>() {
+            let shadow = <dyn Any>::downcast_mut(this.widget.as_mut())
                 .expect("type should be correct, as it was just checked");
 
             Ok(PodMut {
                 parent: this.parent,
-                node: this.node,
-                shadow,
+                node:   this.node,
+                widget: shadow,
             })
         } else {
             Err(this)

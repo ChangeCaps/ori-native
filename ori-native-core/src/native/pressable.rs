@@ -1,15 +1,13 @@
-use crate::Platform;
+use crate::{NativeWidget, Platform};
 
 pub trait HasPressable: Platform {
     type Pressable: NativePressable<Self>;
 }
 
-pub trait NativePressable<P>
+pub trait NativePressable<P>: NativeWidget<P>
 where
     P: Platform,
 {
-    fn widget(&self) -> &P::Widget;
-
     fn build(plaform: &mut P, contents: &P::Widget) -> Self;
     fn teardown(self, plaform: &mut P);
 

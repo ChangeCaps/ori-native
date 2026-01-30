@@ -1,5 +1,6 @@
 mod animate;
 mod flex;
+mod image;
 mod pressable;
 mod scroll;
 mod text;
@@ -9,6 +10,7 @@ mod window;
 
 pub use animate::{Animate, AnimationFrame, animate};
 pub use flex::{Flex, column, row};
+pub use image::{Image, image};
 pub use pressable::{PressState, Pressable, pressable};
 pub use scroll::{Scroll, hscroll, vscroll};
 pub use text::{Text, text};

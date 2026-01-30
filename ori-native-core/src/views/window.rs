@@ -3,7 +3,7 @@ use std::time::Duration;
 use ori::{Action, Message, Mut, Proxied, Proxy, View, ViewId, ViewMarker};
 
 use crate::{
-    Context, Lifecycle, Pod, Shadow, ShadowView,
+    Context, Lifecycle, NativeWidget, Pod, WidgetView,
     native::{HasWindow, NativeWindow},
     views::AnimationFrame,
 };
@@ -30,8 +30,7 @@ impl<V> ViewMarker for Window<V> {}
 impl<P, T, V> View<Context<P>, T> for Window<V>
 where
     P: HasWindow + Proxied,
-    T: 'static,
-    V: ShadowView<P, T> + 'static,
+    V: WidgetView<P, T>,
 {
     type Element = ();
     type State = WindowState<P, T, V>;
@@ -45,7 +44,7 @@ where
 
         let mut window = P::Window::build(
             &mut cx.platform,
-            contents.shadow.widget(),
+            contents.widget.widget(),
         );
 
         window.set_on_resize({
@@ -211,7 +210,7 @@ where
 pub struct WindowState<P, T, V>
 where
     P: HasWindow,
-    V: ShadowView<P, T>,
+    V: WidgetView<P, T>,
 {
     node:    taffy::NodeId,
     view_id: ViewId,
@@ -222,14 +221,14 @@ where
 
     animating: u32,
 
-    contents: Pod<V::Shadow>,
+    contents: Pod<V::Widget>,
     state:    V::State,
 }
 
 impl<P, T, V> WindowState<P, T, V>
 where
     P: HasWindow,
-    V: ShadowView<P, T>,
+    V: WidgetView<P, T>,
 {
     fn layout(&mut self, cx: &mut Context<P>, data: &mut T) -> Action {
         let (width, height) = self.window.get_size();

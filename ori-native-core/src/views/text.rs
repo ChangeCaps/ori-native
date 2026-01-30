@@ -3,8 +3,8 @@ use std::borrow::Cow;
 use ori::{Action, Message, Mut, View, ViewMarker};
 
 use crate::{
-    Color, Context, Font, Layout, Pod, Stretch, TextSpan, Weight, native::HasText,
-    shadows::TextShadow,
+    Color, Context, Font, Layout, Pod, Stretch, TextSpan, Weight,
+    native::{HasText, NativeText},
 };
 
 pub fn text(text: impl Into<String>) -> Text {
@@ -79,7 +79,7 @@ impl<P, T> View<Context<P>, T> for Text
 where
     P: HasText,
 {
-    type Element = Pod<TextShadow<P>>;
+    type Element = Pod<P::Text>;
     type State = (Font, String);
 
     fn build(self, cx: &mut Context<P>, _data: &mut T) -> (Self::Element, Self::State) {
@@ -88,10 +88,15 @@ where
             range: 0..self.text.len(),
         }];
 
-        let (shadow, leaf) = TextShadow::new(cx, spans.into(), self.text.clone());
+        let (widget, leaf) = P::Text::build(
+            &mut cx.platform,
+            spans.into(),
+            self.text.clone(),
+        );
+
         let node = cx.new_layout_leaf(self.layout, leaf);
 
-        let pod = Pod { node, shadow };
+        let pod = Pod { node, widget };
 
         (pod, (self.font, self.text))
     }
@@ -117,7 +122,7 @@ where
             range: 0..self.text.len(),
         }];
 
-        let leaf = element.shadow.set_text(spans.into(), self.text);
+        let leaf = element.widget.set_text(spans.into(), self.text);
         let _ = cx.set_leaf_layout(*element.node, leaf);
     }
 
@@ -132,7 +137,7 @@ where
     }
 
     fn teardown(element: Self::Element, _state: Self::State, cx: &mut Context<P>) {
-        element.shadow.teardown(cx);
+        element.widget.teardown(&mut cx.platform);
         let _ = cx.remove_layout_node(element.node);
     }
 }

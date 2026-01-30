@@ -3,8 +3,8 @@ use std::borrow::Cow;
 use ori::{Action, Message, Mut, Proxied, Proxy, View, ViewId, ViewMarker};
 
 use crate::{
-    Color, Context, Font, Layout, Pod, Stretch, Weight, native::HasTextInput,
-    shadows::TextInputShadow,
+    Color, Context, Font, Layout, Pod, Stretch, Weight,
+    native::{HasTextInput, NativeTextInput},
 };
 
 pub fn textinput<T>() -> TextInput<T> {
@@ -200,31 +200,37 @@ where
     P: HasTextInput + Proxied,
     T: 'static,
 {
-    type Element = Pod<TextInputShadow<P>>;
+    type Element = Pod<P::TextInput>;
     type State = TextInputState<T>;
 
     fn build(self, cx: &mut Context<P>, _data: &mut T) -> (Self::Element, Self::State) {
-        let mut shadow = TextInputShadow::new(cx);
+        let mut widget = P::TextInput::build(&mut cx.platform);
 
-        shadow.set_font(cx, self.font.clone());
+        widget.set_font(&mut cx.platform, self.font.clone());
 
         if let Some(text) = self.text.clone() {
-            shadow.set_text(cx, text);
+            widget.set_text(&mut cx.platform, text);
         }
 
-        shadow.set_placeholder_font(cx, self.placeholder_font.clone());
-        shadow.set_placeholder_text(cx, self.placeholder_text.clone());
+        widget.set_placeholder_font(
+            &mut cx.platform,
+            self.placeholder_font.clone(),
+        );
+        widget.set_placeholder_text(
+            &mut cx.platform,
+            self.placeholder_text.clone(),
+        );
 
-        shadow.set_newline(cx, self.newline);
-        shadow.set_accept_tab(cx, self.accept_tab);
+        widget.set_newline(&mut cx.platform, self.newline);
+        widget.set_accept_tab(&mut cx.platform, self.accept_tab);
 
-        let layout = shadow.layout(cx);
+        let layout = widget.get_layout(&mut cx.platform);
         let node = cx.new_layout_leaf(self.layout, layout);
 
         let view_id = ViewId::next();
 
         let proxy = cx.proxy();
-        shadow.set_on_change(cx, move |text| {
+        widget.set_on_change(&mut cx.platform, move |text| {
             proxy.message(Message::new(
                 TextInputMessage::Change(text),
                 view_id,
@@ -232,14 +238,14 @@ where
         });
 
         let proxy = cx.proxy();
-        shadow.set_on_submit(cx, move |text| {
+        widget.set_on_submit(&mut cx.platform, move |text| {
             proxy.message(Message::new(
                 TextInputMessage::Submit(text),
                 view_id,
             ));
         });
 
-        let pod = Pod { node, shadow };
+        let pod = Pod { node, widget };
         let state = TextInputState {
             font: self.font,
             text: self.text.unwrap_or_default(),
@@ -271,7 +277,7 @@ where
 
         if self.font != state.font {
             state.font = self.font.clone();
-            element.shadow.set_font(cx, self.font);
+            element.widget.set_font(&mut cx.platform, self.font);
             changed |= true;
         }
 
@@ -279,34 +285,38 @@ where
             && text != state.text
         {
             state.text = text.clone();
-            element.shadow.set_text(cx, text);
+            element.widget.set_text(&mut cx.platform, text);
             changed |= true;
         }
 
         if self.placeholder_font != state.placeholder_font {
             state.placeholder_font = self.placeholder_font.clone();
-            element.shadow.set_font(cx, self.placeholder_font);
+            element
+                .widget
+                .set_font(&mut cx.platform, self.placeholder_font);
             changed |= true;
         }
 
         if self.placeholder_text != state.placeholder_text {
             state.placeholder_text = self.placeholder_text.clone();
-            (element.shadow).set_placeholder_text(cx, self.placeholder_text);
+            (element.widget).set_placeholder_text(&mut cx.platform, self.placeholder_text);
             changed |= true;
         }
 
         if self.newline != state.newline {
             state.newline = self.newline;
-            element.shadow.set_newline(cx, self.newline);
+            element.widget.set_newline(&mut cx.platform, self.newline);
         }
 
         if self.accept_tab != state.accept_tab {
             state.accept_tab = self.accept_tab;
-            element.shadow.set_accept_tab(cx, self.accept_tab);
+            element
+                .widget
+                .set_accept_tab(&mut cx.platform, self.accept_tab);
         }
 
         if changed {
-            let layout = element.shadow.layout(cx);
+            let layout = element.widget.get_layout(&mut cx.platform);
             let _ = cx.set_leaf_layout(*element.node, layout);
         }
 
@@ -336,7 +346,7 @@ where
     }
 
     fn teardown(element: Self::Element, _state: Self::State, cx: &mut Context<P>) {
-        element.shadow.teardown(cx);
+        element.widget.teardown(&mut cx.platform);
         let _ = cx.remove_layout_node(element.node);
     }
 }

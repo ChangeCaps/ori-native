@@ -3,7 +3,7 @@ use std::{cell::Cell, rc::Rc};
 use glib::object::ObjectExt;
 use gtk4::prelude::{TextBufferExt, TextViewExt, WidgetExt};
 use ori_native_core::{
-    Font, LayoutLeaf, Stretch,
+    Font, LayoutLeaf, NativeWidget, Stretch,
     native::{HasTextInput, NativeTextInput},
     views::Newline,
 };
@@ -26,11 +26,13 @@ pub struct TextInput {
     newline:          Rc<Cell<Newline>>,
 }
 
-impl NativeTextInput<Platform> for TextInput {
+impl NativeWidget<Platform> for TextInput {
     fn widget(&self) -> &gtk4::Widget {
         self.overlay.as_ref()
     }
+}
 
+impl NativeTextInput<Platform> for TextInput {
     fn build(platform: &mut Platform) -> Self {
         let overlay = gtk4::Overlay::new();
         let view = gtk4::TextView::new();

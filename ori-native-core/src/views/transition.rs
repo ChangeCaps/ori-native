@@ -1,6 +1,6 @@
 use std::{f32::consts::PI, time::Duration};
 
-use crate::{Color, Platform, ShadowView, views::animate};
+use crate::{Color, Platform, WidgetView, views::animate};
 
 const C1: f32 = 1.70158;
 const C2: f32 = C1 * 1.525;
@@ -102,11 +102,11 @@ pub fn transition<P, T, U, V>(
     value: U,
     transition: impl Transition,
     build: impl Fn(U, &T) -> V,
-) -> impl ShadowView<P, T>
+) -> impl WidgetView<P, T>
 where
     P: Platform,
     U: Clone + PartialEq + Lerp,
-    V: ShadowView<P, T>,
+    V: WidgetView<P, T>,
 {
     let state = State::new(value.clone(), transition);
 
@@ -125,12 +125,12 @@ struct State<U, T> {
     transition: T,
 }
 
-impl<U, X> State<U, X>
+impl<U, T> State<U, T>
 where
     U: Clone + PartialEq + Lerp,
-    X: Transition,
+    T: Transition,
 {
-    fn new(value: U, transition: X) -> Self {
+    fn new(value: U, transition: T) -> Self {
         Self {
             current: None,
             target: value,

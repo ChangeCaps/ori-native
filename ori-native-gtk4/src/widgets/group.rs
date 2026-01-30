@@ -1,22 +1,28 @@
 use glib::subclass::types::ObjectSubclassIsExt;
 use gtk4::prelude::{AccessibleExt, WidgetExt};
 use ori_native_core::{
-    Color,
+    Color, NativeWidget,
     native::{HasGroup, NativeGroup},
 };
 
 use crate::Platform;
+
+impl HasGroup for Platform {
+    type Group = Group;
+}
 
 pub struct Group {
     group:    GroupWidget,
     children: Vec<gtk4::Widget>,
 }
 
-impl NativeGroup<Platform> for Group {
+impl NativeWidget<Platform> for Group {
     fn widget(&self) -> &gtk4::Widget {
         self.group.as_ref()
     }
+}
 
+impl NativeGroup<Platform> for Group {
     fn build(_platform: &mut Platform) -> Self {
         let group = GroupWidget::new();
         group.set_accessible_role(gtk4::AccessibleRole::Group);
@@ -82,11 +88,7 @@ impl NativeGroup<Platform> for Group {
     }
 }
 
-impl HasGroup for Platform {
-    type Group = Group;
-}
-
-gtk4::glib::wrapper! {
+glib::wrapper! {
     pub struct GroupWidget(
         ObjectSubclass<imp::GroupWidget>)
         @extends

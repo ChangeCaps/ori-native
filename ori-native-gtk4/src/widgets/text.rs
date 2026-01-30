@@ -1,21 +1,27 @@
 use gtk4::prelude::{TextBufferExt, TextBufferExtManual, TextTagExt, TextViewExt, WidgetExt};
 use ori_native_core::{
-    Font, LayoutLeaf, Stretch, TextSpan, Weight,
+    Font, LayoutLeaf, NativeWidget, Stretch, TextSpan, Weight,
     native::{HasText, NativeText},
 };
 
 use crate::Platform;
 
+impl HasText for Platform {
+    type Text = Text;
+}
+
 pub struct Text {
     view: gtk4::TextView,
 }
 
-impl NativeText<Platform> for Text {
-    type Layout = TextLayout;
-
+impl NativeWidget<Platform> for Text {
     fn widget(&self) -> &gtk4::Widget {
         self.view.as_ref()
     }
+}
+
+impl NativeText<Platform> for Text {
+    type Layout = TextLayout;
 
     fn build(
         _platform: &mut Platform,
@@ -54,10 +60,6 @@ impl NativeText<Platform> for Text {
             text,
         }
     }
-}
-
-impl HasText for Platform {
-    type Text = Text;
 }
 
 pub struct TextLayout {

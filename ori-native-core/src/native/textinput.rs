@@ -1,15 +1,13 @@
-use crate::{Font, LayoutLeaf, Platform, views::Newline};
+use crate::{Font, LayoutLeaf, NativeWidget, Platform, views::Newline};
 
 pub trait HasTextInput: Platform {
     type TextInput: NativeTextInput<Self>;
 }
 
-pub trait NativeTextInput<P>: Sized
+pub trait NativeTextInput<P>: NativeWidget<P>
 where
     P: Platform,
 {
-    fn widget(&self) -> &P::Widget;
-
     fn build(platform: &mut P) -> Self;
     fn teardown(self, platform: &mut P);
 

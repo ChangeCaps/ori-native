@@ -1,9 +1,8 @@
 use ori::{Action, Message, Mut, Proxied, Proxy, View, ViewId, ViewMarker};
 
 use crate::{
-    Context, Lifecycle, Pod, PodMut, ShadowView,
+    Context, Lifecycle, NativeWidget, Pod, PodMut, WidgetView,
     native::{HasPressable, NativePressable, Press},
-    shadows::PressableShadow,
 };
 
 pub fn pressable<V, T>(build: impl FnMut(&T, PressState) -> V + 'static) -> Pressable<V, T> {
@@ -70,10 +69,10 @@ impl<T, V> ViewMarker for Pressable<V, T> {}
 impl<P, T, V> View<Context<P>, T> for Pressable<V, T>
 where
     P: HasPressable + Proxied,
-    V: ShadowView<P, T>,
+    V: WidgetView<P, T>,
 {
-    type Element = Pod<PressableShadow<P, V::Shadow>>;
-    type State = PressableState<P, T, V>;
+    type Element = Pod<P::Pressable>;
+    type State = (V::Widget, PressableState<P, T, V>);
 
     fn build(mut self, cx: &mut Context<P>, data: &mut T) -> (Self::Element, Self::State) {
         let press = PressState {
@@ -85,11 +84,14 @@ where
         let view = (self.build)(data, press);
         let (contents, state) = view.build(cx, data);
 
-        let mut shadow = PressableShadow::new(cx, contents.shadow);
+        let mut widget = P::Pressable::build(
+            &mut cx.platform,
+            contents.widget.widget(),
+        );
 
         let view_id = ViewId::next();
 
-        shadow.set_on_press({
+        widget.set_on_press({
             let proxy = cx.proxy();
 
             move |pressed| {
@@ -100,7 +102,7 @@ where
             }
         });
 
-        shadow.set_on_hover({
+        widget.set_on_hover({
             let proxy = cx.proxy();
 
             move |hovered| {
@@ -111,7 +113,7 @@ where
             }
         });
 
-        shadow.set_on_focus({
+        widget.set_on_focus({
             let proxy = cx.proxy();
 
             move |focused| {
@@ -124,7 +126,7 @@ where
 
         let pod = Pod {
             node: contents.node,
-            shadow,
+            widget,
         };
 
         let state = PressableState {
@@ -137,13 +139,13 @@ where
             state,
         };
 
-        (pod, state)
+        (pod, (contents.widget, state))
     }
 
     fn rebuild(
         mut self,
         element: Mut<'_, Self::Element>,
-        state: &mut Self::State,
+        (contents, state): &mut Self::State,
         cx: &mut Context<P>,
         data: &mut T,
     ) {
@@ -151,7 +153,7 @@ where
         let pod = PodMut {
             parent: element.parent,
             node:   element.node,
-            shadow: &mut element.shadow.contents,
+            widget: contents,
         };
 
         view.rebuild(pod, &mut state.state, cx, data);
@@ -161,7 +163,7 @@ where
 
     fn message(
         element: Mut<'_, Self::Element>,
-        state: &mut Self::State,
+        (contents, state): &mut Self::State,
         cx: &mut Context<P>,
         data: &mut T,
         message: &mut Message,
@@ -169,13 +171,13 @@ where
         if let Some(Lifecycle::Layout) = message.get()
             && let Ok(layout) = cx.get_computed_layout(*element.node)
         {
-            (element.shadow).set_size(layout.size.width, layout.size.height);
+            (element.widget).set_size(layout.size.width, layout.size.height);
         }
 
         let pod = PodMut {
             parent: element.parent,
             node:   element.node,
-            shadow: &mut element.shadow.contents,
+            widget: contents,
         };
 
         if let Some(message) = message.take_targeted(state.view_id) {
@@ -210,14 +212,14 @@ where
         }
     }
 
-    fn teardown(element: Self::Element, state: Self::State, cx: &mut Context<P>) {
+    fn teardown(element: Self::Element, (contents, state): Self::State, cx: &mut Context<P>) {
         let pod = Pod {
             node:   element.node,
-            shadow: element.shadow.contents,
+            widget: contents,
         };
 
         V::teardown(pod, state.state, cx);
-        element.shadow.pressable.teardown(&mut cx.platform);
+        element.widget.teardown(&mut cx.platform);
     }
 }
 
@@ -226,7 +228,7 @@ where
 pub struct PressableState<P, T, V>
 where
     P: HasPressable,
-    V: ShadowView<P, T>,
+    V: WidgetView<P, T>,
 {
     press:    PressState,
     view_id:  ViewId,

@@ -1,15 +1,13 @@
-use crate::{Direction, Platform};
+use crate::{Direction, NativeWidget, Platform};
 
 pub trait HasScroll: Platform {
     type Scroll: NativeScroll<Self>;
 }
 
-pub trait NativeScroll<P>
+pub trait NativeScroll<P>: NativeWidget<P>
 where
     P: Platform,
 {
-    fn widget(&self) -> &P::Widget;
-
     fn build(platform: &mut P, contents: &P::Widget) -> Self;
     fn teardown(self, platform: &mut P);
 
