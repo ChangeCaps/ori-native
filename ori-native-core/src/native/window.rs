@@ -11,6 +11,7 @@ where
     P: Platform,
 {
     fn build(platform: &mut P, contents: &P::Widget) -> Self;
+
     fn teardown(self, platform: &mut P);
 
     fn get_size(&self) -> (u32, u32);
@@ -23,4 +24,18 @@ where
     fn stop_animating(&mut self);
 
     fn set_min_size(&mut self, width: u32, height: u32);
+    fn set_size(&mut self, width: u32, height: u32);
+
+    #[cfg(feature = "layer-shell")]
+    fn build_layer_shell(
+        platform: &mut P,
+        contents: &P::Widget,
+        layer_shell: crate::views::LayerShell,
+    ) -> Self
+    where
+        Self: Sized,
+    {
+        let _ = layer_shell;
+        Self::build(platform, contents)
+    }
 }

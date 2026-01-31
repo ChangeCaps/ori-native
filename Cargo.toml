@@ -27,6 +27,9 @@ taffy   = "0.9"
 tokio   = "1"
 tracing = "0.1"
 
+[features]
+layer-shell = ["ori-native-gtk4/layer-shell"]
+
 [dependencies]
 ori-native-core = { workspace = true }
 ori-native-gtk4 = { workspace = true }
