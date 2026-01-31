@@ -9,11 +9,80 @@ use crate::{
 };
 
 pub fn window<V>(contents: V) -> Window<V> {
-    Window { contents }
+    Window::new(contents)
 }
 
 pub struct Window<V> {
     contents: V,
+
+    #[cfg(feature = "layer-shell")]
+    layer_shell: Option<LayerShell>,
+}
+
+#[cfg(feature = "layer-shell")]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct LayerShell {
+    pub layer:          Layer,
+    pub exclusive_zone: ExclusiveZone,
+    pub margin_top:     i32,
+    pub margin_right:   i32,
+    pub margin_bottom:  i32,
+    pub margin_left:    i32,
+    pub anchor_top:     bool,
+    pub anchor_right:   bool,
+    pub anchor_bottom:  bool,
+    pub anchor_left:    bool,
+}
+
+#[cfg(feature = "layer-shell")]
+impl Default for LayerShell {
+    fn default() -> Self {
+        Self {
+            layer:          Layer::Top,
+            exclusive_zone: ExclusiveZone::Auto,
+            margin_top:     0,
+            margin_right:   0,
+            margin_bottom:  0,
+            margin_left:    0,
+            anchor_top:     false,
+            anchor_right:   false,
+            anchor_bottom:  false,
+            anchor_left:    false,
+        }
+    }
+}
+
+#[cfg(feature = "layer-shell")]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Layer {
+    Background,
+    Bottom,
+    Top,
+    Overlay,
+}
+
+#[cfg(feature = "layer-shell")]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum ExclusiveZone {
+    Auto,
+    Fixed(i32),
+}
+
+impl<V> Window<V> {
+    pub fn new(contents: V) -> Self {
+        Window {
+            contents,
+
+            #[cfg(feature = "layer-shell")]
+            layer_shell: None,
+        }
+    }
+
+    #[cfg(feature = "layer-shell")]
+    pub fn layer_shell(mut self, layer_shell: LayerShell) -> Self {
+        self.layer_shell = Some(layer_shell);
+        self
+    }
 }
 
 #[derive(Debug)]
@@ -42,10 +111,25 @@ where
             self.contents.build(cx, data)
         });
 
+        #[cfg(not(feature = "layer-shell"))]
         let mut window = P::Window::build(
             &mut cx.platform,
             contents.widget.widget(),
         );
+
+        #[cfg(feature = "layer-shell")]
+        let mut window = if let Some(layer_shell) = self.layer_shell {
+            P::Window::build_layer_shell(
+                &mut cx.platform,
+                contents.widget.widget(),
+                layer_shell,
+            )
+        } else {
+            P::Window::build(
+                &mut cx.platform,
+                contents.widget.widget(),
+            )
+        };
 
         window.set_on_resize({
             let proxy = cx.proxy();

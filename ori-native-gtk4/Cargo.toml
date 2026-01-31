@@ -5,6 +5,9 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 
+[features]
+layer-shell = ["dep:gtk4-layer-shell", "ori-native-core/layer-shell"]
+
 [dependencies]
 ori-native-core = { workspace = true }
 ori             = { workspace = true }
@@ -26,3 +29,7 @@ version = "0.21"
 [dependencies.tokio]
 workspace = true
 features = ["sync", "rt-multi-thread"]
+
+[dependencies.gtk4-layer-shell]
+version = "0.7.1"
+optional = true

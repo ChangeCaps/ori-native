@@ -19,3 +19,6 @@ pub use transition::{
     Back, BackIn, BackInOut, Ease, Elastic, ElasticIn, Lerp, Linear, Transition, transition,
 };
 pub use window::{Window, WindowMessage, window};
+
+#[cfg(feature = "layer-shell")]
+pub use window::{ExclusiveZone, Layer, LayerShell};

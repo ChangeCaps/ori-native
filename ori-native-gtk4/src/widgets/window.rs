@@ -23,6 +23,58 @@ impl NativeWindow<Platform> for Window {
         }
     }
 
+    #[cfg(feature = "layer-shell")]
+    fn build_layer_shell(
+        platform: &mut Platform,
+        contents: &gtk4::Widget,
+        layer_shell: ori_native_core::views::LayerShell,
+    ) -> Self
+    where
+        Self: Sized,
+    {
+        use gtk4_layer_shell::{Edge, Layer, LayerShell};
+        use ori_native_core::views;
+
+        let window = ApplicationWindow::new(&platform.application);
+        window.init_layer_shell();
+        window.set_size_request(1, 1);
+
+        window.set_layer(match layer_shell.layer {
+            views::Layer::Background => Layer::Background,
+            views::Layer::Bottom => Layer::Bottom,
+            views::Layer::Top => Layer::Top,
+            views::Layer::Overlay => Layer::Overlay,
+        });
+
+        window.set_margin(Edge::Top, layer_shell.margin_top);
+        window.set_margin(Edge::Right, layer_shell.margin_right);
+        window.set_margin(Edge::Bottom, layer_shell.margin_bottom);
+        window.set_margin(Edge::Left, layer_shell.margin_left);
+
+        window.set_anchor(Edge::Top, layer_shell.anchor_top);
+        window.set_anchor(Edge::Right, layer_shell.anchor_right);
+        window.set_anchor(Edge::Bottom, layer_shell.anchor_bottom);
+        window.set_anchor(Edge::Left, layer_shell.anchor_left);
+
+        match layer_shell.exclusive_zone {
+            views::ExclusiveZone::Auto => {
+                window.auto_exclusive_zone_enable();
+            }
+
+            views::ExclusiveZone::Fixed(size) => {
+                window.set_exclusive_zone(size);
+            }
+        }
+
+        window.set_child(Some(contents));
+        window.show();
+
+        Self {
+            window,
+            previous_frame: Default::default(),
+        }
+    }
+
     fn teardown(self, _platform: &mut Platform) {}
 
     fn get_size(&self) -> (u32, u32) {
@@ -62,7 +114,30 @@ impl NativeWindow<Platform> for Window {
     }
 
     fn set_min_size(&mut self, width: u32, height: u32) {
+        #[cfg(feature = "layer-shell")]
+        {
+            use gtk4_layer_shell::LayerShell;
+
+            if self.window.is_layer_window() {
+                return;
+            }
+        }
+
         self.window.set_size_request(width as i32, height as i32);
+    }
+
+    fn set_size(&mut self, width: u32, height: u32) {
+        #[cfg(feature = "layer-shell")]
+        {
+            use gtk4_layer_shell::LayerShell;
+
+            if self.window.is_layer_window() {
+                self.window.set_size_request(
+                    width.max(1) as i32,
+                    height.max(1) as i32,
+                );
+            }
+        }
     }
 
     fn start_animating(&mut self) {
