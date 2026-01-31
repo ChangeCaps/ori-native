@@ -9,14 +9,14 @@ pub enum AutoLength {
 }
 
 impl From<f32> for AutoLength {
-    fn from(length: f32) -> Self {
-        AutoLength::Length(length)
+    fn from(x: f32) -> Self {
+        AutoLength::Length(x)
     }
 }
 
 impl From<Fraction> for AutoLength {
-    fn from(Fraction(percent): Fraction) -> Self {
-        AutoLength::Fraction(percent)
+    fn from(Fraction(x): Fraction) -> Self {
+        AutoLength::Fraction(x)
     }
 }
 
@@ -27,14 +27,14 @@ pub enum Length {
 }
 
 impl From<f32> for Length {
-    fn from(length: f32) -> Self {
-        Length::Length(length)
+    fn from(x: f32) -> Self {
+        Length::Length(x)
     }
 }
 
 impl From<Fraction> for Length {
-    fn from(Fraction(percent): Fraction) -> Self {
-        Length::Fraction(percent)
+    fn from(Fraction(x): Fraction) -> Self {
+        Length::Fraction(x)
     }
 }
 
