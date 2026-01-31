@@ -1,10 +1,10 @@
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
-pub struct Percent(pub f32);
+pub struct Fraction(pub f32);
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum AutoLength {
     Length(f32),
-    Percent(f32),
+    Fraction(f32),
     Auto,
 }
 
@@ -14,16 +14,16 @@ impl From<f32> for AutoLength {
     }
 }
 
-impl From<Percent> for AutoLength {
-    fn from(Percent(percent): Percent) -> Self {
-        AutoLength::Percent(percent)
+impl From<Fraction> for AutoLength {
+    fn from(Fraction(percent): Fraction) -> Self {
+        AutoLength::Fraction(percent)
     }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Length {
     Length(f32),
-    Percent(f32),
+    Fraction(f32),
 }
 
 impl From<f32> for Length {
@@ -32,9 +32,9 @@ impl From<f32> for Length {
     }
 }
 
-impl From<Percent> for Length {
-    fn from(Percent(percent): Percent) -> Self {
-        Length::Percent(percent)
+impl From<Fraction> for Length {
+    fn from(Fraction(percent): Fraction) -> Self {
+        Length::Fraction(percent)
     }
 }
 
@@ -290,7 +290,7 @@ impl AutoLength {
     fn into_taffy_dimension(self) -> taffy::Dimension {
         match self {
             AutoLength::Length(x) => taffy::Dimension::length(x),
-            AutoLength::Percent(x) => taffy::Dimension::percent(x),
+            AutoLength::Fraction(x) => taffy::Dimension::percent(x),
             AutoLength::Auto => taffy::Dimension::auto(),
         }
     }
@@ -298,7 +298,7 @@ impl AutoLength {
     fn into_taffy_length_auto(self) -> taffy::LengthPercentageAuto {
         match self {
             AutoLength::Length(x) => taffy::LengthPercentageAuto::length(x),
-            AutoLength::Percent(x) => taffy::LengthPercentageAuto::percent(x),
+            AutoLength::Fraction(x) => taffy::LengthPercentageAuto::percent(x),
             AutoLength::Auto => taffy::LengthPercentageAuto::auto(),
         }
     }
@@ -308,7 +308,7 @@ impl Length {
     fn into_taffy(self) -> taffy::LengthPercentage {
         match self {
             Length::Length(x) => taffy::LengthPercentage::length(x),
-            Length::Percent(x) => taffy::LengthPercentage::percent(x),
+            Length::Fraction(x) => taffy::LengthPercentage::percent(x),
         }
     }
 }

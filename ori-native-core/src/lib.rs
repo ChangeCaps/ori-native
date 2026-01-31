@@ -15,8 +15,8 @@ pub use element::{BoxedWidget, NativeWidget, Pod, PodMut, WidgetView};
 pub use lifecycle::Lifecycle;
 pub use platform::Platform;
 pub use style::{
-    Align, AutoLength, BorderLayout, ContainerLayout, Direction, FlexLayout, Justify, Layout,
-    Length, Percent, Position,
+    Align, AutoLength, BorderLayout, ContainerLayout, Direction, FlexLayout, Fraction, Justify,
+    Layout, Length, Position,
 };
 pub use text::{Font, Stretch, TextSpan, Weight};
 
