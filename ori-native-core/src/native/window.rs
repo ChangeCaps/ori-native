@@ -26,17 +26,4 @@ where
     fn set_min_size(&mut self, width: u32, height: u32);
     fn set_size(&mut self, width: u32, height: u32);
     fn set_resizable(&mut self, resizable: bool);
-
-    #[cfg(feature = "layer-shell")]
-    fn build_layer_shell(
-        platform: &mut P,
-        contents: &P::Widget,
-        layer_shell: crate::views::LayerShell,
-    ) -> Self
-    where
-        Self: Sized,
-    {
-        let _ = layer_shell;
-        Self::build(platform, contents)
-    }
 }

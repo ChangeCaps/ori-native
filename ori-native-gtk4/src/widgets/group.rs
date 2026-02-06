@@ -283,9 +283,9 @@ mod imp {
                 &[self.border_color.get(); 4],
             );
 
-            snapshot.pop();
-
             self.parent_snapshot(snapshot);
+
+            snapshot.pop();
         }
 
         fn size_allocate(&self, width: i32, height: i32, baseline: i32) {

@@ -18,7 +18,4 @@ pub use textinput::{Newline, Submit, TextInput, textinput};
 pub use transition::{
     Back, BackIn, BackInOut, Ease, Elastic, ElasticIn, Lerp, Linear, Transition, transition,
 };
-pub use window::{Window, WindowMessage, WindowSizing, window};
-
-#[cfg(feature = "layer-shell")]
-pub use window::{ExclusiveZone, KeyboardInput, Layer, LayerShell};
+pub use window::{Window, WindowMessage, WindowSizing, WindowState, window};

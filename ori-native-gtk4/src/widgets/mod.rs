@@ -5,3 +5,5 @@ mod scroll;
 mod text;
 mod textinput;
 mod window;
+
+pub use window::Window;

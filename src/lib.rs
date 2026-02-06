@@ -24,4 +24,7 @@ pub mod prelude {
         ContainerLayout, Context, Effect, Element, FlexLayout, Fraction, Justify, Layout, Length,
         Message, Position, Proxy, View, views::*,
     };
+
+    #[allow(unused_imports)]
+    pub use crate::platform::views::*;
 }
