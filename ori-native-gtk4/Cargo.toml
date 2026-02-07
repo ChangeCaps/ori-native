@@ -6,22 +6,26 @@ authors.workspace = true
 license.workspace = true
 
 [features]
-layer-shell = ["dep:gtk4-layer-shell"]
+layer-shell  = ["dep:gtk4-layer-shell"]
 session-lock = ["dep:gtk4-session-lock"]
 
 [dependencies]
 ori-native-core = { workspace = true }
-ori             = { workspace = true }
-taffy           = { workspace = true }
-tracing         = { workspace = true }
+
+ori     = { workspace = true }
+taffy   = { workspace = true }
+tracing = { workspace = true }
 
 gtk4  = "0.10"
 gdk4  = "0.10"
+gsk4  = "0.10"
 glib  = "0.21"
 gio   = "0.21"
-gsk4  = "0.10"
 pango = "0.21"
-librsvg = { package = "librsvg-rebind", version = "0.2" }
+
+[dependencies.librsvg]
+package = "librsvg-rebind"
+version = "0.2"
 
 [dependencies.graphene]
 package = "graphene-rs"
@@ -29,13 +33,13 @@ version = "0.21"
 
 [dependencies.tokio]
 workspace = true
-features = ["sync", "rt-multi-thread"]
+features  = ["sync", "rt-multi-thread"]
 
 [dependencies.gtk4-layer-shell]
-version = "0.7.1"
+version  = "0.7.1"
 optional = true
 
 [dependencies.gtk4-session-lock]
-version = "0.3"
+version  = "0.3"
 features = ["v1_1"]
 optional = true
