@@ -14,13 +14,13 @@ pub fn layer_shell<V>(contents: V) -> LayerShell<V> {
     LayerShell::new(contents)
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct LayerShell<V> {
     contents:       V,
     sizing:         WindowSizing,
     layer:          Layer,
     exclusive_zone: ExclusiveZone,
-    monitor:        Option<u32>,
+    monitor:        Option<gdk4::Monitor>,
     keyboard:       KeyboardInput,
     margin_top:     i32,
     margin_right:   i32,
@@ -67,8 +67,8 @@ impl<V> LayerShell<V> {
         self
     }
 
-    pub fn monitor(mut self, monitor: impl Into<Option<u32>>) -> Self {
-        self.monitor = monitor.into();
+    pub fn monitor(mut self, monitor: Option<gdk4::Monitor>) -> Self {
+        self.monitor = monitor;
         self
     }
 
@@ -152,14 +152,7 @@ where
         window.init_layer_shell();
         window.set_size_request(1, 1);
 
-        if let Some(index) = self.monitor
-            && let Some(Ok(monitor)) = cx
-                .platform
-                .display
-                .monitors()
-                .into_iter()
-                .nth(index as usize)
-        {
+        if let Some(monitor) = self.monitor {
             window.set_monitor(monitor.downcast_ref());
         }
 
@@ -226,14 +219,7 @@ where
     ) {
         state.rebuild(cx, data, self.contents, self.sizing);
 
-        if let Some(index) = self.monitor
-            && let Some(Ok(monitor)) = cx
-                .platform
-                .display
-                .monitors()
-                .into_iter()
-                .nth(index as usize)
-        {
+        if let Some(monitor) = self.monitor {
             state.window.set_monitor(monitor.downcast_ref());
         }
 
