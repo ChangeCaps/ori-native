@@ -30,16 +30,6 @@ impl<V> SessionLock<V> {
             monitor,
         }
     }
-
-    pub fn instance(mut self, instance: Instance) -> Self {
-        self.instance = instance;
-        self
-    }
-
-    pub fn monitor(mut self, monitor: gdk4::Monitor) -> Self {
-        self.monitor = monitor;
-        self
-    }
 }
 
 impl<V> ViewMarker for SessionLock<V> {}
