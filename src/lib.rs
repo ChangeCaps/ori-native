@@ -1,3 +1,5 @@
+#![warn(clippy::unwrap_used)]
+
 mod app;
 mod view;
 
@@ -12,6 +14,8 @@ use ori_native_gtk4 as platform;
 pub type Platform = platform::Platform;
 pub type Context = ori_native_core::Context<Platform>;
 pub type Element = <Context as ori::Base>::Element;
+pub type Error = platform::Error;
+pub type Result<T> = std::result::Result<T, Error>;
 
 pub mod views {
     pub use ori::views::*;

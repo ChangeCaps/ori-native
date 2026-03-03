@@ -1,8 +1,34 @@
+use std::{error, fmt, io};
+
 use gtk4::prelude::ApplicationExt;
 use ori::{Effect, Message, Proxied};
 use ori_native_core::Context;
 
 use crate::Platform;
+
+#[derive(Debug)]
+pub enum Error {
+    GtkInit,
+    GdkNoDisplay,
+    GdkApplicationRegister,
+    Io(io::Error),
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::GtkInit => write!(f, "gtk4 initialization failed"),
+            Self::GdkNoDisplay => write!(f, "gdk4 display could not be retrieved"),
+            Self::GdkApplicationRegister => write!(
+                f,
+                "gtk4 application could not be registered",
+            ),
+            Self::Io(error) => write!(f, "io error: {error}"),
+        }
+    }
+}
+
+impl error::Error for Error {}
 
 pub struct Application {}
 
@@ -17,18 +43,18 @@ impl Application {
         Self {}
     }
 
-    pub fn run<T, V>(self, data: &mut T, ui: impl FnMut(&T) -> V)
+    pub fn run<T, V>(self, data: &mut T, ui: impl FnMut(&T) -> V) -> Result<(), Error>
     where
         V: Effect<Context<Platform>, T>,
     {
         Self::init_log();
-        gtk4::init().unwrap();
+        gtk4::init().map_err(|_| Error::GtkInit)?;
 
         let (sender, mut receiver) = tokio::sync::mpsc::unbounded_channel();
 
         let app = gtk4::Application::default();
-        let display = gdk4::Display::default().unwrap();
-        let platform = Platform::new(sender.clone(), display, app.clone());
+        let display = gdk4::Display::default().ok_or(Error::GdkNoDisplay)?;
+        let platform = Platform::new(sender.clone(), display, app.clone()).map_err(Error::Io)?;
         let mut state = State {
             data,
             build: ui,
@@ -43,7 +69,9 @@ impl Application {
 
         let main_context = glib::MainContext::default();
 
-        app.register(None::<&gio::Cancellable>).unwrap();
+        app.register(None::<&gio::Cancellable>)
+            .map_err(|_| Error::GdkApplicationRegister)?;
+
         app.activate();
 
         main_context.block_on(async {
@@ -60,6 +88,8 @@ impl Application {
 
             state.teardown();
         });
+
+        Ok(())
     }
 
     fn init_log() {

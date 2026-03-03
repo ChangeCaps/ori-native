@@ -3,7 +3,7 @@ use ori_native::prelude::*;
 fn main() {
     let mut data = Data { todos: Vec::new() };
 
-    App::new().run(&mut data, ui);
+    App::new().run(&mut data, ui).unwrap();
 }
 
 struct Data {

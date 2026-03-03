@@ -1,4 +1,4 @@
-use std::{collections::HashMap, pin::Pin, sync::Arc};
+use std::{collections::HashMap, io, pin::Pin, sync::Arc};
 
 use ori::{Message, Proxied, Proxy};
 use tokio::sync::mpsc::UnboundedSender;
@@ -27,8 +27,8 @@ impl Platform {
         sender: UnboundedSender<Event>,
         display: gdk4::Display,
         application: gtk4::Application,
-    ) -> Self {
-        let runtime = Arc::new(tokio::runtime::Runtime::new().unwrap());
+    ) -> io::Result<Self> {
+        let runtime = Arc::new(tokio::runtime::Runtime::new()?);
 
         let provider = gtk4::CssProvider::new();
         provider.load_from_data(include_str!("default.css"));
@@ -39,13 +39,13 @@ impl Platform {
             gtk4::STYLE_PROVIDER_PRIORITY_APPLICATION,
         );
 
-        Self {
+        Ok(Self {
             proxy: Gtk4Proxy { sender, runtime },
             display,
             application,
             css_providers: HashMap::new(),
             next_css_node: 0,
-        }
+        })
     }
 
     pub fn add_style(&mut self, styles: &str) -> StyleNode {

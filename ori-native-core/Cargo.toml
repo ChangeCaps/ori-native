@@ -7,5 +7,7 @@ license.workspace = true
 
 [dependencies]
 ori     = { workspace = true }
-taffy   = { workspace = true }
+
 seahash = { workspace = true }
+taffy   = { workspace = true }
+tracing = { workspace = true }

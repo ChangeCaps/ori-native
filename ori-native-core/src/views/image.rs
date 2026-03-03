@@ -51,9 +51,15 @@ where
         widget.set_tint(self.tint);
 
         let hash = seahash::hash(&self.data);
-        let layout = widget.load_data(&mut cx.platform, self.data).unwrap();
+        let node = match widget.load_data(&mut cx.platform, self.data) {
+            Ok(layout) => cx.new_layout_leaf(self.style, layout),
 
-        let node = cx.new_layout_leaf(self.style, layout);
+            Err(error) => {
+                tracing::error!(?error, "loading image failed");
+                cx.new_layout_node(self.style, &[])
+            }
+        };
+
         let pod = Pod::new(node, widget);
 
         let state = ImageState {
@@ -78,12 +84,13 @@ where
         if state.hash != hash {
             state.hash = hash;
 
-            let layout = element
-                .widget
-                .load_data(&mut cx.platform, self.data)
-                .unwrap();
+            match element.widget.load_data(&mut cx.platform, self.data) {
+                Ok(layout) => {
+                    let _ = cx.set_leaf_layout(*element.node, layout);
+                }
 
-            cx.set_leaf_layout(*element.node, layout).unwrap();
+                Err(error) => tracing::error!(?error, "loading image failed"),
+            }
         }
 
         if state.tint != self.tint {

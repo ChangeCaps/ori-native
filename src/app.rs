@@ -1,4 +1,4 @@
-use crate::{Effect, platform};
+use crate::{Effect, Result, platform};
 
 pub struct App {
     native: platform::Application,
@@ -18,7 +18,7 @@ impl App {
     }
 
     #[track_caller]
-    pub fn run<T, V>(self, data: &mut T, ui: impl FnMut(&T) -> V)
+    pub fn run<T, V>(self, data: &mut T, ui: impl FnMut(&T) -> V) -> Result<()>
     where
         V: Effect<T>,
     {
@@ -26,6 +26,6 @@ impl App {
             panic!("`App::run` cannot be called from within an async runtime.");
         }
 
-        self.native.run(data, ui);
+        self.native.run(data, ui)
     }
 }

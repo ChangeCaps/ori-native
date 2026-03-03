@@ -1,3 +1,5 @@
+#![warn(clippy::unwrap_used)]
+
 mod context;
 mod element;
 mod lifecycle;
