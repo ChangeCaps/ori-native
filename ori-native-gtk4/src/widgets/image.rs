@@ -15,14 +15,14 @@ impl HasImage for Platform {
 }
 
 pub struct Image {
-    image: gtk4::Picture,
-    svg:   Option<Paintable>,
-    tint:  Option<Color>,
+    picture:   gtk4::Picture,
+    paintable: Option<Paintable>,
+    tint:      Option<Color>,
 }
 
 impl NativeWidget<Platform> for Image {
     fn widget(&self) -> &gtk4::Widget {
-        self.image.as_ref()
+        self.picture.as_ref()
     }
 }
 
@@ -30,11 +30,11 @@ impl NativeImage<Platform> for Image {
     type Error = io::Error;
 
     fn build(_plaform: &mut Platform) -> Self {
-        let image = gtk4::Picture::new();
+        let picture = gtk4::Picture::new();
 
         Self {
-            image,
-            svg: None,
+            picture,
+            paintable: None,
             tint: None,
         }
     }
@@ -48,7 +48,9 @@ impl NativeImage<Platform> for Image {
     ) -> Result<impl LayoutLeaf<Platform>, Self::Error> {
         let paintable = Paintable::new(&data)?;
         paintable.set_tint(self.tint);
-        self.image.set_paintable(Some(&paintable));
+
+        self.picture.set_paintable(Some(&paintable));
+        self.paintable = Some(paintable.clone());
 
         Ok(Layout { paintable })
     }
@@ -56,8 +58,8 @@ impl NativeImage<Platform> for Image {
     fn set_tint(&mut self, tint: Option<Color>) {
         self.tint = tint;
 
-        if let Some(ref svg) = self.svg {
-            svg.set_tint(tint);
+        if let Some(ref paintable) = self.paintable {
+            paintable.set_tint(tint);
         }
     }
 }
@@ -134,9 +136,8 @@ impl Paintable {
     }
 
     fn set_tint(&self, tint: Option<Color>) {
-        if self.imp().tint.replace(tint) != tint {
-            self.invalidate_contents();
-        }
+        self.imp().tint.replace(tint);
+        self.invalidate_contents();
     }
 
     fn intrinsic_size(&self) -> Option<(f64, f64)> {

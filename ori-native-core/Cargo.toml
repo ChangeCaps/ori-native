@@ -6,5 +6,6 @@ authors.workspace = true
 license.workspace = true
 
 [dependencies]
-ori   = { workspace = true }
-taffy = { workspace = true }
+ori     = { workspace = true }
+taffy   = { workspace = true }
+seahash = { workspace = true }

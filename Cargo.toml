@@ -26,6 +26,7 @@ ori = { git = "https://github.com/ori-ui/ori" }
 taffy   = "0.9"
 tokio   = "1"
 tracing = "0.1"
+seahash = "4"
 
 [features]
 layer-shell  = ["ori-native-gtk4/layer-shell"]

@@ -44,35 +44,52 @@ where
     P: HasImage,
 {
     type Element = Pod<P, P::Image>;
-    type State = ();
+    type State = ImageState;
 
     fn build(self, cx: &mut Context<P>, _data: &mut T) -> (Self::Element, Self::State) {
         let mut widget = P::Image::build(&mut cx.platform);
         widget.set_tint(self.tint);
 
+        let hash = seahash::hash(&self.data);
         let layout = widget.load_data(&mut cx.platform, self.data).unwrap();
 
         let node = cx.new_layout_leaf(self.style, layout);
         let pod = Pod::new(node, widget);
 
-        (pod, ())
+        let state = ImageState {
+            hash,
+            tint: self.tint,
+        };
+
+        (pod, state)
     }
 
     fn rebuild(
         self,
         element: Mut<'_, Self::Element>,
-        _state: &mut Self::State,
+        state: &mut Self::State,
         cx: &mut Context<P>,
         _data: &mut T,
     ) {
         let _ = cx.set_layout_style(*element.node, self.style);
 
-        let layout = element
-            .widget
-            .load_data(&mut cx.platform, self.data)
-            .unwrap();
+        let hash = seahash::hash(&self.data);
 
-        cx.set_leaf_layout(*element.node, layout).unwrap();
+        if state.hash != hash {
+            state.hash = hash;
+
+            let layout = element
+                .widget
+                .load_data(&mut cx.platform, self.data)
+                .unwrap();
+
+            cx.set_leaf_layout(*element.node, layout).unwrap();
+        }
+
+        if state.tint != self.tint {
+            state.tint = self.tint;
+            element.widget.set_tint(self.tint);
+        }
     }
 
     fn message(
@@ -88,4 +105,9 @@ where
     fn teardown(element: Self::Element, _state: Self::State, cx: &mut Context<P>) {
         element.widget.teardown(&mut cx.platform);
     }
+}
+
+pub struct ImageState {
+    hash: u64,
+    tint: Option<Color>,
 }
