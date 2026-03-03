@@ -27,8 +27,9 @@ pub mod views {
 pub mod prelude {
     pub use crate::{
         Action, Align, App, AutoLength, BorderLayout, BuildMarker, BuildView, Color,
-        ContainerLayout, Context, Effect, Element, FlexLayout, Fraction, Justify, Keyed, Layout,
-        Length, Message, Overflow, Position, Proxy, Sizing, View, Wrap, keyed, views::*,
+        ContainerLayout, Context, Effect, Element, FlexLayout, Font, Fraction, Justify, Keyed,
+        Layout, Length, Message, Overflow, Position, Proxy, Sizing, Stretch, View, Weight, Wrap,
+        keyed, views::*,
     };
 
     #[allow(unused_imports)]
