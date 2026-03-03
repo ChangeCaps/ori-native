@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use ori::{Action, Message, Mut, Proxied, Proxy, View, ViewId, ViewMarker};
+use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarker};
 
 use crate::{
     Context, Lifecycle, NativeWidget, Pod, Sizing, WidgetView,
@@ -166,6 +166,8 @@ where
                 ));
             }
         });
+
+        cx.register(view_id);
 
         let node = cx.new_layout_node(Default::default(), &[contents.node]);
         let (width, height) = window.get_size();
@@ -364,5 +366,6 @@ where
 
         self.window.teardown(&mut cx.platform);
         let _ = cx.remove_layout_node(self.node);
+        cx.unregister(self.view_id);
     }
 }

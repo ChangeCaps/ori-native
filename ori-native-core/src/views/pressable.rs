@@ -1,4 +1,4 @@
-use ori::{Action, Message, Mut, Proxied, Proxy, View, ViewId, ViewMarker};
+use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarker};
 
 use crate::{
     Context, Lifecycle, NativeWidget, Pod, PodMut, WidgetView,
@@ -90,6 +90,7 @@ where
         );
 
         let view_id = ViewId::next();
+        cx.register(view_id);
 
         widget.set_on_press({
             let proxy = cx.proxy();
@@ -220,6 +221,7 @@ where
 
         V::teardown(pod, state.state, cx);
         element.widget.teardown(&mut cx.platform);
+        cx.unregister(state.view_id);
     }
 }
 

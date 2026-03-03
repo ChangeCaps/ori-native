@@ -1,6 +1,6 @@
 use std::any::Any;
 
-use ori::{Action, AnyView, Base, Message, Provider, Proxied, Proxy, ViewId};
+use ori::{Action, AnyView, Base, Message, Provider, Proxied, Proxy, Tracker, Tree, ViewId};
 
 use crate::{BoxedWidget, Platform, views::WindowMessage};
 
@@ -19,6 +19,7 @@ pub struct Context<P> {
     layout_controller:    Option<ViewId>,
     animation_controller: Option<ViewId>,
     resources:            Vec<Box<dyn Any>>,
+    tree:                 Tree,
 }
 
 impl<P> Context<P>
@@ -32,6 +33,7 @@ where
             layout_controller: None,
             animation_controller: None,
             resources: Vec::new(),
+            tree: Tree::new(),
         }
     }
 
@@ -204,6 +206,12 @@ pub type BoxedEffect<P, T> = Box<dyn AnyView<Context<P>, T, ()>>;
 
 impl<P> Base for Context<P> {
     type Element = BoxedWidget<P>;
+}
+
+impl<P> Tracker for Context<P> {
+    fn tree(&mut self) -> &mut Tree {
+        &mut self.tree
+    }
 }
 
 impl<P> Proxied for Context<P>

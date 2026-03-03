@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use ori::{Action, Message, Mut, Proxied, Proxy, View, ViewId, ViewMarker};
+use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarker};
 
 use crate::{
     Color, Context, Font, Layout, Pod, Stretch, Weight,
@@ -228,6 +228,7 @@ where
         let node = cx.new_layout_leaf(self.layout, layout);
 
         let view_id = ViewId::next();
+        cx.register(view_id);
 
         let proxy = cx.proxy();
         widget.set_on_change(&mut cx.platform, move |text| {
@@ -345,9 +346,10 @@ where
         }
     }
 
-    fn teardown(element: Self::Element, _state: Self::State, cx: &mut Context<P>) {
+    fn teardown(element: Self::Element, state: Self::State, cx: &mut Context<P>) {
         element.widget.teardown(&mut cx.platform);
         let _ = cx.remove_layout_node(element.node);
+        cx.unregister(state.view_id);
     }
 }
 
