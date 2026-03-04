@@ -2,13 +2,33 @@ use std::{f32::consts::PI, time::Duration};
 
 use crate::{Color, Platform, WidgetView, views::animate};
 
-const C1: f32 = 1.70158;
-const C2: f32 = C1 * 1.525;
-
 pub trait Transition {
     fn duration(&self) -> f32;
     fn curve(&self, t: f32) -> f32;
 }
+
+pub fn transition<P, T, U, V>(
+    value: U,
+    transition: impl Transition,
+    build: impl Fn(U, &T) -> V,
+) -> impl WidgetView<P, T>
+where
+    P: Platform,
+    U: Clone + PartialEq + Lerp,
+    V: WidgetView<P, T>,
+{
+    let state = State::new(value.clone(), transition);
+
+    animate(
+        move || state,
+        move |state| state.animating(value),
+        |state, delta_time| state.animate(delta_time),
+        move |state, data| build(state.value(), data),
+    )
+}
+
+const C1: f32 = 1.70158;
+const C2: f32 = C1 * 1.525;
 
 pub struct Linear(pub f32);
 
@@ -96,26 +116,6 @@ impl Transition for BackInOut {
             (f32::powi(2.0 * t - 2.0, 2) * ((C2 + 1.0) * (2.0 * t - 2.0) + C2) + 2.0) / 2.0
         }
     }
-}
-
-pub fn transition<P, T, U, V>(
-    value: U,
-    transition: impl Transition,
-    build: impl Fn(U, &T) -> V,
-) -> impl WidgetView<P, T>
-where
-    P: Platform,
-    U: Clone + PartialEq + Lerp,
-    V: WidgetView<P, T>,
-{
-    let state = State::new(value.clone(), transition);
-
-    animate(
-        move || state,
-        move |state| state.animating(value),
-        |state, delta_time| state.animate(delta_time),
-        move |state, data| build(state.value(), data),
-    )
 }
 
 struct State<U, T> {
