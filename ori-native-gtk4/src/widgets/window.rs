@@ -1,13 +1,13 @@
-use std::time::Duration;
+use std::{rc::Rc, time::Duration};
 
-use glib::subclass::types::ObjectSubclassIsExt;
+use glib::{object::Cast, subclass::types::ObjectSubclassIsExt};
 use gtk4::prelude::{GtkWindowExt, WidgetExt};
 use ori_native_core::{
-    NativeParent,
+    Key, Modifiers, NativeParent,
     native::{HasWindow, NativeWindow},
 };
 
-use crate::Platform;
+use crate::{Platform, key};
 
 impl HasWindow for Platform {
     type Window = Window;
@@ -90,6 +90,46 @@ impl NativeWindow<Platform> for Window {
 
     fn set_on_resize(&mut self, on_resize: impl Fn() + 'static) {
         self.set_on_size_allocate(on_resize);
+    }
+
+    fn set_on_key(&mut self, on_key: impl Fn(Key, Modifiers, bool) -> bool + 'static) {
+        for controller in self.observe_controllers().into_iter() {
+            if let Ok(controller) = controller
+                && let Ok(controller) = controller.dynamic_cast::<gtk4::EventControllerKey>()
+            {
+                self.remove_controller(&controller);
+            }
+        }
+
+        let controller = gtk4::EventControllerKey::new();
+        let on_key = Rc::new(on_key);
+
+        controller.connect_key_pressed({
+            let on_key = on_key.clone();
+
+            move |_, key, _code, modifiers| {
+                let key = key::convert_key(key);
+                let modifiers = key::convert_modifiers(modifiers);
+
+                if on_key(key, modifiers, true) {
+                    glib::Propagation::Stop
+                } else {
+                    glib::Propagation::Proceed
+                }
+            }
+        });
+
+        controller.connect_key_released({
+            let on_key = on_key.clone();
+
+            move |_, key, _code, modifiers| {
+                let key = key::convert_key(key);
+                let modifiers = key::convert_modifiers(modifiers);
+                on_key(key, modifiers, false);
+            }
+        });
+
+        self.add_controller(controller);
     }
 
     fn set_title(&mut self, title: String) {

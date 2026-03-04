@@ -2,6 +2,7 @@
 
 mod context;
 mod element;
+mod input;
 mod lifecycle;
 mod platform;
 mod style;
@@ -12,6 +13,7 @@ pub mod views;
 
 pub use context::{BoxedEffect, Context, LayoutLeaf};
 pub use element::{BoxedWidget, NativeParent, NativeWidget, Pod, PodMut, WidgetView};
+pub use input::{Input, InputFilter, InputHandler, InputMessage};
 pub use lifecycle::Lifecycle;
 pub use platform::Platform;
 pub use style::{
@@ -20,4 +22,4 @@ pub use style::{
 };
 pub use text::{Font, Stretch, TextSpan, Weight, Wrap};
 
-pub use taffy::{NodeId, Size};
+pub use keyboard_types::{Key, Modifiers, NamedKey};

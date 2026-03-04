@@ -9,14 +9,13 @@ use ori_native_core::{
 
 use crate::{Platform, widgets::Window};
 
-pub fn layer_shell<V>(contents: V) -> LayerShell<V> {
+pub fn layer_shell<T, V>(contents: V) -> LayerShell<T, V> {
     LayerShell::new(contents)
 }
 
-#[derive(Debug)]
-pub struct LayerShell<V> {
+pub struct LayerShell<T, V> {
     contents:       V,
-    attributes:     WindowAttributes,
+    attributes:     WindowAttributes<T>,
     namespace:      String,
     layer:          Layer,
     exclusive_zone: ExclusiveZone,
@@ -32,7 +31,7 @@ pub struct LayerShell<V> {
     anchor_left:    bool,
 }
 
-impl<V> LayerShell<V> {
+impl<T, V> LayerShell<T, V> {
     pub fn new(contents: V) -> Self {
         Self {
             contents,
@@ -150,8 +149,8 @@ pub enum ExclusiveZone {
     Fixed(i32),
 }
 
-impl<V> ViewMarker for LayerShell<V> {}
-impl<V, T> View<Context<Platform>, T> for LayerShell<V>
+impl<T, V> ViewMarker for LayerShell<T, V> {}
+impl<T, V> View<Context<Platform>, T> for LayerShell<T, V>
 where
     V: WidgetView<Platform, T>,
 {

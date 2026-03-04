@@ -1,5 +1,7 @@
 use std::time::Duration;
 
+use keyboard_types::{Key, Modifiers};
+
 use crate::{Platform, element::NativeParent};
 
 pub trait HasWindow: Platform {
@@ -20,6 +22,7 @@ where
     fn set_on_animation_frame(&mut self, on_frame: impl Fn(Duration) + 'static);
     fn set_on_resize(&mut self, on_resize: impl Fn() + 'static);
     fn set_on_close_requested(&mut self, on_close_requested: impl Fn() + 'static);
+    fn set_on_key(&mut self, on_key: impl Fn(Key, Modifiers, bool) -> bool + 'static);
 
     fn start_animating(&mut self);
     fn stop_animating(&mut self);

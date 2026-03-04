@@ -1,12 +1,12 @@
-use std::sync::Arc;
+use std::rc::Rc;
 
 use gtk4::prelude::{AccessibleExt, WidgetExt};
 use ori_native_core::{
-    NativeWidget,
+    Key, Modifiers, NativeWidget,
     native::{HasPressable, NativePressable, Press},
 };
 
-use crate::{Platform, widgets::group::GroupWidget};
+use crate::{Platform, key, widgets::group::GroupWidget};
 
 impl HasPressable for Platform {
     type Pressable = Pressable;
@@ -17,6 +17,7 @@ pub struct Pressable {
     press:  Option<gtk4::GestureClick>,
     hover:  Option<gtk4::EventControllerMotion>,
     focus:  Option<gtk4::EventControllerFocus>,
+    key:    Option<gtk4::EventControllerKey>,
 }
 
 impl NativeWidget<Platform> for Pressable {
@@ -37,6 +38,7 @@ impl NativePressable<Platform> for Pressable {
             press: None,
             hover: None,
             focus: None,
+            key: None,
         }
     }
 
@@ -52,7 +54,7 @@ impl NativePressable<Platform> for Pressable {
             self.widget.remove_controller(&press);
         }
 
-        let on_press = Arc::new(on_press);
+        let on_press = Rc::new(on_press);
 
         let controller = gtk4::GestureClick::new();
         controller.connect_pressed({
@@ -79,7 +81,7 @@ impl NativePressable<Platform> for Pressable {
             self.widget.remove_controller(&hover);
         }
 
-        let on_hover = Arc::new(on_hover);
+        let on_hover = Rc::new(on_hover);
 
         let controller = gtk4::EventControllerMotion::new();
         controller.connect_enter({
@@ -101,7 +103,7 @@ impl NativePressable<Platform> for Pressable {
             self.widget.remove_controller(&focus);
         }
 
-        let on_focus = Arc::new(on_focus);
+        let on_focus = Rc::new(on_focus);
 
         let controller = gtk4::EventControllerFocus::new();
         controller.connect_enter({
@@ -115,6 +117,43 @@ impl NativePressable<Platform> for Pressable {
         });
 
         self.focus = Some(controller.clone());
+        self.widget.add_controller(controller);
+    }
+
+    fn set_on_key(&mut self, on_key: impl Fn(Key, Modifiers, bool) -> bool + 'static) {
+        if let Some(key) = self.key.take() {
+            self.widget.remove_controller(&key);
+        }
+
+        let on_key = Rc::new(on_key);
+
+        let controller = gtk4::EventControllerKey::new();
+        controller.connect_key_pressed({
+            let on_key = on_key.clone();
+
+            move |_, key, _code, modifiers| {
+                let key = key::convert_key(key);
+                let modifiers = key::convert_modifiers(modifiers);
+
+                if on_key(key, modifiers, true) {
+                    glib::Propagation::Stop
+                } else {
+                    glib::Propagation::Proceed
+                }
+            }
+        });
+
+        controller.connect_key_released({
+            let on_key = on_key.clone();
+
+            move |_, key, _code, modifiers| {
+                let key = key::convert_key(key);
+                let modifiers = key::convert_modifiers(modifiers);
+                on_key(key, modifiers, false);
+            }
+        });
+
+        self.key = Some(controller.clone());
         self.widget.add_controller(controller);
     }
 }

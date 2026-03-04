@@ -1,3 +1,5 @@
+use keyboard_types::{Key, Modifiers};
+
 use crate::{NativeWidget, Platform};
 
 pub trait HasPressable: Platform {
@@ -15,6 +17,7 @@ where
     fn set_on_press(&mut self, on_press: impl Fn(Press) + 'static);
     fn set_on_hover(&mut self, on_hover: impl Fn(bool) + 'static);
     fn set_on_focus(&mut self, on_focus: impl Fn(bool) + 'static);
+    fn set_on_key(&mut self, on_key: impl Fn(Key, Modifiers, bool) -> bool + 'static);
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]

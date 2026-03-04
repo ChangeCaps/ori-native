@@ -1,6 +1,7 @@
 #![warn(clippy::unwrap_used)]
 
 mod application;
+mod key;
 mod platform;
 
 pub mod views;

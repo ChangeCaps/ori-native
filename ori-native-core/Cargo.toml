@@ -8,6 +8,7 @@ license.workspace = true
 [dependencies]
 ori     = { workspace = true }
 
-seahash = { workspace = true }
-taffy   = { workspace = true }
-tracing = { workspace = true }
+taffy          = { workspace = true }
+seahash        = { workspace = true }
+tracing        = { workspace = true }
+keyboard-types = { workspace = true }

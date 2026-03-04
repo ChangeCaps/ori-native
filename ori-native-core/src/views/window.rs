@@ -1,22 +1,23 @@
 use std::time::Duration;
 
+use keyboard_types::{Key, Modifiers};
 use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarker};
 
 use crate::{
-    Context, Lifecycle, NativeWidget, Pod, Sizing, WidgetView,
+    Context, Input, InputHandler, InputMessage, Lifecycle, NativeWidget, Pod, Sizing, WidgetView,
     native::{HasWindow, NativeWindow},
 };
 
-pub fn window<V>(contents: V) -> Window<V> {
+pub fn window<T, V>(contents: V) -> Window<T, V> {
     Window::new(contents)
 }
 
-pub struct Window<V> {
+pub struct Window<T, V> {
     contents:   V,
-    attributes: WindowAttributes,
+    attributes: WindowAttributes<T>,
 }
 
-impl<V> Window<V> {
+impl<T, V> Window<T, V> {
     pub fn new(contents: V) -> Self {
         Window {
             contents,
@@ -33,6 +34,19 @@ impl<V> Window<V> {
         self.attributes.sizing = sizing;
         self
     }
+
+    pub fn on_key<A>(
+        mut self,
+        key: impl Into<Key>,
+        mods: Modifiers,
+        on_key: impl FnMut(&mut T) -> A + 'static,
+    ) -> Self
+    where
+        A: Into<Action>,
+    {
+        self.attributes.input.add_key(key, mods, on_key);
+        self
+    }
 }
 
 #[derive(Debug)]
@@ -45,8 +59,8 @@ pub enum WindowMessage {
     Resized,
 }
 
-impl<V> ViewMarker for Window<V> {}
-impl<P, T, V> View<Context<P>, T> for Window<V>
+impl<T, V> ViewMarker for Window<T, V> {}
+impl<P, T, V> View<Context<P>, T> for Window<T, V>
 where
     P: HasWindow + Proxied,
     V: WidgetView<P, T>,
@@ -103,17 +117,18 @@ where
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct WindowAttributes {
+pub struct WindowAttributes<T> {
     pub title:  String,
     pub sizing: Sizing,
+    pub input:  Input<T>,
 }
 
-impl Default for WindowAttributes {
+impl<T> Default for WindowAttributes<T> {
     fn default() -> Self {
         Self {
             title:  String::new(),
             sizing: Sizing::User,
+            input:  Default::default(),
         }
     }
 }
@@ -129,8 +144,9 @@ where
 
     node: taffy::NodeId,
 
-    title:  String,
-    sizing: Sizing,
+    title:   String,
+    sizing:  Sizing,
+    handler: InputHandler<T>,
 
     width:  u32,
     height: u32,
@@ -150,7 +166,7 @@ where
         cx: &mut Context<P>,
         mut window: P::Window,
         view_id: ViewId,
-        attributes: WindowAttributes,
+        attributes: WindowAttributes<T>,
         contents: Pod<P, V::Widget>,
         state: V::State,
     ) -> Self {
@@ -193,6 +209,21 @@ where
             }
         });
 
+        let (filter, handler) = attributes.input.split();
+
+        window.set_on_key({
+            let proxy = cx.proxy();
+
+            move |key, modifiers, pressed| {
+                if let Some(message) = filter.filter(key, modifiers, pressed) {
+                    proxy.message(Message::new(message, view_id));
+                    true
+                } else {
+                    false
+                }
+            }
+        });
+
         cx.register(view_id);
 
         let node = cx.new_layout_node(Default::default(), &[contents.node]);
@@ -204,6 +235,7 @@ where
             node,
             title: attributes.title,
             sizing: attributes.sizing,
+            handler,
             width,
             height,
             animating: 0,
@@ -217,7 +249,7 @@ where
         cx: &mut Context<P>,
         data: &mut T,
         contents: V,
-        attributes: WindowAttributes,
+        attributes: WindowAttributes<T>,
     ) {
         cx.with_window(self.view_id, |cx| {
             contents.rebuild(
@@ -227,6 +259,24 @@ where
                 data,
             );
         });
+
+        let (filter, handler) = attributes.input.split();
+
+        self.window.set_on_key({
+            let proxy = cx.proxy();
+            let view_id = self.view_id;
+
+            move |key, modifiers, pressed| {
+                if let Some(message) = filter.filter(key, modifiers, pressed) {
+                    proxy.message(Message::new(message, view_id));
+                    true
+                } else {
+                    false
+                }
+            }
+        });
+
+        self.handler = handler;
 
         if self.title != attributes.title {
             self.title = attributes.title.clone();
@@ -330,6 +380,10 @@ where
     }
 
     pub fn message(&mut self, cx: &mut Context<P>, data: &mut T, message: &mut Message) -> Action {
+        if let Some(message) = message.take_targeted(self.view_id) {
+            return self.handler.handle(data, message);
+        }
+
         if let Some(message) = message.take_targeted(self.view_id) {
             return match message {
                 WindowMessage::AnimationFrame(delta) => {

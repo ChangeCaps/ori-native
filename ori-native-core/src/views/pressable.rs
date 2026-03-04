@@ -1,7 +1,8 @@
+use keyboard_types::{Key, Modifiers};
 use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarker};
 
 use crate::{
-    Context, Lifecycle, NativeWidget, Pod, PodMut, WidgetView,
+    Context, Input, InputHandler, Lifecycle, NativeWidget, Pod, PodMut, WidgetView,
     native::{HasPressable, NativePressable, Press},
 };
 
@@ -22,6 +23,7 @@ pub struct Pressable<V, T> {
     on_press: Box<dyn FnMut(&mut T) -> Action>,
     on_hover: Box<dyn FnMut(&mut T, bool) -> Action>,
     on_focus: Box<dyn FnMut(&mut T, bool) -> Action>,
+    input:    Input<T>,
 }
 
 impl<V, T> Pressable<V, T> {
@@ -31,6 +33,7 @@ impl<V, T> Pressable<V, T> {
             on_press: Box::new(|_| Action::new()),
             on_hover: Box::new(|_, _| Action::new()),
             on_focus: Box::new(|_, _| Action::new()),
+            input:    Input::new(),
         }
     }
 
@@ -55,6 +58,19 @@ impl<V, T> Pressable<V, T> {
         A: Into<Action>,
     {
         self.on_focus = Box::new(move |data, focused| on_focus(data, focused).into());
+        self
+    }
+
+    pub fn on_key<A>(
+        mut self,
+        key: impl Into<Key>,
+        mods: Modifiers,
+        on_key: impl FnMut(&mut T) -> A + 'static,
+    ) -> Self
+    where
+        A: Into<Action>,
+    {
+        self.input.add_key(key, mods, on_key);
         self
     }
 }
@@ -125,6 +141,21 @@ where
             }
         });
 
+        let (filter, handler) = self.input.split();
+
+        widget.set_on_key({
+            let proxy = cx.proxy();
+
+            move |key, modifiers, pressed| {
+                if let Some(message) = filter.filter(key, modifiers, pressed) {
+                    proxy.message(Message::new(message, view_id));
+                    true
+                } else {
+                    false
+                }
+            }
+        });
+
         let pod = Pod::new(contents.node, widget);
 
         let state = PressableState {
@@ -134,6 +165,7 @@ where
             on_press: self.on_press,
             on_hover: self.on_hover,
             on_focus: self.on_focus,
+            handler,
             state,
         };
 
@@ -160,6 +192,24 @@ where
         view.rebuild(pod, &mut state.state, cx, data);
         state.build = self.build;
         state.on_press = self.on_press;
+
+        let (filter, handler) = self.input.split();
+
+        element.widget.set_on_key({
+            let proxy = cx.proxy();
+            let view_id = state.view_id;
+
+            move |key, modifiers, pressed| {
+                if let Some(message) = filter.filter(key, modifiers, pressed) {
+                    proxy.message(Message::new(message, view_id));
+                    true
+                } else {
+                    false
+                }
+            }
+        });
+
+        state.handler = handler;
     }
 
     fn message(
@@ -183,6 +233,10 @@ where
             node:   element.node,
             widget: contents,
         };
+
+        if let Some(message) = message.take_targeted(state.view_id) {
+            return state.handler.handle(data, message);
+        }
 
         if let Some(message) = message.take_targeted(state.view_id) {
             let mut action = Action::new();
@@ -238,5 +292,6 @@ where
     on_press: Box<dyn FnMut(&mut T) -> Action>,
     on_hover: Box<dyn FnMut(&mut T, bool) -> Action>,
     on_focus: Box<dyn FnMut(&mut T, bool) -> Action>,
+    handler:  InputHandler<T>,
     state:    V::State,
 }
