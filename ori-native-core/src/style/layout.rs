@@ -82,10 +82,39 @@ pub trait Layout: Sized {
         self
     }
 
-    fn offset(mut self, x: impl Into<AutoLength>, y: impl Into<AutoLength>) -> Self {
-        self.style_mut().inset.left = x.into().into_taffy_length_auto();
-        self.style_mut().inset.top = y.into().into_taffy_length_auto();
+    fn inset(self, inset: impl Into<AutoLength>) -> Self {
+        let inset = inset.into();
+        self.inset_all(inset, inset, inset, inset)
+    }
+
+    fn top(mut self, inset: impl Into<AutoLength>) -> Self {
+        self.style_mut().inset.top = inset.into().into_taffy_length_auto();
         self
+    }
+
+    fn right(mut self, inset: impl Into<AutoLength>) -> Self {
+        self.style_mut().inset.right = inset.into().into_taffy_length_auto();
+        self
+    }
+
+    fn bottom(mut self, inset: impl Into<AutoLength>) -> Self {
+        self.style_mut().inset.bottom = inset.into().into_taffy_length_auto();
+        self
+    }
+
+    fn left(mut self, inset: impl Into<AutoLength>) -> Self {
+        self.style_mut().inset.left = inset.into().into_taffy_length_auto();
+        self
+    }
+
+    fn inset_all(
+        self,
+        top: impl Into<AutoLength>,
+        right: impl Into<AutoLength>,
+        bottom: impl Into<AutoLength>,
+        left: impl Into<AutoLength>,
+    ) -> Self {
+        self.top(top).right(right).bottom(bottom).left(left)
     }
 
     fn size(self, width: impl Into<AutoLength>, height: impl Into<AutoLength>) -> Self {
