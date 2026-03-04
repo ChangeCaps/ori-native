@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarker};
 
 use crate::{
-    Color, Context, Font, Layout, Pod, Stretch, Weight,
+    Color, Context, Font, Layoutable, Pod, Stretch, Weight,
     native::{HasTextInput, NativeTextInput},
 };
 
@@ -183,7 +183,7 @@ impl<T> TextInput<T> {
     }
 }
 
-impl<T> Layout for TextInput<T> {
+impl<T> Layoutable for TextInput<T> {
     fn style_mut(&mut self) -> &mut taffy::Style {
         &mut self.layout
     }

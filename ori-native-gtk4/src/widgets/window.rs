@@ -252,7 +252,7 @@ mod imp {
 
     #[glib::object_subclass]
     impl ObjectSubclass for ApplicationWindow {
-        const NAME: &'static str = "OriNativeWindow";
+        const NAME: &'static str = "OriWindow";
         type Type = super::Window;
         type ParentType = gtk4::ApplicationWindow;
     }

@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use ori::{Action, Message, Mut, View, ViewMarker};
 
 use crate::{
-    Color, Context, Layout, Pod,
+    Color, Context, Layoutable, Pod,
     native::{HasImage, NativeImage},
 };
 
@@ -32,7 +32,7 @@ impl Image {
     }
 }
 
-impl Layout for Image {
+impl Layoutable for Image {
     fn style_mut(&mut self) -> &mut taffy::Style {
         &mut self.style
     }

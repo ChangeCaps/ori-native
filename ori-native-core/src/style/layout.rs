@@ -74,7 +74,7 @@ pub enum Position {
     Absolute,
 }
 
-pub trait Layout: Sized {
+pub trait Layoutable: Sized {
     fn style_mut(&mut self) -> &mut taffy::Style;
 
     fn position(mut self, position: Position) -> Self {
@@ -197,44 +197,6 @@ pub trait Layout: Sized {
             .margin_left(left)
     }
 
-    fn padding(self, width: impl Into<Length>) -> Self {
-        let width = width.into();
-        self.padding_all(width, width, width, width)
-    }
-
-    fn padding_top(mut self, width: impl Into<Length>) -> Self {
-        self.style_mut().padding.top = width.into().into_taffy();
-        self
-    }
-
-    fn padding_right(mut self, width: impl Into<Length>) -> Self {
-        self.style_mut().padding.right = width.into().into_taffy();
-        self
-    }
-
-    fn padding_bottom(mut self, width: impl Into<Length>) -> Self {
-        self.style_mut().padding.bottom = width.into().into_taffy();
-        self
-    }
-
-    fn padding_left(mut self, width: impl Into<Length>) -> Self {
-        self.style_mut().padding.left = width.into().into_taffy();
-        self
-    }
-
-    fn padding_all(
-        self,
-        top: impl Into<Length>,
-        right: impl Into<Length>,
-        bottom: impl Into<Length>,
-        left: impl Into<Length>,
-    ) -> Self {
-        self.padding_top(top)
-            .padding_right(right)
-            .padding_bottom(bottom)
-            .padding_left(left)
-    }
-
     fn flex(self, amount: f32) -> Self {
         self.flex_grow(amount).flex_shrink(amount)
     }
@@ -250,7 +212,7 @@ pub trait Layout: Sized {
     }
 }
 
-pub trait BorderLayout: Layout {
+pub trait Bordered: Layoutable {
     fn border(self, width: impl Into<Length>) -> Self {
         let width = width.into();
         self.border_all(width, width, width, width)
@@ -290,15 +252,53 @@ pub trait BorderLayout: Layout {
     }
 }
 
-pub trait ContainerLayout: Layout {
+pub trait Container: Layoutable {
+    fn padding(self, width: impl Into<Length>) -> Self {
+        let width = width.into();
+        self.padding_all(width, width, width, width)
+    }
+
+    fn padding_top(mut self, width: impl Into<Length>) -> Self {
+        self.style_mut().padding.top = width.into().into_taffy();
+        self
+    }
+
+    fn padding_right(mut self, width: impl Into<Length>) -> Self {
+        self.style_mut().padding.right = width.into().into_taffy();
+        self
+    }
+
+    fn padding_bottom(mut self, width: impl Into<Length>) -> Self {
+        self.style_mut().padding.bottom = width.into().into_taffy();
+        self
+    }
+
+    fn padding_left(mut self, width: impl Into<Length>) -> Self {
+        self.style_mut().padding.left = width.into().into_taffy();
+        self
+    }
+
+    fn padding_all(
+        self,
+        top: impl Into<Length>,
+        right: impl Into<Length>,
+        bottom: impl Into<Length>,
+        left: impl Into<Length>,
+    ) -> Self {
+        self.padding_top(top)
+            .padding_right(right)
+            .padding_bottom(bottom)
+            .padding_left(left)
+    }
+}
+
+pub trait FlexContainer: Container {
     fn gap(mut self, gap: impl Into<Length>) -> Self {
         self.style_mut().gap.width = gap.into().into_taffy();
         self.style_mut().gap.height = self.style_mut().gap.width;
         self
     }
-}
 
-pub trait FlexLayout: ContainerLayout {
     fn align_items(mut self, align: Align) -> Self {
         self.style_mut().align_items = Some(align.into_taffy());
         self

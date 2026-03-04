@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use ori::{Action, Message, Mut, View, ViewMarker};
 
 use crate::{
-    Color, Context, Font, Layout, Pod, Stretch, TextSpan, Weight, Wrap,
+    Color, Context, Font, Layoutable, Pod, Stretch, TextSpan, Weight, Wrap,
     native::{HasText, NativeText},
 };
 
@@ -75,7 +75,7 @@ impl Text {
     }
 }
 
-impl Layout for Text {
+impl Layoutable for Text {
     fn style_mut(&mut self) -> &mut taffy::Style {
         &mut self.layout
     }

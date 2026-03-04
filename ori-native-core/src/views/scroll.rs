@@ -1,7 +1,7 @@
 use ori::{Action, Message, Mut, View, ViewMarker};
 
 use crate::{
-    Context, Direction, Layout, Lifecycle, NativeWidget, Pod, WidgetView,
+    Container, Context, Direction, Layoutable, Lifecycle, NativeWidget, Pod, WidgetView,
     native::{HasScroll, NativeScroll},
 };
 
@@ -52,11 +52,13 @@ impl<V> Scroll<V> {
     }
 }
 
-impl<V> Layout for Scroll<V> {
+impl<V> Layoutable for Scroll<V> {
     fn style_mut(&mut self) -> &mut taffy::Style {
         &mut self.style
     }
 }
+
+impl<V> Container for Scroll<V> {}
 
 impl<V> ViewMarker for Scroll<V> {}
 impl<P, T, V> View<Context<P>, T> for Scroll<V>
@@ -110,8 +112,19 @@ where
     ) -> Action {
         if let Some(Lifecycle::Layout) = message.get()
             && let Ok(layout) = cx.get_computed_layout(*element.node)
+            && let Ok(content_layout) = cx.get_computed_layout(contents.node)
         {
-            (element.widget).set_size(layout.size.width, layout.size.height);
+            element.widget.set_content_size(
+                layout.content_size.width,
+                layout.content_size.height,
+            );
+
+            element.widget.set_content_layout(
+                content_layout.location.x,
+                content_layout.location.y,
+                content_layout.size.width,
+                content_layout.size.height,
+            );
         }
 
         V::message(

@@ -1,7 +1,7 @@
 use ori::{Action, Message, Mut, View, ViewMarker, ViewSeq};
 
 use crate::{
-    BorderLayout, BoxedWidget, Color, ContainerLayout, Context, Direction, FlexLayout, Layout,
+    Bordered, BoxedWidget, Color, Container, Context, Direction, FlexContainer, Layoutable,
     Lifecycle, Overflow, Pod, Shadow,
     native::{Group, HasGroup},
 };
@@ -132,15 +132,15 @@ impl<V> Flex<V> {
     }
 }
 
-impl<V> Layout for Flex<V> {
+impl<V> Layoutable for Flex<V> {
     fn style_mut(&mut self) -> &mut taffy::Style {
         &mut self.layout
     }
 }
 
-impl<V> ContainerLayout for Flex<V> {}
-impl<V> FlexLayout for Flex<V> {}
-impl<V> BorderLayout for Flex<V> {}
+impl<V> Container for Flex<V> {}
+impl<V> FlexContainer for Flex<V> {}
+impl<V> Bordered for Flex<V> {}
 
 impl<V> ViewMarker for Flex<V> {}
 impl<P, T, V> View<Context<P>, T> for Flex<V>
@@ -162,7 +162,6 @@ where
         group.set_shadow(cx, self.shadow);
 
         let state = self.contents.seq_build(&mut group.elements(node), cx, data);
-
         let pod = Pod::new(node, group);
 
         (pod, state)

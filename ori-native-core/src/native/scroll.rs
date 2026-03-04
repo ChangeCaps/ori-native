@@ -11,7 +11,8 @@ where
     fn build(platform: &mut P, contents: &P::Widget) -> Self;
     fn teardown(self, platform: &mut P);
 
-    fn set_size(&mut self, width: f32, height: f32);
+    fn set_content_size(&mut self, width: f32, height: f32);
+    fn set_content_layout(&mut self, x: f32, y: f32, width: f32, height: f32);
 
     fn set_direction(&mut self, direction: Direction);
 }

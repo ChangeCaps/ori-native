@@ -1,10 +1,9 @@
-use gtk4::prelude::WidgetExt;
 use ori_native_core::{
     Direction, NativeParent, NativeWidget,
     native::{HasScroll, NativeScroll},
 };
 
-use crate::Platform;
+use crate::{Platform, widgets::group::GroupWidget};
 
 impl HasScroll for Platform {
     type Scroll = Scroll;
@@ -12,6 +11,7 @@ impl HasScroll for Platform {
 
 pub struct Scroll {
     scroll: gtk4::ScrolledWindow,
+    group:  GroupWidget,
 }
 
 impl NativeWidget<Platform> for Scroll {
@@ -24,22 +24,34 @@ impl NativeParent<Platform> for Scroll {
     fn replace_child(&mut self, _platform: &mut Platform, index: usize, child: &gtk4::Widget) {
         debug_assert_eq!(index, 0);
 
-        self.scroll.set_child(Some(child));
+        self.group.replace_child(0, child);
     }
 }
 
 impl NativeScroll<Platform> for Scroll {
     fn build(_platform: &mut Platform, contents: &gtk4::Widget) -> Self {
         let scroll = gtk4::ScrolledWindow::new();
-        scroll.set_child(Some(contents));
+        let group = GroupWidget::new();
+        group.insert_child(0, contents);
+        scroll.set_child(Some(&group));
 
-        Self { scroll }
+        Self { scroll, group }
     }
 
     fn teardown(self, _platform: &mut Platform) {}
 
-    fn set_size(&mut self, width: f32, height: f32) {
-        self.scroll.set_size_request(
+    fn set_content_size(&mut self, width: f32, height: f32) {
+        self.group.set_size(
+            width.round() as i32,
+            height.round() as i32,
+        );
+    }
+
+    fn set_content_layout(&mut self, x: f32, y: f32, width: f32, height: f32) {
+        self.group.set_child_layout(
+            0,
+            x.round() as i32,
+            y.round() as i32,
             width.round() as i32,
             height.round() as i32,
         );
