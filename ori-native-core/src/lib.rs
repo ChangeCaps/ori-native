@@ -16,7 +16,7 @@ pub use lifecycle::Lifecycle;
 pub use platform::Platform;
 pub use style::{
     Align, AutoLength, BorderLayout, Color, ContainerLayout, Direction, FlexLayout, Fract, Justify,
-    Layout, Length, Overflow, Position, Sizing,
+    Layout, Length, Overflow, Position, Shadow, Sizing,
 };
 pub use text::{Font, Stretch, TextSpan, Weight, Wrap};
 

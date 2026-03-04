@@ -2,7 +2,7 @@ use ori::{Action, Message, Mut, View, ViewMarker, ViewSeq};
 
 use crate::{
     BorderLayout, BoxedWidget, Color, ContainerLayout, Context, Direction, FlexLayout, Layout,
-    Lifecycle, Overflow, Pod,
+    Lifecycle, Overflow, Pod, Shadow,
     native::{Group, HasGroup},
 };
 
@@ -21,6 +21,7 @@ pub struct Flex<V> {
     border_color:     Color,
     corner_radii:     [f32; 4],
     overflow:         Overflow,
+    shadow:           Shadow,
 }
 
 impl<V> Flex<V> {
@@ -41,6 +42,7 @@ impl<V> Flex<V> {
             border_color: Color::TRANSPARENT,
             corner_radii: [0.0; 4],
             overflow: Overflow::Visible,
+            shadow: Shadow::default(),
         }
     }
 
@@ -63,6 +65,32 @@ impl<V> Flex<V> {
         self.overflow = overflow;
         self.layout.overflow.x = taffy;
         self.layout.overflow.y = taffy;
+        self
+    }
+
+    pub fn shadow(mut self, shadow: Shadow) -> Self {
+        self.shadow = shadow;
+        self
+    }
+
+    pub fn shadow_color(mut self, color: Color) -> Self {
+        self.shadow.color = color;
+        self
+    }
+
+    pub fn shadow_offset(mut self, dx: f32, dy: f32) -> Self {
+        self.shadow.offset_x = dx;
+        self.shadow.offset_y = dy;
+        self
+    }
+
+    pub fn shadow_radius(mut self, radius: f32) -> Self {
+        self.shadow.radius = radius;
+        self
+    }
+
+    pub fn shadow_spread(mut self, spread: f32) -> Self {
+        self.shadow.spread = spread;
         self
     }
 
@@ -131,6 +159,7 @@ where
         group.set_border_color(cx, self.border_color);
         group.set_corner_radii(cx, self.corner_radii);
         group.set_overflow(cx, self.overflow);
+        group.set_shadow(cx, self.shadow);
 
         let state = self.contents.seq_build(&mut group.elements(node), cx, data);
 
@@ -151,6 +180,7 @@ where
         (element.widget).set_border_color(cx, self.border_color);
         (element.widget).set_corner_radii(cx, self.corner_radii);
         (element.widget).set_overflow(cx, self.overflow);
+        (element.widget).set_shadow(cx, self.shadow);
 
         self.contents.seq_rebuild(
             &mut element.widget.elements(*element.node),

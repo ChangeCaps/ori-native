@@ -1,7 +1,7 @@
 use glib::subclass::types::ObjectSubclassIsExt;
 use gtk4::prelude::{AccessibleExt, WidgetExt};
 use ori_native_core::{
-    Color, NativeParent, NativeWidget, Overflow,
+    Color, NativeParent, NativeWidget, Overflow, Shadow,
     native::{HasGroup, NativeGroup},
 };
 
@@ -99,6 +99,10 @@ impl NativeGroup<Platform> for Group {
             Overflow::Hidden => false,
         });
     }
+
+    fn set_shadow(&mut self, _platform: &mut Platform, shadow: Shadow) {
+        self.group.set_shadow(shadow);
+    }
 }
 
 glib::wrapper! {
@@ -156,6 +160,13 @@ impl GroupWidget {
     pub fn set_overflow_visible(&self, visible: bool) {
         if self.imp().overflow_visible.get() != visible {
             self.imp().overflow_visible.set(visible);
+            self.queue_draw();
+        }
+    }
+
+    pub fn set_shadow(&self, shadow: Shadow) {
+        if self.imp().shadow.get() != shadow {
+            self.imp().shadow.set(shadow);
             self.queue_draw();
         }
     }
@@ -241,6 +252,7 @@ mod imp {
         prelude::{SnapshotExt, SnapshotExtManual, WidgetExt},
         subclass::widget::{WidgetClassExt, WidgetImpl, WidgetImplExt},
     };
+    use ori_native_core::Shadow;
 
     pub struct GroupWidget {
         pub(super) children: RefCell<Vec<Child>>,
@@ -253,6 +265,7 @@ mod imp {
         pub(super) corner_radii:     Cell<[f32; 4]>,
         pub(super) border_width:     Cell<[f32; 4]>,
         pub(super) overflow_visible: Cell<bool>,
+        pub(super) shadow:           Cell<Shadow>,
     }
 
     pub(super) struct Child {
@@ -276,6 +289,7 @@ mod imp {
                 corner_radii:     Cell::new([0.0; 4]),
                 border_width:     Cell::new([0.0; 4]),
                 overflow_visible: Cell::new(true),
+                shadow:           Cell::new(Shadow::default()),
             }
         }
     }
@@ -315,6 +329,24 @@ mod imp {
                 graphene::Size::new(br, br),
                 graphene::Size::new(bl, bl),
             );
+
+            let shadow = self.shadow.get();
+
+            if shadow.color.a > 0.0 {
+                snapshot.append_outset_shadow(
+                    &rect,
+                    &gdk4::RGBA::new(
+                        shadow.color.r,
+                        shadow.color.g,
+                        shadow.color.b,
+                        shadow.color.a,
+                    ),
+                    shadow.offset_x,
+                    shadow.offset_y,
+                    shadow.spread,
+                    shadow.radius,
+                );
+            }
 
             snapshot.push_rounded_clip(&rect);
 
