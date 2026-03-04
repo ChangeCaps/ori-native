@@ -1,10 +1,10 @@
 use std::time::Duration;
 
-use keyboard_types::{Key, Modifiers};
+use keyboard_types::Modifiers;
 use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarker};
 
 use crate::{
-    Context, Input, InputHandler, InputMessage, Lifecycle, NativeWidget, Pod, Sizing, WidgetView,
+    Context, Input, InputHandler, Lifecycle, MatchKey, NativeWidget, Pod, Sizing, WidgetView,
     native::{HasWindow, NativeWindow},
 };
 
@@ -37,7 +37,7 @@ impl<T, V> Window<T, V> {
 
     pub fn on_key<A>(
         mut self,
-        key: impl Into<Key>,
+        key: impl MatchKey + 'static,
         mods: Modifiers,
         on_key: impl FnMut(&mut T) -> A + 'static,
     ) -> Self

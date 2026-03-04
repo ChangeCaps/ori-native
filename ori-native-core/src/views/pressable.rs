@@ -1,8 +1,9 @@
-use keyboard_types::{Key, Modifiers};
+use keyboard_types::Modifiers;
 use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarker};
 
 use crate::{
     Context, Input, InputHandler, Lifecycle, NativeWidget, Pod, PodMut, WidgetView,
+    input::MatchKey,
     native::{HasPressable, NativePressable, Press},
 };
 
@@ -63,7 +64,7 @@ impl<V, T> Pressable<V, T> {
 
     pub fn on_key<A>(
         mut self,
-        key: impl Into<Key>,
+        key: impl MatchKey + 'static,
         mods: Modifiers,
         on_key: impl FnMut(&mut T) -> A + 'static,
     ) -> Self

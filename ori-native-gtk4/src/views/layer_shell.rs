@@ -3,7 +3,7 @@ use gtk4::prelude::{GtkWindowExt, WidgetExt};
 use gtk4_layer_shell::{Edge, KeyboardMode, LayerShell as _};
 use ori::{Action, Message, Mut, View, ViewId, ViewMarker};
 use ori_native_core::{
-    Context, Key, Modifiers, NativeWidget, Sizing, WidgetView,
+    Context, MatchKey, Modifiers, NativeWidget, Sizing, WidgetView,
     views::{WindowAttributes, WindowState},
 };
 
@@ -129,7 +129,7 @@ impl<T, V> LayerShell<T, V> {
 
     pub fn on_key<A>(
         mut self,
-        key: impl Into<Key>,
+        key: impl MatchKey + 'static,
         mods: Modifiers,
         on_key: impl FnMut(&mut T) -> A + 'static,
     ) -> Self
