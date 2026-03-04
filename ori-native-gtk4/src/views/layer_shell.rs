@@ -2,7 +2,10 @@ use glib::object::Cast;
 use gtk4::prelude::{GtkWindowExt, WidgetExt};
 use gtk4_layer_shell::{Edge, KeyboardMode, LayerShell as _};
 use ori::{Action, Message, Mut, View, ViewId, ViewMarker};
-use ori_native_core::{Context, NativeWidget, Sizing, WidgetView, views::WindowState};
+use ori_native_core::{
+    Context, NativeWidget, Sizing, WidgetView,
+    views::{WindowAttributes, WindowState},
+};
 
 use crate::{Platform, widgets::Window};
 
@@ -13,7 +16,8 @@ pub fn layer_shell<V>(contents: V) -> LayerShell<V> {
 #[derive(Debug)]
 pub struct LayerShell<V> {
     contents:       V,
-    sizing:         Sizing,
+    attributes:     WindowAttributes,
+    namespace:      String,
     layer:          Layer,
     exclusive_zone: ExclusiveZone,
     monitor:        Option<gdk4::Monitor>,
@@ -32,7 +36,8 @@ impl<V> LayerShell<V> {
     pub fn new(contents: V) -> Self {
         Self {
             contents,
-            sizing: Sizing::User,
+            attributes: WindowAttributes::default(),
+            namespace: String::from("ori-native"),
             layer: Layer::Top,
             exclusive_zone: ExclusiveZone::Auto,
             monitor: None,
@@ -48,8 +53,18 @@ impl<V> LayerShell<V> {
         }
     }
 
+    pub fn title(mut self, title: impl Into<String>) -> Self {
+        self.attributes.title = title.into();
+        self
+    }
+
     pub fn sizing(mut self, sizing: Sizing) -> Self {
-        self.sizing = sizing;
+        self.attributes.sizing = sizing;
+        self
+    }
+
+    pub fn namespace(mut self, namespace: impl Into<String>) -> Self {
+        self.namespace = namespace.into();
         self
     }
 
@@ -147,6 +162,7 @@ where
         let window = Window::new(&cx.platform.application);
         window.init_layer_shell();
         window.set_default_size(1, 1);
+        window.set_namespace(Some(&self.namespace));
 
         if let Some(monitor) = self.monitor {
             window.set_monitor(monitor.downcast_ref());
@@ -198,7 +214,7 @@ where
             cx,
             window,
             view_id,
-            self.sizing,
+            self.attributes,
             contents,
             state,
         );
@@ -213,7 +229,9 @@ where
         cx: &mut Context<Platform>,
         data: &mut T,
     ) {
-        state.rebuild(cx, data, self.contents, self.sizing);
+        state.rebuild(cx, data, self.contents, self.attributes);
+
+        state.window.set_namespace(Some(&self.namespace));
 
         if let Some(monitor) = self.monitor {
             state.window.set_monitor(monitor.downcast_ref());

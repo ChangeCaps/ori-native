@@ -12,20 +12,25 @@ pub fn window<V>(contents: V) -> Window<V> {
 }
 
 pub struct Window<V> {
-    contents: V,
-    sizing:   Sizing,
+    contents:   V,
+    attributes: WindowAttributes,
 }
 
 impl<V> Window<V> {
     pub fn new(contents: V) -> Self {
         Window {
             contents,
-            sizing: Sizing::User,
+            attributes: WindowAttributes::default(),
         }
     }
 
+    pub fn title(mut self, title: impl Into<String>) -> Self {
+        self.attributes.title = title.into();
+        self
+    }
+
     pub fn sizing(mut self, sizing: Sizing) -> Self {
-        self.sizing = sizing;
+        self.attributes.sizing = sizing;
         self
     }
 }
@@ -65,7 +70,7 @@ where
             cx,
             window,
             view_id,
-            self.sizing,
+            self.attributes,
             contents,
             state,
         );
@@ -80,7 +85,7 @@ where
         cx: &mut Context<P>,
         data: &mut T,
     ) {
-        state.rebuild(cx, data, self.contents, self.sizing);
+        state.rebuild(cx, data, self.contents, self.attributes);
     }
 
     fn message(
@@ -98,6 +103,21 @@ where
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct WindowAttributes {
+    pub title:  String,
+    pub sizing: Sizing,
+}
+
+impl Default for WindowAttributes {
+    fn default() -> Self {
+        Self {
+            title:  String::new(),
+            sizing: Sizing::User,
+        }
+    }
+}
+
 #[doc(hidden)]
 pub struct WindowState<P, T, V>
 where
@@ -107,7 +127,9 @@ where
     pub window:  P::Window,
     pub view_id: ViewId,
 
-    node:   taffy::NodeId,
+    node: taffy::NodeId,
+
+    title:  String,
     sizing: Sizing,
 
     width:  u32,
@@ -128,11 +150,15 @@ where
         cx: &mut Context<P>,
         mut window: P::Window,
         view_id: ViewId,
-        sizing: Sizing,
+        attributes: WindowAttributes,
         contents: Pod<P, V::Widget>,
         state: V::State,
     ) -> Self {
-        window.set_resizable(matches!(sizing, Sizing::User));
+        window.set_title(attributes.title.clone());
+        window.set_resizable(matches!(
+            attributes.sizing,
+            Sizing::User
+        ));
 
         window.set_on_resize({
             let proxy = cx.proxy();
@@ -176,7 +202,8 @@ where
             window,
             view_id,
             node,
-            sizing,
+            title: attributes.title,
+            sizing: attributes.sizing,
             width,
             height,
             animating: 0,
@@ -185,7 +212,13 @@ where
         }
     }
 
-    pub fn rebuild(&mut self, cx: &mut Context<P>, data: &mut T, contents: V, sizing: Sizing) {
+    pub fn rebuild(
+        &mut self,
+        cx: &mut Context<P>,
+        data: &mut T,
+        contents: V,
+        attributes: WindowAttributes,
+    ) {
         cx.with_window(self.view_id, |cx| {
             contents.rebuild(
                 (self.contents).as_mut(self.contents.node, &mut self.window, 0),
@@ -195,9 +228,18 @@ where
             );
         });
 
-        (self.window).set_resizable(matches!(sizing, Sizing::User));
+        if self.title != attributes.title {
+            self.title = attributes.title.clone();
+            self.window.set_title(attributes.title.clone());
+        }
 
-        self.sizing = sizing;
+        if self.sizing != attributes.sizing {
+            self.sizing = attributes.sizing;
+            self.window.set_resizable(matches!(
+                attributes.sizing,
+                Sizing::User,
+            ));
+        }
     }
 
     pub fn layout(&mut self, cx: &mut Context<P>, data: &mut T) -> Action {

@@ -92,6 +92,10 @@ impl NativeWindow<Platform> for Window {
         self.set_on_size_allocate(on_resize);
     }
 
+    fn set_title(&mut self, title: String) {
+        gtk4::ApplicationWindow::set_title(self.as_ref(), Some(&title));
+    }
+
     fn set_min_size(&mut self, width: u32, height: u32) {
         #[cfg(feature = "layer-shell")]
         {

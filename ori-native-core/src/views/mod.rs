@@ -18,4 +18,4 @@ pub use textinput::{Newline, Submit, TextInput, textinput};
 pub use transition::{
     Back, BackIn, BackInOut, Ease, Elastic, ElasticIn, Lerp, Linear, Transition, transition,
 };
-pub use window::{Window, WindowMessage, WindowState, window};
+pub use window::{Window, WindowAttributes, WindowMessage, WindowState, window};

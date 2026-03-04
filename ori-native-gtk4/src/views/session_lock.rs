@@ -1,7 +1,10 @@
 use gtk4::prelude::{GtkWindowExt, WidgetExt};
 use gtk4_session_lock::Instance;
 use ori::{Action, Message, Mut, View, ViewId, ViewMarker};
-use ori_native_core::{Context, NativeWidget, Sizing, WidgetView, views::WindowState};
+use ori_native_core::{
+    Context, NativeWidget, WidgetView,
+    views::{WindowAttributes, WindowState},
+};
 
 use crate::{Platform, widgets::Window};
 
@@ -56,7 +59,7 @@ where
             cx,
             window,
             view_id,
-            Sizing::User,
+            WindowAttributes::default(),
             contents,
             state,
         );
@@ -71,7 +74,12 @@ where
         cx: &mut Context<Platform>,
         data: &mut T,
     ) {
-        state.rebuild(cx, data, self.contents, Sizing::User);
+        state.rebuild(
+            cx,
+            data,
+            self.contents,
+            WindowAttributes::default(),
+        );
     }
 
     fn message(
