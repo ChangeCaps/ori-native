@@ -3,7 +3,7 @@ use gtk4::prelude::{GtkWindowExt, WidgetExt};
 use gtk4_layer_shell::{Edge, KeyboardMode, LayerShell as _};
 use ori::{Action, Message, Mut, View, ViewId, ViewMarker};
 use ori_native_core::{
-    Context, NativeWidget, Sizing, WidgetView,
+    Context, Key, Modifiers, NativeWidget, Sizing, WidgetView,
     views::{WindowAttributes, WindowState},
 };
 
@@ -124,6 +124,19 @@ impl<T, V> LayerShell<T, V> {
 
     pub fn anchor_left(mut self, anchor: bool) -> Self {
         self.anchor_left = anchor;
+        self
+    }
+
+    pub fn on_key<A>(
+        mut self,
+        key: impl Into<Key>,
+        mods: Modifiers,
+        on_key: impl FnMut(&mut T) -> A + 'static,
+    ) -> Self
+    where
+        A: Into<Action>,
+    {
+        self.attributes.input.add_key(key, mods, on_key);
         self
     }
 }
