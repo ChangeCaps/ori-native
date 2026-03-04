@@ -95,7 +95,7 @@ impl<V> Flex<V> {
     }
 
     pub fn corner(self, radius: f32) -> Self {
-        self.corners(radius, radius, radius, radius)
+        self.corner_all(radius, radius, radius, radius)
     }
 
     pub fn corner_top_left(mut self, radius: f32) -> Self {
@@ -118,7 +118,7 @@ impl<V> Flex<V> {
         self
     }
 
-    pub fn corners(
+    pub fn corner_all(
         self,
         top_left: f32,
         top_right: f32,
