@@ -15,8 +15,8 @@ pub fn vscroll<V>(contents: V) -> Scroll<V> {
 
 pub struct Scroll<V> {
     contents:  V,
-    style:     taffy::Style,
     direction: Direction,
+    style:     taffy::Style,
 }
 
 impl<V> Scroll<V> {
@@ -26,28 +26,25 @@ impl<V> Scroll<V> {
             Direction::Vertical => taffy::FlexDirection::Column,
         };
 
-        let overflow_x = match direction {
+        let x = match direction {
             Direction::Horizontal => taffy::Overflow::Scroll,
             Direction::Vertical => taffy::Overflow::Hidden,
         };
 
-        let overflow_y = match direction {
+        let y = match direction {
             Direction::Horizontal => taffy::Overflow::Hidden,
             Direction::Vertical => taffy::Overflow::Scroll,
         };
 
         Self {
             contents,
+            direction,
             style: taffy::Style {
                 display: taffy::Display::Flex,
-                overflow: taffy::Point {
-                    x: overflow_x,
-                    y: overflow_y,
-                },
+                overflow: taffy::Point { x, y },
                 flex_direction,
                 ..Default::default()
             },
-            direction,
         }
     }
 }
@@ -112,7 +109,7 @@ where
     ) -> Action {
         if let Some(Lifecycle::Layout) = message.get()
             && let Ok(layout) = cx.get_computed_layout(*element.node)
-            && let Ok(content_layout) = cx.get_computed_layout(contents.node)
+            && let Ok(content) = cx.get_computed_layout(contents.node)
         {
             element.widget.set_content_size(
                 layout.content_size.width,
@@ -120,10 +117,10 @@ where
             );
 
             element.widget.set_content_layout(
-                content_layout.location.x,
-                content_layout.location.y,
-                content_layout.size.width,
-                content_layout.size.height,
+                content.location.x,
+                content.location.y,
+                content.size.width,
+                content.size.height,
             );
         }
 
