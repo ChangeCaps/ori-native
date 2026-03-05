@@ -102,8 +102,8 @@ where
 
     fn teardown(element: Self::Element, (contents, state, _): Self::State, cx: &mut Context<P>) {
         let pod = Pod::new(element.node, contents);
-
         V::teardown(pod, state, cx);
+
         element.widget.teardown(&mut cx.platform);
     }
 }
