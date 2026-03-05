@@ -16,15 +16,19 @@ where
     fn build(platform: &mut P) -> Self;
     fn teardown(self, platform: &mut P);
 
-    fn insert_child(&mut self, index: usize, child: &P::Widget);
+    fn insert_child(&mut self, platform: &mut P, index: usize, child: &P::Widget);
+    fn remove_child(&mut self, platform: &mut P, index: usize);
+    fn swap_children(&mut self, platform: &mut P, index_a: usize, index_b: usize);
 
-    fn remove_child(&mut self, index: usize);
-
-    fn swap_children(&mut self, index_a: usize, index_b: usize);
-
-    fn set_size(&mut self, width: f32, height: f32);
-
-    fn set_child_layout(&mut self, index: usize, x: f32, y: f32, width: f32, height: f32);
+    fn set_child_layout(
+        &mut self,
+        platform: &mut P,
+        index: usize,
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+    );
 
     fn set_background_color(&mut self, platform: &mut P, color: Color);
     fn set_border_color(&mut self, platform: &mut P, color: Color);
@@ -88,8 +92,6 @@ where
 
     pub fn layout(&mut self, cx: &mut Context<P>, node: taffy::NodeId) {
         if let Ok(layout) = cx.get_computed_layout(node).cloned() {
-            self.group.set_size(layout.size.width, layout.size.height);
-
             self.group.set_border_width(
                 &mut cx.platform,
                 [
@@ -102,8 +104,9 @@ where
         }
 
         for (index, child) in self.children.iter_mut().enumerate() {
-            if let Ok(layout) = cx.get_computed_layout(child.node) {
+            if let Ok(layout) = cx.get_computed_layout(child.node).cloned() {
                 self.group.set_child_layout(
+                    &mut cx.platform,
                     index,
                     layout.location.x,
                     layout.location.y,
@@ -156,13 +159,18 @@ where
     fn insert(&mut self, cx: &mut Context<P>, element: BoxedWidget<P>) {
         let _ = cx.insert_layout_child(self.node, self.index, element.node);
 
-        self.group.insert_child(self.index, element.widget.widget());
+        self.group.insert_child(
+            &mut cx.platform,
+            self.index,
+            element.widget.widget(),
+        );
+
         self.children.insert(self.index, element);
         self.index += 1;
     }
 
     fn remove(&mut self, cx: &mut Context<P>) -> Option<BoxedWidget<P>> {
-        self.group.remove_child(self.index);
+        self.group.remove_child(&mut cx.platform, self.index);
         let child = self.children.remove(self.index);
         let _ = cx.remove_layout_child(self.node, self.index);
 
@@ -182,7 +190,12 @@ where
             self.children[self.index].node,
         );
 
-        self.group.swap_children(self.index, self.index + offset);
+        self.group.swap_children(
+            &mut cx.platform,
+            self.index,
+            self.index + offset,
+        );
+
         self.children.swap(self.index, self.index + offset);
     }
 }

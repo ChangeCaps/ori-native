@@ -136,6 +136,15 @@ impl NativeWindow<Platform> for Window {
         gtk4::ApplicationWindow::set_title(self.as_ref(), Some(&title));
     }
 
+    fn set_content_size(&mut self, _platform: &mut Platform, width: f32, height: f32) {
+        if let Some(child) = self.first_child() {
+            child.set_size_request(
+                width.round() as i32,
+                height.round() as i32,
+            );
+        }
+    }
+
     fn set_min_size(&mut self, width: u32, height: u32) {
         #[cfg(feature = "layer-shell")]
         {

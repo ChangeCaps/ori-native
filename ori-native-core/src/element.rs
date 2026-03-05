@@ -26,6 +26,15 @@ impl<P, T> Pod<P, T> {
 }
 
 impl<P, T> Pod<P, T> {
+    pub fn map_widget<U>(self, widget: U) -> Pod<P, U> {
+        Pod {
+            node: self.node,
+            widget,
+
+            marker: PhantomData,
+        }
+    }
+
     pub fn as_mut<'a>(
         &'a mut self,
         parent_node: taffy::NodeId,
@@ -59,6 +68,20 @@ impl<P, T> PodMut<'_, P, T> {
             index:         self.index,
             node:          self.node,
             widget:        self.widget,
+        }
+    }
+
+    pub fn map_widget<'a, U>(&'a mut self, widget: &'a mut U) -> PodMut<'a, P, U>
+    where
+        P: Platform,
+        T: NativeParent<P>,
+    {
+        PodMut {
+            parent_node: self.parent_node,
+            parent_widget: self.widget,
+            index: self.index,
+            node: self.node,
+            widget,
         }
     }
 }

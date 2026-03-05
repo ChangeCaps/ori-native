@@ -35,11 +35,12 @@ impl NativeParent<Platform> for Scroll {
 
 impl NativeScroll<Platform> for Scroll {
     fn build(_platform: &mut Platform, contents: &gtk4::Widget) -> Self {
-        let scroll = gtk4::ScrolledWindow::new();
         let fixed = gtk4::Fixed::new();
-
-        scroll.set_child(Some(&fixed));
         fixed.put(contents, 0.0, 0.0);
+        fixed.set_overflow(gtk4::Overflow::Visible);
+
+        let scroll = gtk4::ScrolledWindow::new();
+        scroll.set_child(Some(&fixed));
 
         Self { scroll, fixed }
     }

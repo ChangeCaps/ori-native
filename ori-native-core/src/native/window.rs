@@ -27,6 +27,8 @@ where
     fn start_animating(&mut self);
     fn stop_animating(&mut self);
 
+    fn set_content_size(&mut self, platform: &mut P, width: f32, height: f32);
+
     fn set_title(&mut self, title: String);
     fn set_min_size(&mut self, width: u32, height: u32);
     fn set_size(&mut self, width: u32, height: u32);

@@ -359,12 +359,18 @@ where
         let _ = cx.set_layout_style(self.node, style);
         let _ = cx.compute_layout(self.node, size);
 
-        if let Sizing::Content = self.sizing
-            && let Ok(layout) = cx.get_computed_layout(self.node)
-        {
-            self.window.set_size(
-                layout.size.width as u32,
-                layout.size.height as u32,
+        if let Ok(layout) = cx.get_computed_layout(self.node).cloned() {
+            if let Sizing::Content = self.sizing {
+                self.window.set_size(
+                    layout.size.width as u32,
+                    layout.size.height as u32,
+                );
+            }
+
+            self.window.set_content_size(
+                &mut cx.platform,
+                layout.content_size.width,
+                layout.content_size.height,
             );
         }
 

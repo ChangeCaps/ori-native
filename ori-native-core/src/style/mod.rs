@@ -2,6 +2,7 @@ mod color;
 mod layout;
 mod overflow;
 mod shadow;
+mod transform;
 mod window;
 
 pub use color::Color;
@@ -11,4 +12,5 @@ pub use layout::{
 };
 pub use overflow::Overflow;
 pub use shadow::Shadow;
+pub use transform::Affine;
 pub use window::Sizing;

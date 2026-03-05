@@ -41,29 +41,30 @@ impl NativeGroup<Platform> for Group {
 
     fn teardown(self, _platform: &mut Platform) {}
 
-    fn insert_child(&mut self, index: usize, child: &gtk4::Widget) {
+    fn insert_child(&mut self, _platform: &mut Platform, index: usize, child: &gtk4::Widget) {
         self.children.insert(index, child.clone());
         self.group.insert_child(index, child);
     }
 
-    fn remove_child(&mut self, index: usize) {
+    fn remove_child(&mut self, _platform: &mut Platform, index: usize) {
         self.children.remove(index);
         self.group.remove_child(index);
     }
 
-    fn swap_children(&mut self, index_a: usize, index_b: usize) {
+    fn swap_children(&mut self, _platform: &mut Platform, index_a: usize, index_b: usize) {
         self.children.swap(index_a, index_b);
         self.group.swap_children(index_a, index_b);
     }
 
-    fn set_size(&mut self, width: f32, height: f32) {
-        self.group.set_size(
-            width.round() as i32,
-            height.round() as i32,
-        );
-    }
-
-    fn set_child_layout(&mut self, index: usize, x: f32, y: f32, width: f32, height: f32) {
+    fn set_child_layout(
+        &mut self,
+        _platform: &mut Platform,
+        index: usize,
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+    ) {
         self.group.set_child_layout(
             index,
             x.round() as i32,
@@ -119,14 +120,6 @@ glib::wrapper! {
 impl GroupWidget {
     pub fn new() -> Self {
         gtk4::glib::Object::builder().build()
-    }
-
-    pub fn set_size(&self, width: i32, height: i32) {
-        if self.imp().width.get() != width || self.imp().height.get() != height {
-            self.imp().width.set(width);
-            self.imp().height.set(height);
-            self.queue_resize();
-        }
     }
 
     pub fn set_background_color(&self, background_color: gdk4::RGBA) {
@@ -186,8 +179,6 @@ impl GroupWidget {
                 widget: child.clone(),
                 x:      0,
                 y:      0,
-                width:  0,
-                height: 0,
             },
         );
     }
@@ -231,15 +222,14 @@ impl GroupWidget {
 
     pub fn set_child_layout(&self, index: usize, x: i32, y: i32, width: i32, height: i32) {
         if let Some(child) = self.imp().children.borrow_mut().get_mut(index) {
-            if child.x != x || child.y != y || child.width != width || child.height != height {
+            if child.x != x || child.y != y {
                 child.widget.queue_allocate();
                 child.widget.queue_resize();
             }
 
             child.x = x;
             child.y = y;
-            child.width = width;
-            child.height = height;
+            child.widget.set_size_request(width, height);
         }
     }
 }
@@ -247,7 +237,10 @@ impl GroupWidget {
 mod imp {
     use std::cell::{Cell, RefCell};
 
-    use glib::subclass::{object::ObjectImpl, types::ObjectSubclass};
+    use glib::subclass::{
+        object::ObjectImpl,
+        types::{ObjectSubclass, ObjectSubclassExt},
+    };
     use gtk4::{
         prelude::{SnapshotExt, SnapshotExtManual, WidgetExt},
         subclass::widget::{WidgetClassExt, WidgetImpl, WidgetImplExt},
@@ -256,9 +249,6 @@ mod imp {
 
     pub struct GroupWidget {
         pub(super) children: RefCell<Vec<Child>>,
-
-        pub(super) width:  Cell<i32>,
-        pub(super) height: Cell<i32>,
 
         pub(super) background_color: Cell<gdk4::RGBA>,
         pub(super) border_color:     Cell<gdk4::RGBA>,
@@ -272,17 +262,12 @@ mod imp {
         pub(super) widget: gtk4::Widget,
         pub(super) x:      i32,
         pub(super) y:      i32,
-        pub(super) width:  i32,
-        pub(super) height: i32,
     }
 
     impl Default for GroupWidget {
         fn default() -> Self {
             Self {
                 children: RefCell::default(),
-
-                width:  Cell::new(0),
-                height: Cell::new(0),
 
                 background_color: Cell::new(gdk4::RGBA::TRANSPARENT),
                 border_color:     Cell::new(gdk4::RGBA::TRANSPARENT),
@@ -321,8 +306,8 @@ mod imp {
                 graphene::Rect::new(
                     0.0,
                     0.0,
-                    self.width.get() as f32,
-                    self.height.get() as f32,
+                    self.obj().width() as f32,
+                    self.obj().height() as f32,
                 ),
                 graphene::Size::new(tl, tl),
                 graphene::Size::new(tr, tr),
@@ -380,8 +365,8 @@ mod imp {
                     &gtk4::Allocation::new(
                         child.x,
                         child.y,
-                        child.width,
-                        child.height,
+                        child.widget.width_request(),
+                        child.widget.height_request(),
                     ),
                     -1,
                 );
@@ -395,12 +380,12 @@ mod imp {
 
             match orientation {
                 gtk4::Orientation::Horizontal => {
-                    let width = self.width.get();
+                    let width = self.obj().width_request();
                     (width, width, -1, -1)
                 }
 
                 gtk4::Orientation::Vertical => {
-                    let height = self.height.get();
+                    let height = self.obj().height_request();
                     (height, height, -1, -1)
                 }
 

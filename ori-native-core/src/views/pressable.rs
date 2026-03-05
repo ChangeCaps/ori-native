@@ -2,7 +2,7 @@ use keyboard_types::Modifiers;
 use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarker};
 
 use crate::{
-    Context, Input, InputHandler, Lifecycle, NativeWidget, Pod, PodMut, WidgetView,
+    Context, Input, InputHandler, Lifecycle, NativeWidget, Pod, WidgetView,
     input::MatchKey,
     native::{HasPressable, NativePressable, Press},
 };
@@ -175,22 +175,19 @@ where
 
     fn rebuild(
         mut self,
-        element: Mut<'_, Self::Element>,
+        mut element: Mut<'_, Self::Element>,
         (contents, state): &mut Self::State,
         cx: &mut Context<P>,
         data: &mut T,
     ) {
         let view = (self.build)(data, state.press);
-        let pod = PodMut {
-            parent_node:   element.parent_node,
-            parent_widget: element.parent_widget,
 
-            index:  element.index,
-            node:   element.node,
-            widget: contents,
-        };
-
-        view.rebuild(pod, &mut state.state, cx, data);
+        view.rebuild(
+            element.map_widget(contents),
+            &mut state.state,
+            cx,
+            data,
+        );
         state.build = self.build;
         state.on_press = self.on_press;
 
@@ -214,26 +211,21 @@ where
     }
 
     fn message(
-        element: Mut<'_, Self::Element>,
+        mut element: Mut<'_, Self::Element>,
         (contents, state): &mut Self::State,
         cx: &mut Context<P>,
         data: &mut T,
         message: &mut Message,
     ) -> Action {
         if let Some(Lifecycle::Layout) = message.get()
-            && let Ok(layout) = cx.get_computed_layout(*element.node)
+            && let Ok(layout) = cx.get_computed_layout(*element.node).cloned()
         {
-            (element.widget).set_size(layout.size.width, layout.size.height);
+            element.widget.set_content_size(
+                &mut cx.platform,
+                layout.size.width,
+                layout.size.height,
+            );
         }
-
-        let pod = PodMut {
-            parent_node:   element.parent_node,
-            parent_widget: element.parent_widget,
-
-            index:  element.index,
-            node:   element.node,
-            widget: contents,
-        };
 
         if let Some(message) = message.take_targeted(state.view_id) {
             return state.handler.handle(data, message);
@@ -263,11 +255,22 @@ where
             }
 
             let view = (state.build)(data, state.press);
-            view.rebuild(pod, &mut state.state, cx, data);
+            view.rebuild(
+                element.map_widget(contents),
+                &mut state.state,
+                cx,
+                data,
+            );
 
             action
         } else {
-            V::message(pod, &mut state.state, cx, data, message)
+            V::message(
+                element.map_widget(contents),
+                &mut state.state,
+                cx,
+                data,
+                message,
+            )
         }
     }
 

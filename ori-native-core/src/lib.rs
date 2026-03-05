@@ -17,8 +17,8 @@ pub use input::{Input, InputFilter, InputHandler, InputMessage, MatchKey};
 pub use lifecycle::Lifecycle;
 pub use platform::Platform;
 pub use style::{
-    Align, AutoLength, Bordered, Color, Container, Direction, FlexContainer, Fract, Justify,
-    Layoutable, Length, Overflow, Position, Shadow, Sizing,
+    Affine, Align, AutoLength, Bordered, Color, Container, Direction, FlexContainer, Fract,
+    Justify, Layoutable, Length, Overflow, Position, Shadow, Sizing,
 };
 pub use text::{Font, Stretch, TextSpan, Weight, Wrap};
 
