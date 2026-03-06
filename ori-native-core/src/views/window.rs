@@ -327,21 +327,20 @@ where
             },
 
             Sizing::Content => {
-                let mut min_size = taffy::Size::auto();
+                let mut size = taffy::Size::auto();
 
-                let (min_width, min_height) = self.window.get_min_size();
+                let (preferred_width, preferred_height) = self.window.get_preferred_size();
 
-                if let Some(min_width) = min_width {
-                    min_size.width = taffy::Dimension::length(min_width as f32);
+                if let Some(min_width) = preferred_width {
+                    size.width = taffy::Dimension::length(min_width as f32);
                 }
 
-                if let Some(min_height) = min_height {
-                    min_size.height = taffy::Dimension::length(min_height as f32);
+                if let Some(min_height) = preferred_height {
+                    size.height = taffy::Dimension::length(min_height as f32);
                 }
 
                 taffy::Style {
-                    size: taffy::Size::auto(),
-                    min_size,
+                    size,
                     ..Default::default()
                 }
             }
