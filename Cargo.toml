@@ -7,8 +7,9 @@ license.workspace = true
 
 [workspace]
 members = [
-  "ori-native-core",
-  "ori-native-gtk4",
+  "core",
+  "platform/android",
+  "platform/gtk4",
 ]
 
 [workspace.package]
@@ -18,8 +19,10 @@ authors = ["Ori Developers"]
 license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
-ori-native-core = { path = "ori-native-core" }
-ori-native-gtk4 = { path = "ori-native-gtk4" }
+ori-native-core = { path = "core" }
+
+ori-native-android = { path = "platform/android" }
+ori-native-gtk4    = { path = "platform/gtk4"    }
 
 ori = { git = "https://github.com/ori-ui/ori" }
 
