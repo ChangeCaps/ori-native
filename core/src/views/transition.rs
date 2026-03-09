@@ -193,11 +193,39 @@ impl Lerp for f32 {
 
 impl Lerp for Color {
     fn lerp(a: &Self, b: &Self, t: f32) -> Self {
-        Color {
-            r: f32::lerp(&a.r, &b.r, t),
-            g: f32::lerp(&a.g, &b.g, t),
-            b: f32::lerp(&a.b, &b.b, t),
-            a: f32::lerp(&a.a, &b.a, t),
-        }
+        a.mix_rgb(*b, t)
     }
 }
+
+macro_rules! impl_tuple {
+    () => {
+        impl_tuple!(@impl);
+    };
+
+    ($first_name:ident: $first_b:ident $(, $rest:ident: $b:ident)*) => {
+        impl_tuple!(@impl $first_name: $first_b $(,$rest: $b)*);
+        impl_tuple!($($rest: $b),*);
+    };
+
+    (@impl $($name:ident: $b:ident),*) => {
+        impl<$($name),*> Lerp for ($($name,)*)
+        where
+            $($name: Lerp),*
+        {
+            #[allow(
+                non_snake_case,
+                unused,
+                clippy::unused_unit,
+            )]
+            fn lerp(
+                ($($name,)*): &Self,
+                ($($b,)*): &Self,
+                t: f32
+            ) -> Self {
+                ($($name::lerp($name, $b, t),)*)
+            }
+        }
+    };
+}
+
+impl_tuple!(A:a, B:b, C:c, D:d, E:e, F:f, G:g, H:h, I:i, J:j, K:k, L:l);
