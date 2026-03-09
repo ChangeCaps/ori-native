@@ -63,10 +63,7 @@ impl NativeText<Platform> for Text {
             spans,
             text,
             wrap,
-
-            previous_size: None,
-            known_size: None,
-            available_space: None,
+            cache: Vec::new(),
         }
     }
 }
@@ -76,10 +73,13 @@ pub struct TextLayout {
     spans: Box<[TextSpan]>,
     text:  String,
     wrap:  Wrap,
+    cache: Vec<CachedSize>,
+}
 
-    previous_size:   Option<taffy::Size<f32>>,
-    known_size:      Option<taffy::Size<Option<f32>>>,
-    available_space: Option<taffy::Size<taffy::AvailableSpace>>,
+struct CachedSize {
+    size:            taffy::Size<f32>,
+    known_size:      taffy::Size<Option<f32>>,
+    available_space: taffy::Size<taffy::AvailableSpace>,
 }
 
 impl LayoutLeaf<Platform> for TextLayout {
@@ -89,11 +89,12 @@ impl LayoutLeaf<Platform> for TextLayout {
         known_size: taffy::Size<Option<f32>>,
         available_space: taffy::Size<taffy::AvailableSpace>,
     ) -> taffy::Size<f32> {
-        if let Some(size) = self.previous_size
-            && self.known_size == Some(known_size)
-            && self.available_space == Some(available_space)
-        {
-            return size;
+        for cached_size in self.cache.iter() {
+            if cached_size.known_size == known_size
+                && cached_size.available_space == available_space
+            {
+                return cached_size.size;
+            }
         }
 
         let context = self.view.pango_context();
@@ -142,9 +143,11 @@ impl LayoutLeaf<Platform> for TextLayout {
             height: min_height.max(height as f32),
         };
 
-        self.previous_size = Some(size);
-        self.known_size = Some(known_size);
-        self.available_space = Some(available_space);
+        self.cache.push(CachedSize {
+            size,
+            known_size,
+            available_space,
+        });
 
         size
     }
