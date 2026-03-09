@@ -38,7 +38,7 @@ where
     fn set_shadow(&mut self, platform: &mut P, shadow: Shadow);
 }
 
-pub struct Group<P>
+pub struct WrappedGroup<P>
 where
     P: HasGroup,
 {
@@ -46,7 +46,7 @@ where
     children: Vec<BoxedWidget<P>>,
 }
 
-impl<P> Group<P>
+impl<P> WrappedGroup<P>
 where
     P: HasGroup,
 {
@@ -118,7 +118,7 @@ where
     }
 }
 
-impl<P> NativeWidget<P> for Group<P>
+impl<P> NativeWidget<P> for WrappedGroup<P>
 where
     P: HasGroup,
 {

@@ -3,7 +3,7 @@ use ori::{Action, Message, Mut, View, ViewMarker, ViewSeq};
 use crate::{
     Bordered, BoxedWidget, Color, Container, Context, Direction, FlexContainer, Layoutable,
     Lifecycle, Overflow, Pod, Shadow,
-    native::{Group, HasGroup},
+    native::{HasGroup, WrappedGroup},
 };
 
 /// [`View`] of a flex row.
@@ -166,13 +166,13 @@ where
     P: HasGroup,
     V: ViewSeq<Context<P>, T, BoxedWidget<P>>,
 {
-    type Element = Pod<P, Group<P>>;
+    type Element = Pod<P, WrappedGroup<P>>;
     type State = V::State;
 
     fn build(self, cx: &mut Context<P>, data: &mut T) -> (Self::Element, Self::State) {
         let node = cx.new_layout_node(self.layout, &[]);
 
-        let mut group = Group::new(cx);
+        let mut group = WrappedGroup::new(cx);
         group.set_background_color(cx, self.background_color);
         group.set_border_color(cx, self.border_color);
         group.set_corner_radii(cx, self.corner_radii);

@@ -11,160 +11,34 @@ impl HasGroup for Platform {
     type Group = Group;
 }
 
-pub struct Group {
-    group:    GroupWidget,
-    children: Vec<gtk4::Widget>,
-}
-
 impl NativeWidget<Platform> for Group {
     fn widget(&self) -> &gtk4::Widget {
-        self.group.as_ref()
+        self.as_ref()
     }
 }
 
 impl NativeParent<Platform> for Group {
     fn replace_child(&mut self, _platform: &mut Platform, index: usize, child: &gtk4::Widget) {
-        self.group.replace_child(index, child);
+        let mut children = self.imp().children.borrow_mut();
+
+        if let Some(current) = children.get_mut(index) {
+            child.insert_after(self, Some(&current.widget));
+            current.widget.unparent();
+            current.widget = child.clone();
+        }
     }
 }
 
 impl NativeGroup<Platform> for Group {
     fn build(_platform: &mut Platform) -> Self {
-        let group = GroupWidget::new();
+        let group = Self::new();
         group.set_accessible_role(gtk4::AccessibleRole::Group);
-
-        Self {
-            group,
-            children: Vec::new(),
-        }
+        group
     }
 
     fn teardown(self, _platform: &mut Platform) {}
 
     fn insert_child(&mut self, _platform: &mut Platform, index: usize, child: &gtk4::Widget) {
-        self.children.insert(index, child.clone());
-        self.group.insert_child(index, child);
-    }
-
-    fn remove_child(&mut self, _platform: &mut Platform, index: usize) {
-        self.children.remove(index);
-        self.group.remove_child(index);
-    }
-
-    fn swap_children(&mut self, _platform: &mut Platform, index_a: usize, index_b: usize) {
-        self.children.swap(index_a, index_b);
-        self.group.swap_children(index_a, index_b);
-    }
-
-    fn set_child_layout(
-        &mut self,
-        _platform: &mut Platform,
-        index: usize,
-        x: f32,
-        y: f32,
-        width: f32,
-        height: f32,
-    ) {
-        self.group.set_child_layout(
-            index,
-            x.round() as i32,
-            y.round() as i32,
-            width.round() as i32,
-            height.round() as i32,
-        );
-    }
-
-    fn set_background_color(&mut self, _platform: &mut Platform, color: Color) {
-        self.group.set_background_color(gdk4::RGBA::new(
-            color.r, color.g, color.b, color.a,
-        ));
-    }
-
-    fn set_border_color(&mut self, _platform: &mut Platform, color: Color) {
-        self.group.set_border_color(gdk4::RGBA::new(
-            color.r, color.g, color.b, color.a,
-        ));
-    }
-
-    fn set_border_width(&mut self, _platform: &mut Platform, width: [f32; 4]) {
-        self.group.set_border_width(width);
-    }
-
-    fn set_corner_radii(&mut self, _platform: &mut Platform, radii: [f32; 4]) {
-        self.group.set_corner_radii(radii);
-    }
-
-    fn set_overflow(&mut self, _platform: &mut Platform, overflow: Overflow) {
-        self.group.set_overflow_visible(match overflow {
-            Overflow::Visible => true,
-            Overflow::Hidden => false,
-        });
-    }
-
-    fn set_shadow(&mut self, _platform: &mut Platform, shadow: Shadow) {
-        self.group.set_shadow(shadow);
-    }
-}
-
-glib::wrapper! {
-    pub struct GroupWidget(
-        ObjectSubclass<imp::GroupWidget>)
-        @extends
-            gtk4::Widget,
-        @implements
-            gtk4::Buildable,
-            gtk4::Accessible,
-            gtk4::ConstraintTarget;
-}
-
-impl GroupWidget {
-    pub fn new() -> Self {
-        gtk4::glib::Object::builder().build()
-    }
-
-    pub fn set_background_color(&self, background_color: gdk4::RGBA) {
-        if self.imp().background_color.get() != background_color {
-            self.imp().background_color.set(background_color);
-            self.queue_draw();
-        }
-    }
-
-    pub fn set_border_color(&self, border_color: gdk4::RGBA) {
-        if self.imp().border_color.get() != border_color {
-            self.imp().border_color.set(border_color);
-            self.queue_draw();
-        }
-    }
-
-    pub fn set_corner_radii(&self, corner_radii: [f32; 4]) {
-        if self.imp().corner_radii.get() != corner_radii {
-            self.imp().corner_radii.set(corner_radii);
-            self.queue_draw();
-        }
-    }
-
-    pub fn set_border_width(&self, border_width: [f32; 4]) {
-        if self.imp().border_width.get() != border_width {
-            self.imp().border_width.set(border_width);
-            self.queue_draw();
-        }
-    }
-
-    pub fn set_overflow_visible(&self, visible: bool) {
-        if self.imp().overflow_visible.get() != visible {
-            self.imp().overflow_visible.set(visible);
-            self.queue_draw();
-        }
-    }
-
-    pub fn set_shadow(&self, shadow: Shadow) {
-        if self.imp().shadow.get() != shadow {
-            self.imp().shadow.set(shadow);
-            self.queue_draw();
-        }
-    }
-
-    pub fn insert_child(&self, index: usize, child: &gtk4::Widget) {
         let mut children = self.imp().children.borrow_mut();
 
         if let Some(current) = children.get(index) {
@@ -183,26 +57,16 @@ impl GroupWidget {
         );
     }
 
-    pub fn remove_child(&self, index: usize) {
+    fn remove_child(&mut self, _platform: &mut Platform, index: usize) {
         let child = self.imp().children.borrow_mut().remove(index);
         child.widget.unparent();
     }
 
-    pub fn replace_child(&self, index: usize, child: &gtk4::Widget) {
+    fn swap_children(&mut self, _platform: &mut Platform, index_a: usize, index_b: usize) {
         let mut children = self.imp().children.borrow_mut();
 
-        if let Some(current) = children.get_mut(index) {
-            child.insert_after(self, Some(&current.widget));
-            current.widget.unparent();
-            current.widget = child.clone();
-        }
-    }
-
-    pub fn swap_children(&self, a: usize, b: usize) {
-        let mut children = self.imp().children.borrow_mut();
-
-        let first = usize::min(a, b);
-        let last = usize::max(a, b);
+        let first = usize::min(index_a, index_b);
+        let last = usize::max(index_a, index_b);
 
         // get the child after the last one
         let after = children.get(last + 1).map(|child| &child.widget);
@@ -217,10 +81,23 @@ impl GroupWidget {
         children[first].widget.insert_before(self, after);
 
         // swap in the array
-        children.swap(a, b);
+        children.swap(index_a, index_b);
     }
 
-    pub fn set_child_layout(&self, index: usize, x: i32, y: i32, width: i32, height: i32) {
+    fn set_child_layout(
+        &mut self,
+        _platform: &mut Platform,
+        index: usize,
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+    ) {
+        let x = x.round() as i32;
+        let y = y.round() as i32;
+        let width = width.round() as i32;
+        let height = height.round() as i32;
+
         if let Some(child) = self.imp().children.borrow_mut().get_mut(index) {
             if child.x != x || child.y != y {
                 child.widget.queue_allocate();
@@ -231,6 +108,69 @@ impl GroupWidget {
             child.y = y;
             child.widget.set_size_request(width, height);
         }
+    }
+
+    fn set_background_color(&mut self, _platform: &mut Platform, color: Color) {
+        let color = gdk4::RGBA::new(color.r, color.g, color.b, color.a);
+
+        if self.imp().background_color.get() != color {
+            self.imp().background_color.set(color);
+            self.queue_draw();
+        }
+    }
+
+    fn set_border_color(&mut self, _platform: &mut Platform, color: Color) {
+        let color = gdk4::RGBA::new(color.r, color.g, color.b, color.a);
+
+        if self.imp().border_color.get() != color {
+            self.imp().border_color.set(color);
+            self.queue_draw();
+        }
+    }
+
+    fn set_border_width(&mut self, _platform: &mut Platform, width: [f32; 4]) {
+        if self.imp().border_width.get() != width {
+            self.imp().border_width.set(width);
+            self.queue_draw();
+        }
+    }
+
+    fn set_corner_radii(&mut self, _platform: &mut Platform, radii: [f32; 4]) {
+        if self.imp().corner_radii.get() != radii {
+            self.imp().corner_radii.set(radii);
+            self.queue_draw();
+        }
+    }
+
+    fn set_overflow(&mut self, _platform: &mut Platform, overflow: Overflow) {
+        if self.imp().overflow.get() != overflow {
+            self.imp().overflow.set(overflow);
+            self.queue_draw();
+        }
+    }
+
+    fn set_shadow(&mut self, _platform: &mut Platform, shadow: Shadow) {
+        if self.imp().shadow.get() != shadow {
+            self.imp().shadow.set(shadow);
+            self.queue_draw();
+        }
+    }
+}
+
+glib::wrapper! {
+    pub struct Group(
+        ObjectSubclass<imp::Group>)
+        @extends
+            gtk4::Widget,
+        @implements
+            gtk4::Buildable,
+            gtk4::Accessible,
+            gtk4::ConstraintTarget;
+}
+
+impl Group {
+    pub fn new() -> Self {
+        gtk4::glib::Object::builder().build()
     }
 }
 
@@ -245,16 +185,16 @@ mod imp {
         prelude::{SnapshotExt, SnapshotExtManual, WidgetExt},
         subclass::widget::{WidgetClassExt, WidgetImpl, WidgetImplExt},
     };
-    use ori_native_core::Shadow;
+    use ori_native_core::{Overflow, Shadow};
 
-    pub struct GroupWidget {
+    pub struct Group {
         pub(super) children: RefCell<Vec<Child>>,
 
         pub(super) background_color: Cell<gdk4::RGBA>,
         pub(super) border_color:     Cell<gdk4::RGBA>,
         pub(super) corner_radii:     Cell<[f32; 4]>,
         pub(super) border_width:     Cell<[f32; 4]>,
-        pub(super) overflow_visible: Cell<bool>,
+        pub(super) overflow:         Cell<Overflow>,
         pub(super) shadow:           Cell<Shadow>,
     }
 
@@ -264,7 +204,7 @@ mod imp {
         pub(super) y:      i32,
     }
 
-    impl Default for GroupWidget {
+    impl Default for Group {
         fn default() -> Self {
             Self {
                 children: RefCell::default(),
@@ -273,16 +213,16 @@ mod imp {
                 border_color:     Cell::new(gdk4::RGBA::TRANSPARENT),
                 corner_radii:     Cell::new([0.0; 4]),
                 border_width:     Cell::new([0.0; 4]),
-                overflow_visible: Cell::new(true),
+                overflow:         Cell::new(Overflow::Visible),
                 shadow:           Cell::new(Shadow::default()),
             }
         }
     }
 
     #[glib::object_subclass]
-    impl ObjectSubclass for GroupWidget {
+    impl ObjectSubclass for Group {
         const NAME: &'static str = "OriGroup";
-        type Type = super::GroupWidget;
+        type Type = super::Group;
         type ParentType = gtk4::Widget;
 
         fn class_init(klass: &mut Self::Class) {
@@ -290,7 +230,7 @@ mod imp {
         }
     }
 
-    impl ObjectImpl for GroupWidget {
+    impl ObjectImpl for Group {
         fn dispose(&self) {
             for child in self.children.borrow().iter() {
                 child.widget.unparent();
@@ -298,7 +238,7 @@ mod imp {
         }
     }
 
-    impl WidgetImpl for GroupWidget {
+    impl WidgetImpl for Group {
         fn snapshot(&self, snapshot: &gtk4::Snapshot) {
             let [tl, tr, br, bl] = self.corner_radii.get();
 
@@ -346,13 +286,13 @@ mod imp {
                 &[self.border_color.get(); 4],
             );
 
-            if self.overflow_visible.get() {
+            if let Overflow::Visible = self.overflow.get() {
                 snapshot.pop();
             }
 
             self.parent_snapshot(snapshot);
 
-            if !self.overflow_visible.get() {
+            if let Overflow::Hidden = self.overflow.get() {
                 snapshot.pop();
             }
         }

@@ -1,4 +1,4 @@
-use std::any::Any;
+use std::any::{self, Any, TypeId};
 
 use ori::{Action, AnyView, Base, Message, Provider, Proxied, Proxy, Tracker, Tree, ViewId};
 
@@ -22,8 +22,15 @@ pub struct Context<P> {
     layout_tree:          taffy::TaffyTree<Box<dyn LayoutLeaf<P>>>,
     layout_controller:    Option<ViewId>,
     animation_controller: Option<ViewId>,
-    resources:            Vec<Box<dyn Any>>,
-    tree:                 Tree,
+    resources:            Vec<Resource>,
+    view_id_tree:         Tree,
+}
+
+#[allow(dead_code)]
+struct Resource {
+    type_id:   TypeId,
+    type_name: &'static str,
+    value:     Box<dyn Any>,
 }
 
 impl<P> Context<P>
@@ -38,7 +45,7 @@ where
             layout_controller: None,
             animation_controller: None,
             resources: Vec::new(),
-            tree: Tree::new(),
+            view_id_tree: Tree::new(),
         }
     }
 
@@ -238,7 +245,7 @@ impl<P> Base for Context<P> {
 
 impl<P> Tracker for Context<P> {
     fn tree(&mut self) -> &mut Tree {
-        &mut self.tree
+        &mut self.view_id_tree
     }
 }
 
@@ -259,31 +266,47 @@ where
 
 impl<P> Provider for Context<P> {
     fn push<T: Any>(&mut self, resource: Box<T>) {
-        self.resources.push(resource);
+        self.resources.push(Resource {
+            type_id:   TypeId::of::<T>(),
+            type_name: any::type_name::<T>(),
+            value:     resource,
+        });
     }
 
     fn pop<T: Any>(&mut self) -> Option<Box<T>> {
-        let (index, _) = self
-            .resources
-            .iter()
-            .enumerate()
-            .rev()
-            .find(|(_, resource)| resource.as_ref().is::<T>())?;
+        for (i, resource) in self.resources.iter().enumerate().rev() {
+            if resource.type_id == TypeId::of::<T>() {
+                continue;
+            }
 
-        self.resources.remove(index).downcast().ok()
+            let resource = self.resources.remove(i);
+            return resource.value.downcast().ok();
+        }
+
+        None
     }
 
     fn get<T: Any>(&self) -> Option<&T> {
-        self.resources
-            .iter()
-            .rev()
-            .find_map(|resource| resource.downcast_ref())
+        for resource in self.resources.iter().rev() {
+            if resource.type_id == TypeId::of::<T>() {
+                continue;
+            }
+
+            return resource.value.downcast_ref();
+        }
+
+        None
     }
 
     fn get_mut<T: Any>(&mut self) -> Option<&mut T> {
-        self.resources
-            .iter_mut()
-            .rev()
-            .find_map(|resource| resource.downcast_mut())
+        for resource in self.resources.iter_mut().rev() {
+            if resource.type_id == TypeId::of::<T>() {
+                continue;
+            }
+
+            return resource.value.downcast_mut();
+        }
+
+        None
     }
 }
