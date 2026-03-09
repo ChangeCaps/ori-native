@@ -1,8 +1,8 @@
 use ori::{Action, Message, Mut, View, ViewMarker};
 
 use crate::{
-    Container, Context, Direction, Layoutable, Lifecycle, NativeWidget, Pod, WidgetView,
-    native::{HasScroll, NativeScroll},
+    Container, Context, Direction, Layoutable, Lifecycle, NativeWidget, Platform, Pod, WidgetView,
+    native::NativeScroll,
 };
 
 /// [`View`] of a horizontal scroll area.
@@ -64,7 +64,7 @@ impl<V> Container for Scroll<V> {}
 impl<V> ViewMarker for Scroll<V> {}
 impl<P, T, V> View<Context<P>, T> for Scroll<V>
 where
-    P: HasScroll,
+    P: Platform,
     V: WidgetView<P, T>,
 {
     type Element = Pod<P, P::Scroll>;

@@ -1,14 +1,7 @@
 use gtk4::prelude::{FixedExt, WidgetExt};
-use ori_native_core::{
-    Affine, NativeParent, NativeWidget,
-    native::{HasTransform, NativeTransform},
-};
+use ori_native_core::{Affine, NativeParent, NativeWidget, native::NativeTransform};
 
 use crate::Platform;
-
-impl HasTransform for Platform {
-    type Transform = Transform;
-}
 
 pub struct Transform {
     fixed: gtk4::Fixed,

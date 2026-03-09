@@ -3,7 +3,7 @@ use std::{collections::HashMap, io, pin::Pin, sync::Arc};
 use ori::{Message, Proxied, Proxy};
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::application::Event;
+use crate::{application::Event, widgets};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct StyleNode(u64);
@@ -89,6 +89,15 @@ impl Platform {
 
 impl ori_native_core::Platform for Platform {
     type Widget = gtk4::Widget;
+
+    type Group = widgets::Group;
+    type Image = widgets::Image;
+    type Pressable = widgets::Pressable;
+    type Scroll = widgets::Scroll;
+    type Text = widgets::Text;
+    type TextInput = widgets::TextInput;
+    type Transform = widgets::Transform;
+    type Window = widgets::Window;
 
     fn quit(&mut self) {
         let _ = self.proxy.sender.send(Event::Quit);

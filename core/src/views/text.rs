@@ -3,8 +3,8 @@ use std::borrow::Cow;
 use ori::{Action, Message, Mut, View, ViewMarker};
 
 use crate::{
-    Color, Context, Font, Layoutable, Pod, Stretch, TextSpan, Weight, Wrap,
-    native::{HasText, NativeText},
+    Color, Context, Font, Layoutable, Platform, Pod, Stretch, TextSpan, Weight, Wrap,
+    native::NativeText,
 };
 
 /// [`View`] of a text paragraph.
@@ -95,7 +95,7 @@ impl Layoutable for Text {
 impl ViewMarker for Text {}
 impl<P, T> View<Context<P>, T> for Text
 where
-    P: HasText,
+    P: Platform,
 {
     type Element = Pod<P, P::Text>;
     type State = (Font, String);

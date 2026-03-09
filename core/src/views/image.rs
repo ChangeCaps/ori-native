@@ -2,10 +2,7 @@ use std::borrow::Cow;
 
 use ori::{Action, Message, Mut, View, ViewMarker};
 
-use crate::{
-    Color, Context, Layoutable, Pod,
-    native::{HasImage, NativeImage},
-};
+use crate::{Color, Context, Layoutable, Platform, Pod, native::NativeImage};
 
 /// [`View`] of an image.
 pub fn image(data: impl Into<Cow<'static, [u8]>>) -> Image {
@@ -47,7 +44,7 @@ impl Layoutable for Image {
 impl ViewMarker for Image {}
 impl<P, T> View<Context<P>, T> for Image
 where
-    P: HasImage,
+    P: Platform,
 {
     type Element = Pod<P, P::Image>;
     type State = ImageState;

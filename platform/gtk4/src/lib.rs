@@ -3,9 +3,9 @@
 mod application;
 mod key;
 mod platform;
+mod widgets;
 
 pub mod views;
-pub mod widgets;
 
 pub use application::{Application, Error};
 pub use platform::Platform;

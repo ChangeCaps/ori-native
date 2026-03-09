@@ -3,16 +3,9 @@ use std::{borrow::Cow, io};
 use gdk4::{gdk_pixbuf::prelude::PixbufLoaderExt, prelude::PaintableExt};
 use glib::subclass::types::ObjectSubclassIsExt;
 use librsvg::prelude::HandleExt;
-use ori_native_core::{
-    Color, LayoutLeaf, NativeWidget,
-    native::{HasImage, NativeImage},
-};
+use ori_native_core::{Color, LayoutLeaf, NativeWidget, native::NativeImage};
 
 use crate::Platform;
-
-impl HasImage for Platform {
-    type Image = Image;
-}
 
 pub struct Image {
     picture:   gtk4::Picture,

@@ -1,14 +1,7 @@
 use gtk4::prelude::{FixedExt, WidgetExt};
-use ori_native_core::{
-    Direction, NativeParent, NativeWidget,
-    native::{HasScroll, NativeScroll},
-};
+use ori_native_core::{Direction, NativeParent, NativeWidget, native::NativeScroll};
 
 use crate::Platform;
-
-impl HasScroll for Platform {
-    type Scroll = Scroll;
-}
 
 pub struct Scroll {
     scroll: gtk4::ScrolledWindow,

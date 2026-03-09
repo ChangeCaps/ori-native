@@ -17,7 +17,7 @@ pub use context::{BoxedEffect, Context, LayoutLeaf};
 pub use element::{BoxedWidget, NativeParent, NativeWidget, Pod, PodMut, WidgetView};
 pub use input::{Input, InputFilter, InputHandler, InputMessage, MatchKey};
 pub use lifecycle::{AnimateRequest, LayoutRequest, Lifecycle};
-pub use platform::Platform;
+pub use platform::{Platform, Unsupported};
 pub use style::{
     Affine, Align, AutoLength, Bordered, Color, Container, Direction, FlexContainer, Fract,
     Justify, Layoutable, Length, Overflow, Position, Shadow, Sizing,

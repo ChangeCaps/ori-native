@@ -1,8 +1,7 @@
 use ori::{Action, Message, Mut, View, ViewMarker};
 
 use crate::{
-    Affine, Context, Lifecycle, NativeWidget, Pod, WidgetView,
-    native::{HasTransform, NativeTransform},
+    Affine, Context, Lifecycle, NativeWidget, Platform, Pod, WidgetView, native::NativeTransform,
 };
 
 /// [`View`] that transforms its contents.
@@ -49,7 +48,7 @@ impl<V> Transform<V> {
 impl<V> ViewMarker for Transform<V> {}
 impl<P, V, T> View<Context<P>, T> for Transform<V>
 where
-    P: HasTransform,
+    P: Platform,
     V: WidgetView<P, T>,
 {
     type Element = Pod<P, P::Transform>;

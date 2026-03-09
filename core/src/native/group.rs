@@ -1,13 +1,9 @@
 use ori::{Elements, Mut};
 
 use crate::{
-    BoxedWidget, Color, Context, NativeWidget, Overflow, Platform, PodMut, Shadow,
-    element::NativeParent,
+    BoxedWidget, Color, Context, NativeWidget, Overflow, Platform, PodMut, Shadow, Unsupported,
+    element::NativeParent, platform::unsupported,
 };
-
-pub trait HasGroup: Platform {
-    type Group: NativeGroup<Self>;
-}
 
 pub trait NativeGroup<P>: NativeWidget<P> + NativeParent<P>
 where
@@ -38,9 +34,70 @@ where
     fn set_shadow(&mut self, platform: &mut P, shadow: Shadow);
 }
 
+impl<P> NativeGroup<P> for Unsupported
+where
+    P: Platform,
+{
+    fn build(_platform: &mut P) -> Self {
+        unsupported!("group widget")
+    }
+
+    fn teardown(self, _platform: &mut P) {
+        unreachable!()
+    }
+
+    fn insert_child(&mut self, _platform: &mut P, _index: usize, _child: &<P as Platform>::Widget) {
+        unreachable!()
+    }
+
+    fn remove_child(&mut self, _platform: &mut P, _index: usize) {
+        unreachable!()
+    }
+
+    fn swap_children(&mut self, _platform: &mut P, _index_a: usize, _index_b: usize) {
+        unreachable!()
+    }
+
+    fn set_child_layout(
+        &mut self,
+        _platform: &mut P,
+        _index: usize,
+        _x: f32,
+        _y: f32,
+        _width: f32,
+        _height: f32,
+    ) {
+        unreachable!()
+    }
+
+    fn set_background_color(&mut self, _platform: &mut P, _color: Color) {
+        unreachable!()
+    }
+
+    fn set_border_color(&mut self, _platform: &mut P, _color: Color) {
+        unreachable!()
+    }
+
+    fn set_border_width(&mut self, _platform: &mut P, _width: [f32; 4]) {
+        unreachable!()
+    }
+
+    fn set_corner_radii(&mut self, _platform: &mut P, _radii: [f32; 4]) {
+        unreachable!()
+    }
+
+    fn set_overflow(&mut self, _platform: &mut P, _overflow: Overflow) {
+        unreachable!()
+    }
+
+    fn set_shadow(&mut self, _platform: &mut P, _shadow: Shadow) {
+        unreachable!()
+    }
+}
+
 pub struct WrappedGroup<P>
 where
-    P: HasGroup,
+    P: Platform,
 {
     group:    P::Group,
     children: Vec<BoxedWidget<P>>,
@@ -48,7 +105,7 @@ where
 
 impl<P> WrappedGroup<P>
 where
-    P: HasGroup,
+    P: Platform,
 {
     pub fn new(cx: &mut Context<P>) -> Self {
         Self {
@@ -120,7 +177,7 @@ where
 
 impl<P> NativeWidget<P> for WrappedGroup<P>
 where
-    P: HasGroup,
+    P: Platform,
 {
     fn widget(&self) -> &P::Widget {
         self.group.widget()
@@ -129,7 +186,7 @@ where
 
 struct GroupElements<'a, P>
 where
-    P: HasGroup,
+    P: Platform,
 {
     node:     taffy::NodeId,
     index:    usize,
@@ -139,7 +196,7 @@ where
 
 impl<P> Elements<Context<P>, BoxedWidget<P>> for GroupElements<'_, P>
 where
-    P: HasGroup,
+    P: Platform,
 {
     fn next(&mut self, _cx: &mut Context<P>) -> Option<Mut<'_, BoxedWidget<P>>> {
         let child = self.children.get_mut(self.index)?;

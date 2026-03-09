@@ -5,8 +5,7 @@ use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarke
 
 use crate::{
     AnimateRequest, Context, Input, InputHandler, LayoutRequest, Lifecycle, MatchKey, NativeWidget,
-    Pod, Sizing, WidgetView,
-    native::{HasWindow, NativeWindow},
+    Platform, Pod, Sizing, WidgetView, native::NativeWindow,
 };
 
 /// [`View`] of a window.
@@ -66,7 +65,7 @@ pub enum WindowMessage {
 impl<T, V> ViewMarker for Window<T, V> {}
 impl<P, T, V> View<Context<P>, T> for Window<T, V>
 where
-    P: HasWindow + Proxied,
+    P: Platform,
     V: WidgetView<P, T>,
 {
     type Element = ();
@@ -146,7 +145,7 @@ impl<T> Default for WindowAttributes<T> {
 /// Common state of a [`Window`].
 pub struct WindowState<P, T, V>
 where
-    P: HasWindow,
+    P: Platform,
     V: WidgetView<P, T>,
 {
     /// The native window.
@@ -171,7 +170,7 @@ where
 
 impl<P, T, V> WindowState<P, T, V>
 where
-    P: HasWindow,
+    P: Platform,
     V: WidgetView<P, T>,
 {
     /// Create new [`WindowState`].

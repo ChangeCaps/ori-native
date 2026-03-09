@@ -3,8 +3,7 @@ use std::borrow::Cow;
 use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarker};
 
 use crate::{
-    Color, Context, Font, Layoutable, Pod, Stretch, Weight,
-    native::{HasTextInput, NativeTextInput},
+    Color, Context, Font, Layoutable, Platform, Pod, Stretch, Weight, native::NativeTextInput,
 };
 
 /// [`View`] of a text input.
@@ -221,8 +220,7 @@ enum TextInputMessage {
 impl<T> ViewMarker for TextInput<T> {}
 impl<P, T> View<Context<P>, T> for TextInput<T>
 where
-    P: HasTextInput + Proxied,
-    T: 'static,
+    P: Platform + Proxied,
 {
     type Element = Pod<P, P::TextInput>;
     type State = TextInputState<T>;

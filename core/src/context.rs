@@ -1,4 +1,7 @@
-use std::any::{self, Any, TypeId};
+use std::{
+    any::{self, Any, TypeId},
+    convert::Infallible,
+};
 
 use ori::{Action, AnyView, Base, Message, Provider, Proxied, Proxy, Tracker, Tree, ViewId};
 
@@ -13,6 +16,17 @@ pub trait LayoutLeaf<P>: 'static {
         known_size: taffy::Size<Option<f32>>,
         available_space: taffy::Size<taffy::AvailableSpace>,
     ) -> taffy::Size<f32>;
+}
+
+impl<P> LayoutLeaf<P> for Infallible {
+    fn measure(
+        &mut self,
+        _platform: &mut P,
+        _known_size: taffy::Size<Option<f32>>,
+        _available_space: taffy::Size<taffy::AvailableSpace>,
+    ) -> taffy::Size<f32> {
+        unreachable!()
+    }
 }
 
 /// The context of the [`View`](ori::View) tree.

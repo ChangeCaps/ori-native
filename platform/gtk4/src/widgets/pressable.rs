@@ -3,14 +3,10 @@ use std::rc::Rc;
 use gtk4::prelude::{AccessibleExt, FixedExt, WidgetExt};
 use ori_native_core::{
     Key, Modifiers, NativeParent, NativeWidget,
-    native::{HasPressable, NativePressable, Press},
+    native::{NativePressable, Press},
 };
 
 use crate::{Platform, key};
-
-impl HasPressable for Platform {
-    type Pressable = Pressable;
-}
 
 pub struct Pressable {
     fixed: gtk4::Fixed,

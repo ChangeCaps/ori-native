@@ -1,14 +1,9 @@
 use gtk4::prelude::{TextBufferExt, TextBufferExtManual, TextTagExt, TextViewExt, WidgetExt};
 use ori_native_core::{
-    Font, LayoutLeaf, NativeWidget, Stretch, TextSpan, Weight, Wrap,
-    native::{HasText, NativeText},
+    Font, LayoutLeaf, NativeWidget, Stretch, TextSpan, Weight, Wrap, native::NativeText,
 };
 
 use crate::Platform;
-
-impl HasText for Platform {
-    type Text = Text;
-}
 
 pub struct Text {
     view: gtk4::TextView,

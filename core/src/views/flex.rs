@@ -2,8 +2,7 @@ use ori::{Action, Message, Mut, View, ViewMarker, ViewSeq};
 
 use crate::{
     Bordered, BoxedWidget, Color, Container, Context, Direction, FlexContainer, Layoutable,
-    Lifecycle, Overflow, Pod, Shadow,
-    native::{HasGroup, WrappedGroup},
+    Lifecycle, Overflow, Platform, Pod, Shadow, native::WrappedGroup,
 };
 
 /// [`View`] of a flex row.
@@ -163,7 +162,7 @@ impl<V> Bordered for Flex<V> {}
 impl<V> ViewMarker for Flex<V> {}
 impl<P, T, V> View<Context<P>, T> for Flex<V>
 where
-    P: HasGroup,
+    P: Platform,
     V: ViewSeq<Context<P>, T, BoxedWidget<P>>,
 {
     type Element = Pod<P, WrappedGroup<P>>;

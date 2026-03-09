@@ -2,9 +2,9 @@ use keyboard_types::Modifiers;
 use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarker};
 
 use crate::{
-    Context, Input, InputHandler, Lifecycle, NativeWidget, Pod, WidgetView,
+    Context, Input, InputHandler, Lifecycle, NativeWidget, Platform, Pod, WidgetView,
     input::MatchKey,
-    native::{HasPressable, NativePressable, Press},
+    native::{NativePressable, Press},
 };
 
 /// [`View`] that reacts to presses and focus.
@@ -98,7 +98,7 @@ enum PressableMessage {
 impl<T, V> ViewMarker for Pressable<V, T> {}
 impl<P, T, V> View<Context<P>, T> for Pressable<V, T>
 where
-    P: HasPressable + Proxied,
+    P: Platform,
     V: WidgetView<P, T>,
 {
     type Element = Pod<P, P::Pressable>;
@@ -300,7 +300,7 @@ where
 #[allow(clippy::type_complexity)]
 pub struct PressableState<P, T, V>
 where
-    P: HasPressable,
+    P: Platform,
     V: WidgetView<P, T>,
 {
     press:    PressState,

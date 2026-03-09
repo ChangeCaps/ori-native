@@ -2,16 +2,9 @@ use std::{rc::Rc, time::Duration};
 
 use glib::{object::Cast, subclass::types::ObjectSubclassIsExt};
 use gtk4::prelude::{GtkWindowExt, WidgetExt};
-use ori_native_core::{
-    Key, Modifiers, NativeParent,
-    native::{HasWindow, NativeWindow},
-};
+use ori_native_core::{Key, Modifiers, NativeParent, native::NativeWindow};
 
 use crate::{Platform, key};
-
-impl HasWindow for Platform {
-    type Window = Window;
-}
 
 impl NativeParent<Platform> for Window {
     fn replace_child(&mut self, _platform: &mut Platform, index: usize, child: &gtk4::Widget) {

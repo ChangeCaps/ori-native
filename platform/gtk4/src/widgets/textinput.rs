@@ -3,16 +3,10 @@ use std::{cell::Cell, rc::Rc};
 use glib::object::ObjectExt;
 use gtk4::prelude::{TextBufferExt, TextViewExt, WidgetExt};
 use ori_native_core::{
-    Font, LayoutLeaf, NativeWidget, Stretch,
-    native::{HasTextInput, NativeTextInput},
-    views::Newline,
+    Font, LayoutLeaf, NativeWidget, Stretch, native::NativeTextInput, views::Newline,
 };
 
 use crate::{Platform, platform::StyleNode};
-
-impl HasTextInput for Platform {
-    type TextInput = TextInput;
-}
 
 pub struct TextInput {
     overlay:     gtk4::Overlay,

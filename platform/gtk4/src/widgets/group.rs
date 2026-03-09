@@ -1,15 +1,8 @@
 use glib::subclass::types::ObjectSubclassIsExt;
 use gtk4::prelude::{AccessibleExt, WidgetExt};
-use ori_native_core::{
-    Color, NativeParent, NativeWidget, Overflow, Shadow,
-    native::{HasGroup, NativeGroup},
-};
+use ori_native_core::{Color, NativeParent, NativeWidget, Overflow, Shadow, native::NativeGroup};
 
 use crate::Platform;
-
-impl HasGroup for Platform {
-    type Group = Group;
-}
 
 impl NativeWidget<Platform> for Group {
     fn widget(&self) -> &gtk4::Widget {
