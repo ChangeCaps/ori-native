@@ -8,8 +8,7 @@ license.workspace = true
 [workspace]
 members = [
   "core",
-  "platform/android",
-  "platform/gtk4",
+  "platform/*",
 ]
 
 [workspace.package]
