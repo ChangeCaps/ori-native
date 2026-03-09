@@ -5,87 +5,90 @@ use ori::{Action, Message, Mut, View, ViewMarker};
 use crate::{Context, Lifecycle, Platform, WidgetView};
 
 /// [`View`] that animates its contents.
-#[allow(clippy::type_complexity)]
-pub fn animate<P, T, U, V>(
-    initial: impl FnOnce() -> U,
-    rebuild: impl FnOnce(&mut U) -> bool,
-    animate: impl FnMut(&mut U, Duration) -> bool,
-    build: impl Fn(&U, &T) -> V,
-) -> impl WidgetView<P, T>
+pub fn animate<P, T, A>(animation: A) -> impl WidgetView<P, T>
 where
     P: Platform,
-    V: WidgetView<P, T>,
+    A: Animation<T>,
+    A::View: WidgetView<P, T>,
 {
-    Animate::new(initial, rebuild, animate, build)
+    Animate::new(animation)
+}
+
+/// An animated [`View`].
+pub trait Animation<T> {
+    /// The retained state of the animation.
+    type State;
+
+    /// The view produced by the animation.
+    type View;
+
+    /// Build the animation state, and return whether the animation should start.
+    fn build(self, data: &mut T) -> (Self::State, bool);
+
+    /// Rebuild the animation state, and return whether the animation should be running.
+    fn rebuild(self, state: &mut Self::State, data: &mut T) -> bool;
+
+    /// Update the state in response to an animation frame, and return whether the animation should
+    /// continue.
+    fn animate(state: &mut Self::State, data: &mut T, duration: Duration) -> bool;
+
+    /// Build the animated [`View`].
+    fn view(state: &Self::State, data: &T) -> Self::View;
 }
 
 /// [`View`] that animates its contents.
-pub struct Animate<F, G, H, I> {
-    initial: F,
-    rebuild: G,
-    animate: H,
-    build:   I,
+pub struct Animate<A> {
+    animation: A,
 }
 
-impl<F, G, H, I> Animate<F, G, H, I> {
+impl<A> Animate<A> {
     /// Create new [`Animate`].
-    pub fn new(initial: F, animating: G, animate: H, build: I) -> Self {
-        Self {
-            initial,
-            rebuild: animating,
-            animate,
-            build,
-        }
+    pub fn new(animation: A) -> Self {
+        Self { animation }
     }
 }
 
-impl<F, G, H, I> ViewMarker for Animate<F, G, H, I> {}
-impl<P, T, F, G, H, I, U, V> View<Context<P>, T> for Animate<F, G, H, I>
+impl<A> ViewMarker for Animate<A> {}
+impl<P, T, A> View<Context<P>, T> for Animate<A>
 where
     P: Platform,
-    F: FnOnce() -> U,
-    G: FnOnce(&mut U) -> bool,
-    H: FnMut(&mut U, Duration) -> bool,
-    I: Fn(&U, &T) -> V,
-    V: WidgetView<P, T>,
+    A: Animation<T>,
+    A::View: WidgetView<P, T>,
 {
-    type Element = V::Element;
-    type State = (H, I, U, bool, V::State);
+    type Element = <A::View as View<Context<P>, T>>::Element;
+    type State = (
+        A::State,
+        bool,
+        <A::View as View<Context<P>, T>>::State,
+    );
 
     fn build(self, cx: &mut Context<P>, data: &mut T) -> (Self::Element, Self::State) {
-        let mut state = (self.initial)();
-        let should_animate = (self.rebuild)(&mut state);
+        let (state, should_animate) = self.animation.build(data);
 
         if should_animate {
             cx.request_start_animating();
         }
 
-        let view = (self.build)(&state, data);
+        let view = A::view(&state, data);
         let (element, contents) = view.build(cx, data);
 
         (
             element,
-            (
-                self.animate,
-                self.build,
-                state,
-                should_animate,
-                contents,
-            ),
+            (state, should_animate, contents),
         )
     }
 
     fn rebuild(
         self,
         element: Mut<'_, Self::Element>,
-        (animate, build, state, is_animating, contents): &mut Self::State,
+        (state, is_animating, contents): &mut Self::State,
         cx: &mut Context<P>,
         data: &mut T,
     ) {
-        let view = (self.build)(state, data);
+        let view = A::view(state, data);
         view.rebuild(element, contents, cx, data);
 
-        let should_animate = (self.rebuild)(state);
+        let should_animate = self.animation.rebuild(state, data);
 
         if *is_animating != should_animate {
             match should_animate {
@@ -95,14 +98,11 @@ where
 
             *is_animating = should_animate;
         }
-
-        *animate = self.animate;
-        *build = self.build;
     }
 
     fn message(
         mut element: Mut<'_, Self::Element>,
-        (animate, build, state, is_animating, contents): &mut Self::State,
+        (state, is_animating, contents): &mut Self::State,
         cx: &mut Context<P>,
         data: &mut T,
         message: &mut Message,
@@ -110,8 +110,8 @@ where
         if let Some(Lifecycle::Animate(delta)) = message.get()
             && *is_animating
         {
-            let should_animate = animate(state, *delta);
-            let view = build(state, data);
+            let should_animate = A::animate(state, data, *delta);
+            let view = A::view(state, data);
 
             view.rebuild(element.reborrow(), contents, cx, data);
 
@@ -125,15 +125,15 @@ where
             }
         }
 
-        V::message(element, contents, cx, data, message)
+        A::View::message(element, contents, cx, data, message)
     }
 
     fn teardown(
         element: Self::Element,
-        (_aniamte, _build, _state, is_animating, contents): Self::State,
+        (_state, is_animating, contents): Self::State,
         cx: &mut Context<P>,
     ) {
-        V::teardown(element, contents, cx);
+        A::View::teardown(element, contents, cx);
 
         if is_animating {
             cx.request_stop_animating();

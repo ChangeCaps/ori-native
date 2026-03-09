@@ -1,6 +1,9 @@
 use std::{f32::consts::PI, time::Duration};
 
-use crate::{Color, Platform, WidgetView, views::animate};
+use crate::{
+    Color, Platform, WidgetView,
+    views::{Animation, animate},
+};
 
 /// A transition curve.
 pub trait Transition {
@@ -19,24 +22,118 @@ pub fn transition<P, T, U, V>(
 ) -> impl WidgetView<P, T>
 where
     P: Platform,
-    U: Clone + PartialEq + Lerp,
+    U: Lerp + Clone + PartialEq,
     V: WidgetView<P, T>,
 {
-    let state = State::new(value.clone(), transition);
-
-    animate(
-        move || state,
-        move |state| state.animating(value),
-        |state, delta_time| state.animate(delta_time),
-        move |state, data| build(state.value(), data),
-    )
+    animate(TransitionAnimation {
+        value,
+        transition,
+        build,
+    })
 }
 
-const C1: f32 = 1.70158;
-const C2: f32 = C1 * 1.525;
+struct TransitionAnimation<U, X, F> {
+    value:      U,
+    transition: X,
+    build:      F,
+}
+
+impl<T, U, X, F, V> Animation<T> for TransitionAnimation<U, X, F>
+where
+    U: Lerp + Clone + PartialEq,
+    X: Transition,
+    F: Fn(U, &T) -> V,
+{
+    type State = State<U, X, F>;
+    type View = V;
+
+    fn build(self, _data: &mut T) -> (Self::State, bool) {
+        let state = State {
+            current:    None,
+            target:     self.value,
+            time:       1.0,
+            transition: self.transition,
+            build:      self.build,
+        };
+
+        (state, false)
+    }
+
+    fn rebuild(self, state: &mut Self::State, _data: &mut T) -> bool {
+        state.build = self.build;
+
+        if state.target != self.value {
+            state.current = Some(state.value());
+            state.target = self.value;
+            state.time = 0.0;
+        }
+
+        state.time < 1.0
+    }
+
+    fn animate(state: &mut Self::State, _data: &mut T, duration: Duration) -> bool {
+        state.time += duration.as_secs_f32() / state.transition.duration();
+        state.time = state.time.clamp(0.0, 1.0);
+        state.time < 1.0
+    }
+
+    fn view(state: &Self::State, data: &T) -> Self::View {
+        (state.build)(state.value(), data)
+    }
+}
+
+struct State<U, X, F> {
+    current:    Option<U>,
+    target:     U,
+    time:       f32,
+    transition: X,
+    build:      F,
+}
+
+impl<U, X, F> State<U, X, F>
+where
+    U: Lerp + Clone + PartialEq,
+    X: Transition,
+{
+    fn value(&self) -> U {
+        if let Some(ref current) = self.current {
+            let t = self.transition.curve(self.time);
+            U::lerp(current, &self.target, t)
+        } else {
+            self.target.clone()
+        }
+    }
+}
+
+/// Type that can be linearly interpolated.
+pub trait Lerp {
+    /// Interpolate linearly between `a` and `b` by `t`.
+    fn lerp(a: &Self, b: &Self, t: f32) -> Self;
+}
 
 /// Linear [`Transition`] curve.
 pub struct Linear(pub f32);
+
+/// Ease out [`Transition`] curve.
+pub struct Ease(pub f32);
+
+/// Elastic out [`Transition`] curve.
+pub struct Elastic(pub f32);
+
+/// Elastic in [`Transition`] curve.
+pub struct ElasticIn(pub f32);
+
+/// Back out [`Transition`] curve.
+pub struct Back(pub f32);
+
+/// Back in [`Transition`] curve.
+pub struct BackIn(pub f32);
+
+/// Back in out [`Transition`] curve.
+pub struct BackInOut(pub f32);
+
+const C1: f32 = 1.70158;
+const C2: f32 = C1 * 1.525;
 
 impl Transition for Linear {
     fn duration(&self) -> f32 {
@@ -48,9 +145,6 @@ impl Transition for Linear {
     }
 }
 
-/// Ease out [`Transition`] curve.
-pub struct Ease(pub f32);
-
 impl Transition for Ease {
     fn duration(&self) -> f32 {
         self.0
@@ -60,9 +154,6 @@ impl Transition for Ease {
         t * t * (3.0 - 2.0 * t)
     }
 }
-
-/// Elastic out [`Transition`] curve.
-pub struct Elastic(pub f32);
 
 impl Transition for Elastic {
     fn duration(&self) -> f32 {
@@ -74,9 +165,6 @@ impl Transition for Elastic {
     }
 }
 
-/// Elastic in [`Transition`] curve.
-pub struct ElasticIn(pub f32);
-
 impl Transition for ElasticIn {
     fn duration(&self) -> f32 {
         self.0
@@ -86,9 +174,6 @@ impl Transition for ElasticIn {
         -f32::powf(2.0, 10.0 * t - 10.0) * f32::sin((10.0 * t - 10.75) * PI * 2.0 / 3.0)
     }
 }
-
-/// Back out [`Transition`] curve.
-pub struct Back(pub f32);
 
 impl Transition for Back {
     fn duration(&self) -> f32 {
@@ -100,9 +185,6 @@ impl Transition for Back {
     }
 }
 
-/// Back in [`Transition`] curve.
-pub struct BackIn(pub f32);
-
 impl Transition for BackIn {
     fn duration(&self) -> f32 {
         self.0
@@ -112,9 +194,6 @@ impl Transition for BackIn {
         (C1 + 1.0) * f32::powi(t, 3) - C1 * f32::powi(t, 2)
     }
 }
-
-/// Back in out [`Transition`] curve.
-pub struct BackInOut(pub f32);
 
 impl Transition for BackInOut {
     fn duration(&self) -> f32 {
@@ -128,61 +207,6 @@ impl Transition for BackInOut {
             (f32::powi(2.0 * t - 2.0, 2) * ((C2 + 1.0) * (2.0 * t - 2.0) + C2) + 2.0) / 2.0
         }
     }
-}
-
-struct State<U, T> {
-    current:    Option<U>,
-    target:     U,
-    time:       f32,
-    transition: T,
-}
-
-impl<U, T> State<U, T>
-where
-    U: Clone + PartialEq + Lerp,
-    T: Transition,
-{
-    fn new(value: U, transition: T) -> Self {
-        Self {
-            current: None,
-            target: value,
-            time: 1.0,
-            transition,
-        }
-    }
-
-    fn animating(&mut self, target: U) -> bool {
-        if self.target != target {
-            self.current = Some(self.value());
-            self.target = target;
-            self.time = 0.0;
-        }
-
-        self.time < 1.0
-    }
-
-    fn animate(&mut self, delta_time: Duration) -> bool {
-        self.time += delta_time.as_secs_f32() / self.transition.duration();
-        self.time = self.time.clamp(0.0, 1.0);
-        self.time < 1.0
-    }
-
-    fn value(&self) -> U {
-        match self.current {
-            Some(ref current) => {
-                let t = self.transition.curve(self.time);
-                U::lerp(current, &self.target, t)
-            }
-
-            None => self.target.clone(),
-        }
-    }
-}
-
-/// Type that can be linearly interpolated.
-pub trait Lerp {
-    /// Interpolate linearly between `a` and `b` by `t`.
-    fn lerp(a: &Self, b: &Self, t: f32) -> Self;
 }
 
 impl Lerp for f32 {

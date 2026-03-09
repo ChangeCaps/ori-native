@@ -11,7 +11,7 @@ mod transform;
 mod transition;
 mod window;
 
-pub use animate::{Animate, animate};
+pub use animate::{Animate, Animation, animate};
 pub use flex::{Flex, column, row};
 pub use image::{Image, image};
 pub use pressable::{PressState, Pressable, pressable};
