@@ -85,10 +85,10 @@ where
         cx: &mut Context<P>,
         data: &mut T,
     ) {
+        let should_animate = self.animation.rebuild(state, data);
+
         let view = A::view(state, data);
         view.rebuild(element, contents, cx, data);
-
-        let should_animate = self.animation.rebuild(state, data);
 
         if *is_animating != should_animate {
             match should_animate {
