@@ -193,7 +193,7 @@ impl Lerp for f32 {
 
 impl Lerp for Color {
     fn lerp(a: &Self, b: &Self, t: f32) -> Self {
-        a.mix_rgb(*b, t)
+        a.mix(*b, t)
     }
 }
 
