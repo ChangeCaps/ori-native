@@ -153,7 +153,8 @@ where
     /// The id of the view.
     pub view_id: ViewId,
 
-    node: taffy::NodeId,
+    node:   taffy::NodeId,
+    layout: taffy::Layout,
 
     title:   String,
     sizing:  Sizing,
@@ -245,6 +246,7 @@ where
             window,
             view_id,
             node,
+            layout: Default::default(),
             title: attributes.title,
             sizing: attributes.sizing,
             handler,
@@ -372,7 +374,11 @@ where
         let _ = cx.set_layout_style(self.node, style);
         let _ = cx.compute_layout(self.node, size);
 
-        if let Ok(layout) = cx.get_computed_layout(self.node).cloned() {
+        if let Ok(layout) = cx.get_computed_layout(self.node).cloned()
+            && self.layout != layout
+        {
+            self.layout = layout;
+
             if let Sizing::Content = self.sizing {
                 self.window.set_size(
                     layout.size.width as u32,

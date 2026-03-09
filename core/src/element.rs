@@ -4,7 +4,7 @@ use std::{
     mem,
 };
 
-use ori::{Element, Is, Mut, View};
+use ori::{Element, Is, Mut, View, ViewSeq};
 
 use crate::{Context, Platform};
 
@@ -129,6 +129,19 @@ where
     W: NativeWidget<P>,
 {
     type Widget = W;
+}
+
+pub trait WidgetViewSeq<P, T>: ViewSeq<Context<P>, T, BoxedWidget<P>>
+where
+    P: Platform,
+{
+}
+
+impl<P, T, V> WidgetViewSeq<P, T> for V
+where
+    P: Platform,
+    V: ViewSeq<Context<P>, T, BoxedWidget<P>>,
+{
 }
 
 /// A native widget that has children.

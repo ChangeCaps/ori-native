@@ -1,8 +1,8 @@
-use ori::{Action, Message, Mut, View, ViewMarker, ViewSeq};
+use ori::{Action, Message, Mut, View, ViewMarker};
 
 use crate::{
-    Bordered, BoxedWidget, Color, Container, Context, Direction, FlexContainer, Layoutable,
-    Lifecycle, Overflow, Platform, Pod, Shadow, native::WrappedGroup,
+    Bordered, Color, Container, Context, Direction, FlexContainer, Layoutable, Lifecycle, Overflow,
+    Platform, Pod, Shadow, element::WidgetViewSeq, native::WrappedGroup,
 };
 
 /// [`View`] of a flex row.
@@ -163,10 +163,10 @@ impl<V> ViewMarker for Flex<V> {}
 impl<P, T, V> View<Context<P>, T> for Flex<V>
 where
     P: Platform,
-    V: ViewSeq<Context<P>, T, BoxedWidget<P>>,
+    V: WidgetViewSeq<P, T>,
 {
     type Element = Pod<P, WrappedGroup<P>>;
-    type State = V::State;
+    type State = FlexState<P, T, V>;
 
     fn build(self, cx: &mut Context<P>, data: &mut T) -> (Self::Element, Self::State) {
         let node = cx.new_layout_node(self.layout, &[]);
@@ -181,6 +181,15 @@ where
         let state = self.contents.seq_build(&mut group.elements(node), cx, data);
         let pod = Pod::new(node, group);
 
+        let state = FlexState {
+            state,
+            background_color: self.background_color,
+            border_color: self.border_color,
+            corner_radii: self.corner_radii,
+            overflow: self.overflow,
+            shadow: self.shadow,
+        };
+
         (pod, state)
     }
 
@@ -192,15 +201,35 @@ where
         data: &mut T,
     ) {
         let _ = cx.set_layout_style(*element.node, self.layout);
-        (element.widget).set_background_color(cx, self.background_color);
-        (element.widget).set_border_color(cx, self.border_color);
-        (element.widget).set_corner_radii(cx, self.corner_radii);
-        (element.widget).set_overflow(cx, self.overflow);
-        (element.widget).set_shadow(cx, self.shadow);
+
+        if state.background_color != self.background_color {
+            state.background_color = self.background_color;
+            (element.widget).set_background_color(cx, self.background_color);
+        }
+
+        if state.border_color != self.border_color {
+            state.border_color = self.border_color;
+            (element.widget).set_border_color(cx, self.border_color);
+        }
+
+        if state.corner_radii != self.corner_radii {
+            state.corner_radii = self.corner_radii;
+            (element.widget).set_corner_radii(cx, self.corner_radii);
+        }
+
+        if state.overflow != self.overflow {
+            state.overflow = self.overflow;
+            (element.widget).set_overflow(cx, self.overflow);
+        }
+
+        if state.shadow != self.shadow {
+            state.shadow = self.shadow;
+            (element.widget).set_shadow(cx, self.shadow);
+        }
 
         self.contents.seq_rebuild(
             &mut element.widget.elements(*element.node),
-            state,
+            &mut state.state,
             cx,
             data,
         );
@@ -219,7 +248,7 @@ where
 
         V::seq_message(
             &mut element.widget.elements(*element.node),
-            state,
+            &mut state.state,
             cx,
             data,
             message,
@@ -229,11 +258,24 @@ where
     fn teardown(mut element: Self::Element, state: Self::State, cx: &mut Context<P>) {
         V::seq_teardown(
             &mut element.widget.elements(element.node),
-            state,
+            state.state,
             cx,
         );
 
         element.widget.teardown(cx);
         let _ = cx.remove_layout_node(element.node);
     }
+}
+
+pub struct FlexState<P, T, V>
+where
+    P: Platform,
+    V: WidgetViewSeq<P, T>,
+{
+    state:            V::State,
+    background_color: Color,
+    border_color:     Color,
+    corner_radii:     [f32; 4],
+    overflow:         Overflow,
+    shadow:           Shadow,
 }

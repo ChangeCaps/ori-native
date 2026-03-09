@@ -68,7 +68,7 @@ where
     V: WidgetView<P, T>,
 {
     type Element = Pod<P, P::Scroll>;
-    type State = (V::Element, V::State);
+    type State = (V::Element, ScrollState<P, T, V>);
 
     fn build(self, cx: &mut Context<P>, data: &mut T) -> (Self::Element, Self::State) {
         let (contents, state) = self.contents.build(cx, data);
@@ -82,6 +82,12 @@ where
         widget.set_direction(self.direction);
 
         let pod = Pod::new(node, widget);
+        let state = ScrollState {
+            state,
+            direction: self.direction,
+            layout: Default::default(),
+            content_layout: Default::default(),
+        };
 
         (pod, (contents, state))
     }
@@ -94,11 +100,15 @@ where
         data: &mut T,
     ) {
         let _ = cx.set_layout_style(*element.node, self.style);
-        element.widget.set_direction(self.direction);
+
+        if state.direction != self.direction {
+            state.direction = self.direction;
+            element.widget.set_direction(self.direction);
+        }
 
         self.contents.rebuild(
             contents.as_mut(*element.node, element.widget, 0),
-            state,
+            &mut state.state,
             cx,
             data,
         );
@@ -111,26 +121,33 @@ where
         data: &mut T,
         message: &mut Message,
     ) -> Action {
-        if let Some(Lifecycle::Layout) = message.get()
-            && let Ok(layout) = cx.get_computed_layout(*element.node)
-            && let Ok(content) = cx.get_computed_layout(contents.node)
-        {
-            element.widget.set_content_size(
-                layout.content_size.width,
-                layout.content_size.height,
-            );
+        if let Some(Lifecycle::Layout) = message.get() {
+            if let Ok(layout) = cx.get_computed_layout(*element.node)
+                && state.layout != *layout
+            {
+                state.layout = *layout;
+                element.widget.set_content_size(
+                    layout.content_size.width,
+                    layout.content_size.height,
+                );
+            }
 
-            element.widget.set_content_layout(
-                content.location.x,
-                content.location.y,
-                content.size.width,
-                content.size.height,
-            );
+            if let Ok(layout) = cx.get_computed_layout(contents.node)
+                && state.content_layout != *layout
+            {
+                state.content_layout = *layout;
+                element.widget.set_content_layout(
+                    layout.location.x,
+                    layout.location.y,
+                    layout.size.width,
+                    layout.size.height,
+                );
+            }
         }
 
         V::message(
             contents.as_mut(*element.node, element.widget, 0),
-            state,
+            &mut state.state,
             cx,
             data,
             message,
@@ -138,7 +155,18 @@ where
     }
 
     fn teardown(element: Self::Element, (contents, state): Self::State, cx: &mut Context<P>) {
-        V::teardown(contents, state, cx);
+        V::teardown(contents, state.state, cx);
         element.widget.teardown(&mut cx.platform);
     }
+}
+
+pub struct ScrollState<P, T, V>
+where
+    P: Platform,
+    V: WidgetView<P, T>,
+{
+    state:          V::State,
+    direction:      Direction,
+    layout:         taffy::Layout,
+    content_layout: taffy::Layout,
 }

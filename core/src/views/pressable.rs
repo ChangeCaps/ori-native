@@ -102,7 +102,7 @@ where
     V: WidgetView<P, T>,
 {
     type Element = Pod<P, P::Pressable>;
-    type State = (V::Widget, PressableState<P, T, V>);
+    type State = PressableState<P, T, V>;
 
     fn build(mut self, cx: &mut Context<P>, data: &mut T) -> (Self::Element, Self::State) {
         let press = PressState {
@@ -173,30 +173,32 @@ where
         let pod = Pod::new(contents.node, widget);
 
         let state = PressableState {
+            widget: contents.widget,
+            state,
             press,
             view_id,
+            layout: Default::default(),
             build: self.build,
             on_press: self.on_press,
             on_hover: self.on_hover,
             on_focus: self.on_focus,
             handler,
-            state,
         };
 
-        (pod, (contents.widget, state))
+        (pod, state)
     }
 
     fn rebuild(
         mut self,
         mut element: Mut<'_, Self::Element>,
-        (contents, state): &mut Self::State,
+        state: &mut Self::State,
         cx: &mut Context<P>,
         data: &mut T,
     ) {
         let view = (self.build)(data, state.press);
 
         view.rebuild(
-            element.map_widget(contents),
+            element.map_widget(&mut state.widget),
             &mut state.state,
             cx,
             data,
@@ -225,14 +227,16 @@ where
 
     fn message(
         mut element: Mut<'_, Self::Element>,
-        (contents, state): &mut Self::State,
+        state: &mut Self::State,
         cx: &mut Context<P>,
         data: &mut T,
         message: &mut Message,
     ) -> Action {
         if let Some(Lifecycle::Layout) = message.get()
             && let Ok(layout) = cx.get_computed_layout(*element.node).cloned()
+            && state.layout != layout
         {
+            state.layout = layout;
             element.widget.set_content_size(
                 &mut cx.platform,
                 layout.size.width,
@@ -269,7 +273,7 @@ where
 
             let view = (state.build)(data, state.press);
             view.rebuild(
-                element.map_widget(contents),
+                element.map_widget(&mut state.widget),
                 &mut state.state,
                 cx,
                 data,
@@ -278,7 +282,7 @@ where
             action
         } else {
             V::message(
-                element.map_widget(contents),
+                element.map_widget(&mut state.widget),
                 &mut state.state,
                 cx,
                 data,
@@ -287,8 +291,8 @@ where
         }
     }
 
-    fn teardown(element: Self::Element, (contents, state): Self::State, cx: &mut Context<P>) {
-        let pod = Pod::new(element.node, contents);
+    fn teardown(element: Self::Element, state: Self::State, cx: &mut Context<P>) {
+        let pod = Pod::new(element.node, state.widget);
 
         V::teardown(pod, state.state, cx);
         element.widget.teardown(&mut cx.platform);
@@ -303,12 +307,14 @@ where
     P: Platform,
     V: WidgetView<P, T>,
 {
+    widget:   V::Widget,
+    state:    V::State,
     press:    PressState,
     view_id:  ViewId,
+    layout:   taffy::Layout,
     build:    Box<dyn FnMut(&T, PressState) -> V>,
     on_press: Box<dyn FnMut(&mut T) -> Action>,
     on_hover: Box<dyn FnMut(&mut T, bool) -> Action>,
     on_focus: Box<dyn FnMut(&mut T, bool) -> Action>,
     handler:  InputHandler<T>,
-    state:    V::State,
 }

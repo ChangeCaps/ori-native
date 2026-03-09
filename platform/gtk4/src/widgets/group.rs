@@ -92,13 +92,10 @@ impl NativeGroup<Platform> for Group {
         let height = height.round() as i32;
 
         if let Some(child) = self.imp().children.borrow_mut().get_mut(index) {
-            if child.x != x || child.y != y {
-                child.widget.queue_allocate();
-                child.widget.queue_resize();
-            }
-
             child.x = x;
             child.y = y;
+            child.widget.queue_allocate();
+            child.widget.queue_resize();
             child.widget.set_size_request(width, height);
         }
     }
@@ -106,47 +103,35 @@ impl NativeGroup<Platform> for Group {
     fn set_background_color(&mut self, _platform: &mut Platform, color: Color) {
         let color = gdk4::RGBA::new(color.r, color.g, color.b, color.a);
 
-        if self.imp().background_color.get() != color {
-            self.imp().background_color.set(color);
-            self.queue_draw();
-        }
+        self.imp().background_color.set(color);
+        self.queue_draw();
     }
 
     fn set_border_color(&mut self, _platform: &mut Platform, color: Color) {
         let color = gdk4::RGBA::new(color.r, color.g, color.b, color.a);
 
-        if self.imp().border_color.get() != color {
-            self.imp().border_color.set(color);
-            self.queue_draw();
-        }
+        self.imp().border_color.set(color);
+        self.queue_draw();
     }
 
     fn set_border_width(&mut self, _platform: &mut Platform, width: [f32; 4]) {
-        if self.imp().border_width.get() != width {
-            self.imp().border_width.set(width);
-            self.queue_draw();
-        }
+        self.imp().border_width.set(width);
+        self.queue_draw();
     }
 
     fn set_corner_radii(&mut self, _platform: &mut Platform, radii: [f32; 4]) {
-        if self.imp().corner_radii.get() != radii {
-            self.imp().corner_radii.set(radii);
-            self.queue_draw();
-        }
+        self.imp().corner_radii.set(radii);
+        self.queue_draw();
     }
 
     fn set_overflow(&mut self, _platform: &mut Platform, overflow: Overflow) {
-        if self.imp().overflow.get() != overflow {
-            self.imp().overflow.set(overflow);
-            self.queue_draw();
-        }
+        self.imp().overflow.set(overflow);
+        self.queue_draw();
     }
 
     fn set_shadow(&mut self, _platform: &mut Platform, shadow: Shadow) {
-        if self.imp().shadow.get() != shadow {
-            self.imp().shadow.set(shadow);
-            self.queue_draw();
-        }
+        self.imp().shadow.set(shadow);
+        self.queue_draw();
     }
 }
 

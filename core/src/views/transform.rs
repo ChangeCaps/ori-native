@@ -52,7 +52,7 @@ where
     V: WidgetView<P, T>,
 {
     type Element = Pod<P, P::Transform>;
-    type State = (V::Widget, V::State, Affine);
+    type State = TransformState<P, T, V>;
 
     fn build(self, cx: &mut Context<P>, data: &mut T) -> (Self::Element, Self::State) {
         let (contents, state) = self.contents.build(cx, data);
@@ -63,52 +63,79 @@ where
         );
 
         let pod = Pod::new(contents.node, widget);
+        let state = TransformState {
+            widget: contents.widget,
+            state,
+            affine: self.affine,
+            layout: Default::default(),
+        };
 
-        (
-            pod,
-            (contents.widget, state, self.affine),
-        )
+        (pod, state)
     }
 
     fn rebuild(
         self,
         mut element: Mut<'_, Self::Element>,
-        (contents, state, affine): &mut Self::State,
+        state: &mut Self::State,
         cx: &mut Context<P>,
         data: &mut T,
     ) {
-        let pod = element.map_widget(contents);
-        self.contents.rebuild(pod, state, cx, data);
+        let pod = element.map_widget(&mut state.widget);
+        self.contents.rebuild(pod, &mut state.state, cx, data);
 
-        *affine = self.affine;
+        if state.affine != self.affine
+            && let Ok(layout) = cx.get_computed_layout(*element.node).cloned()
+        {
+            state.affine = self.affine;
+            state.layout = layout;
+            element.widget.set_content_transform(
+                &mut cx.platform,
+                layout.size.width,
+                layout.size.height,
+                state.affine,
+            );
+        }
     }
 
     fn message(
         mut element: Mut<'_, Self::Element>,
-        (contents, state, affine): &mut Self::State,
+        state: &mut Self::State,
         cx: &mut Context<P>,
         data: &mut T,
         message: &mut Message,
     ) -> Action {
         if let Some(Lifecycle::Layout) = message.get()
             && let Ok(layout) = cx.get_computed_layout(*element.node).cloned()
+            && state.layout != layout
         {
+            state.layout = layout;
             element.widget.set_content_transform(
                 &mut cx.platform,
                 layout.size.width,
                 layout.size.height,
-                *affine,
+                state.affine,
             );
         }
 
-        let pod = element.map_widget(contents);
-        V::message(pod, state, cx, data, message)
+        let pod = element.map_widget(&mut state.widget);
+        V::message(pod, &mut state.state, cx, data, message)
     }
 
-    fn teardown(element: Self::Element, (contents, state, _): Self::State, cx: &mut Context<P>) {
-        let pod = Pod::new(element.node, contents);
-        V::teardown(pod, state, cx);
+    fn teardown(element: Self::Element, state: Self::State, cx: &mut Context<P>) {
+        let pod = Pod::new(element.node, state.widget);
+        V::teardown(pod, state.state, cx);
 
         element.widget.teardown(&mut cx.platform);
     }
+}
+
+pub struct TransformState<P, T, V>
+where
+    P: Platform,
+    V: WidgetView<P, T>,
+{
+    widget: V::Widget,
+    state:  V::State,
+    affine: Affine,
+    layout: taffy::Layout,
 }

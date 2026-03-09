@@ -63,6 +63,10 @@ impl NativeText<Platform> for Text {
             spans,
             text,
             wrap,
+
+            previous_size: None,
+            known_size: None,
+            available_space: None,
         }
     }
 }
@@ -72,6 +76,10 @@ pub struct TextLayout {
     spans: Box<[TextSpan]>,
     text:  String,
     wrap:  Wrap,
+
+    previous_size:   Option<taffy::Size<f32>>,
+    known_size:      Option<taffy::Size<Option<f32>>>,
+    available_space: Option<taffy::Size<taffy::AvailableSpace>>,
 }
 
 impl LayoutLeaf<Platform> for TextLayout {
@@ -81,6 +89,13 @@ impl LayoutLeaf<Platform> for TextLayout {
         known_size: taffy::Size<Option<f32>>,
         available_space: taffy::Size<taffy::AvailableSpace>,
     ) -> taffy::Size<f32> {
+        if let Some(size) = self.previous_size
+            && self.known_size == Some(known_size)
+            && self.available_space == Some(available_space)
+        {
+            return size;
+        }
+
         let context = self.view.pango_context();
         let layout = pango::Layout::new(&context);
 
@@ -122,11 +137,16 @@ impl LayoutLeaf<Platform> for TextLayout {
         }
 
         let (width, height) = layout.pixel_size();
-
-        taffy::Size {
+        let size = taffy::Size {
             width:  known_size.width.unwrap_or(width as f32),
             height: min_height.max(height as f32),
-        }
+        };
+
+        self.previous_size = Some(size);
+        self.known_size = Some(known_size);
+        self.available_space = Some(available_space);
+
+        size
     }
 }
 
