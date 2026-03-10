@@ -252,15 +252,10 @@ mod imp {
     impl ObjectImpl for ApplicationWindow {}
 
     impl WidgetImpl for ApplicationWindow {
-        fn size_allocate(&self, _width: i32, _height: i32, baseline: i32) {
-            self.parent_size_allocate(i32::MAX >> 1, i32::MAX >> 1, baseline);
+        fn size_allocate(&self, width: i32, height: i32, baseline: i32) {
+            self.parent_size_allocate(width, height, baseline);
             let on_size_allocate = self.on_size_allocate.borrow();
             on_size_allocate();
-        }
-
-        fn measure(&self, orientation: gtk4::Orientation, for_size: i32) -> (i32, i32, i32, i32) {
-            self.parent_measure(orientation, for_size);
-            (-1, -1, -1, -1)
         }
     }
 

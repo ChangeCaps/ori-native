@@ -381,8 +381,8 @@ where
 
             if let Sizing::Content = self.sizing {
                 self.window.set_size(
-                    layout.size.width as u32,
-                    layout.size.height as u32,
+                    layout.size.width.round() as u32,
+                    layout.size.height.round() as u32,
                 );
             }
 
