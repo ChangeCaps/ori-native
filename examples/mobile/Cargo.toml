@@ -1,0 +1,15 @@
+[package]
+name = "mobile"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+publish = false
+
+[lib]
+crate-type = ["lib", "cdylib"]
+
+[dependencies]
+ori-native = { workspace = true }
+
+[package.metadata.android]
+package = "ori.example"

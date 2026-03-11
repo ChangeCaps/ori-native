@@ -9,6 +9,7 @@ license.workspace = true
 members = [
   "core",
   "platform/*",
+  "examples/*",
 ]
 
 [workspace.package]
@@ -18,6 +19,7 @@ authors = ["Ori Developers"]
 license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
+ori-native      = { path = "."    }
 ori-native-core = { path = "core" }
 
 ori-native-android = { path = "platform/android" }

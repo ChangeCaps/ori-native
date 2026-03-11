@@ -5,13 +5,28 @@
   };
 } }:
 
-pkgs.mkShell rec {
+let
+  androidComposition = pkgs.androidenv.composeAndroidPackages {
+    buildToolsVersions = [ "35.0.0" "34.0.0" "33.0.1" ];
+    platformVersions = [ "35" "34" "33" "31" "28" ];
+    abiVersions = [ "armeabi-v7a" "arm64-v8a" ];
+    ndkVersions = [ "27.0.12077973" ];
+    includeNDK = true;
+  };
+  androidSdk = androidComposition.androidsdk;
+in  pkgs.mkShell rec {
   buildInputs = with pkgs; [
     pkg-config
     gtk4
     gtk4-layer-shell
     librsvg
+
+    androidSdk
+    gradle
   ];
+
+  ANDROID_SDK_ROOT = "${androidSdk}/libexec/android-sdk";
+  GRADLE_OPTS = "-Dorg.gradle.project.android.aapt2FromMavenOverride=${androidSdk}/libexec/android-sdk/build-tools/35.0.0/aapt2";
 
   LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath buildInputs;
 }
