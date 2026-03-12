@@ -8,6 +8,7 @@ license.workspace = true
 [workspace]
 members = [
   "core",
+  "macro",
   "platform/*",
   "examples/*",
 ]
@@ -19,8 +20,9 @@ authors = ["Ori Developers"]
 license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
-ori-native      = { path = "."    }
-ori-native-core = { path = "core" }
+ori-native       = { path = "."     }
+ori-native-core  = { path = "core"  }
+ori-native-macro = { path = "macro" }
 
 ori-native-android = { path = "platform/android" }
 ori-native-gtk4    = { path = "platform/gtk4"    }
@@ -28,18 +30,31 @@ ori-native-gtk4    = { path = "platform/gtk4"    }
 ori = { git = "https://github.com/ori-ui/ori" }
 
 taffy   = "0.9"
-tokio   = "1"
-tracing = "0.1"
 seahash = "4"
 
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
 keyboard-types = "0.8"
+
+[workspace.dependencies.tokio]
+version = "1"
+features = ["rt-multi-thread"]
 
 [features]
 layer-shell  = ["ori-native-gtk4/layer-shell"]
 session-lock = ["ori-native-gtk4/session-lock"]
 
 [dependencies]
-ori-native-core = { workspace = true }
+ori-native-core  = { workspace = true }
+ori-native-macro = { workspace = true }
+
+ori     = { workspace = true }
+tokio   = { workspace = true }
+tracing = { workspace = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
 ori-native-gtk4 = { workspace = true }
-ori             = { workspace = true }
-tokio           = { workspace = true }
+
+[target.'cfg(target_os = "android")'.dependencies]
+ori-native-android = { workspace = true }

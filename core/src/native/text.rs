@@ -10,16 +10,17 @@ where
 {
     type Layout: LayoutLeaf<P>;
 
-    fn build(
+    fn build(platform: &mut P) -> Self;
+
+    fn teardown(self, platform: &mut P);
+
+    fn set_text(
+        &mut self,
         platform: &mut P,
         spans: Box<[TextSpan]>,
         text: String,
         wrap: Wrap,
-    ) -> (Self, Self::Layout);
-
-    fn teardown(self, platform: &mut P);
-
-    fn set_text(&mut self, spans: Box<[TextSpan]>, text: String, wrap: Wrap) -> Self::Layout;
+    ) -> Self::Layout;
 }
 
 impl<P> NativeText<P> for Unsupported
@@ -28,12 +29,7 @@ where
 {
     type Layout = Infallible;
 
-    fn build(
-        _platform: &mut P,
-        _spans: Box<[TextSpan]>,
-        _text: String,
-        _wrap: Wrap,
-    ) -> (Self, Self::Layout) {
+    fn build(_platform: &mut P) -> Self {
         unsupported!("text view")
     }
 
@@ -41,7 +37,13 @@ where
         unreachable!()
     }
 
-    fn set_text(&mut self, _spans: Box<[TextSpan]>, _text: String, _wrap: Wrap) -> Self::Layout {
+    fn set_text(
+        &mut self,
+        _platform: &mut P,
+        _spans: Box<[TextSpan]>,
+        _text: String,
+        _wrap: Wrap,
+    ) -> Self::Layout {
         unreachable!()
     }
 }

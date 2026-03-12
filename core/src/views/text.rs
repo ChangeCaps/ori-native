@@ -106,14 +106,16 @@ where
             range: 0..self.text.len(),
         }];
 
-        let (widget, leaf) = P::Text::build(
+        let mut widget = P::Text::build(&mut cx.platform);
+
+        let layout = widget.set_text(
             &mut cx.platform,
             spans.into(),
             self.text.clone(),
             self.wrap,
         );
 
-        let node = cx.new_layout_leaf(self.layout, leaf);
+        let node = cx.new_layout_leaf(self.layout, layout);
 
         let pod = Pod::new(node, widget);
 
@@ -141,8 +143,14 @@ where
             range: 0..self.text.len(),
         }];
 
-        let leaf = element.widget.set_text(spans.into(), self.text, self.wrap);
-        let _ = cx.set_layout_leaf(*element.node, leaf);
+        let layout = element.widget.set_text(
+            &mut cx.platform,
+            spans.into(),
+            self.text,
+            self.wrap,
+        );
+
+        let _ = cx.set_layout_leaf(*element.node, layout);
     }
 
     fn message(

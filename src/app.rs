@@ -28,4 +28,8 @@ impl App {
 
         self.native.run(data, ui)
     }
+
+    pub fn init_log() {
+        platform::Application::init_log();
+    }
 }

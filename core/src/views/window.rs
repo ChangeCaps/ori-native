@@ -85,6 +85,7 @@ where
 
         let state = WindowState::new(
             cx,
+            data,
             window,
             view_id,
             self.attributes,
@@ -177,20 +178,26 @@ where
     /// Create new [`WindowState`].
     pub fn new(
         cx: &mut Context<P>,
+        data: &mut T,
         mut window: P::Window,
         view_id: ViewId,
         attributes: WindowAttributes<T>,
         contents: Pod<P, V::Widget>,
         state: V::State,
     ) -> Self {
-        window.set_title(attributes.title.clone());
-        window.set_resizable(matches!(
-            attributes.sizing,
-            Sizing::User
-        ));
+        window.set_title(
+            &mut cx.platform,
+            attributes.title.clone(),
+        );
+        window.set_resizable(
+            &mut cx.platform,
+            matches!(attributes.sizing, Sizing::User),
+        );
 
-        window.set_on_resize({
-            let proxy = cx.proxy();
+        let proxy = cx.proxy();
+
+        window.set_on_resize(&mut cx.platform, {
+            let proxy = proxy.cloned();
 
             move || {
                 proxy.message(Message::new(
@@ -200,8 +207,8 @@ where
             }
         });
 
-        window.set_on_close_requested({
-            let proxy = cx.proxy();
+        window.set_on_close_requested(&mut cx.platform, {
+            let proxy = proxy.cloned();
 
             move || {
                 proxy.message(Message::new(
@@ -211,8 +218,8 @@ where
             }
         });
 
-        window.set_on_animation_frame({
-            let proxy = cx.proxy();
+        window.set_on_animation_frame(&mut cx.platform, {
+            let proxy = proxy.cloned();
 
             move |delta| {
                 proxy.message(Message::new(
@@ -224,8 +231,8 @@ where
 
         let (filter, handler) = attributes.input.split();
 
-        window.set_on_key({
-            let proxy = cx.proxy();
+        window.set_on_key(&mut cx.platform, {
+            let proxy = proxy.cloned();
 
             move |key, modifiers, pressed| {
                 if let Some(message) = filter.filter_key(key, modifiers, pressed) {
@@ -240,9 +247,9 @@ where
         cx.register(view_id);
 
         let node = cx.new_layout_node(Default::default(), &[contents.node]);
-        let (width, height) = window.get_size();
+        let (width, height) = window.get_size(&mut cx.platform);
 
-        Self {
+        let mut state = Self {
             window,
             view_id,
             node,
@@ -255,7 +262,12 @@ where
             animating: 0,
             contents,
             state,
-        }
+        };
+
+        let action = state.layout(cx, data);
+        cx.send_action(action);
+
+        state
     }
 
     /// Rebuild `self`.
@@ -277,8 +289,8 @@ where
 
         let (filter, handler) = attributes.input.split();
 
-        self.window.set_on_key({
-            let proxy = cx.proxy();
+        let proxy = cx.proxy();
+        self.window.set_on_key(&mut cx.platform, {
             let view_id = self.view_id;
 
             move |key, modifiers, pressed| {
@@ -295,21 +307,24 @@ where
 
         if self.title != attributes.title {
             self.title = attributes.title.clone();
-            self.window.set_title(attributes.title.clone());
+            self.window.set_title(
+                &mut cx.platform,
+                attributes.title.clone(),
+            );
         }
 
         if self.sizing != attributes.sizing {
             self.sizing = attributes.sizing;
-            self.window.set_resizable(matches!(
-                attributes.sizing,
-                Sizing::User,
-            ));
+            self.window.set_resizable(
+                &mut cx.platform,
+                matches!(attributes.sizing, Sizing::User,),
+            );
         }
     }
 
     /// Compute layout and potentially resize the window.
     pub fn layout(&mut self, cx: &mut Context<P>, data: &mut T) -> Action {
-        let (width, height) = self.window.get_size();
+        let (width, height) = self.window.get_size(&mut cx.platform);
 
         self.width = width;
         self.height = height;
@@ -328,8 +343,9 @@ where
             let _ = cx.set_layout_style(self.node, style);
             let _ = cx.compute_layout(self.node, size);
 
-            if let Ok(layout) = cx.get_computed_layout(self.node) {
+            if let Ok(layout) = cx.get_computed_layout(self.node).copied() {
                 self.window.set_min_size(
+                    &mut cx.platform,
                     layout.content_size.width as u32,
                     layout.content_size.height as u32,
                 );
@@ -345,7 +361,8 @@ where
             Sizing::Content => {
                 let mut size = taffy::Size::auto();
 
-                let (preferred_width, preferred_height) = self.window.get_preferred_size();
+                let (preferred_width, preferred_height) =
+                    self.window.get_preferred_size(&mut cx.platform);
 
                 if let Some(min_width) = preferred_width {
                     size.width = taffy::Dimension::length(min_width as f32);
@@ -374,13 +391,14 @@ where
         let _ = cx.set_layout_style(self.node, style);
         let _ = cx.compute_layout(self.node, size);
 
-        if let Ok(layout) = cx.get_computed_layout(self.node).cloned()
+        if let Ok(layout) = cx.get_computed_layout(self.node).copied()
             && self.layout != layout
         {
             self.layout = layout;
 
             if let Sizing::Content = self.sizing {
                 self.window.set_size(
+                    &mut cx.platform,
                     layout.size.width.round() as u32,
                     layout.size.height.round() as u32,
                 );
@@ -420,7 +438,7 @@ where
             return match message {
                 AnimateRequest::Start => {
                     if self.animating == 0 {
-                        self.window.start_animating();
+                        self.window.start_animating(&mut cx.platform);
                     }
 
                     self.animating += 1;
@@ -432,7 +450,7 @@ where
                     self.animating -= 1;
 
                     if self.animating == 0 {
-                        self.window.stop_animating();
+                        self.window.stop_animating(&mut cx.platform);
                     }
 
                     Action::new()
@@ -467,7 +485,7 @@ where
                 }
 
                 WindowMessage::Resized => {
-                    let (width, height) = self.window.get_size();
+                    let (width, height) = self.window.get_size(&mut cx.platform);
 
                     if self.width != width || self.height != height {
                         self.layout(cx, data)

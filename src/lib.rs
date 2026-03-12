@@ -9,7 +9,13 @@ pub use view::{Effect, View};
 pub use ori::*;
 pub use ori_native_core::*;
 
-use ori_native_gtk4 as platform;
+pub use ori_native_macro::main;
+
+#[cfg(target_os = "linux")]
+pub use ori_native_gtk4 as platform;
+
+#[cfg(target_os = "android")]
+pub use ori_native_android as platform;
 
 pub type Platform = platform::Platform;
 pub type Context = ori_native_core::Context<Platform>;
@@ -37,5 +43,8 @@ pub mod prelude {
     };
 
     #[allow(unused_imports)]
+    #[cfg(target_os = "linux")]
     pub use crate::platform::views::*;
+
+    pub use tracing::{debug, error, info, trace, warn};
 }

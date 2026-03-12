@@ -92,7 +92,7 @@ impl Application {
         Ok(())
     }
 
-    fn init_log() {
+    pub fn init_log() {
         glib::log_set_writer_func(|level, fields| {
             let mut message = None;
 
@@ -170,7 +170,7 @@ where
                 }
             }
 
-            Event::Message(mut event) => {
+            Event::Message(mut message) => {
                 if let Some(ref mut state) = self.state {
                     self.context.tree().reset();
                     let mut action = V::message(
@@ -178,7 +178,7 @@ where
                         state,
                         &mut self.context,
                         self.data,
-                        &mut event,
+                        &mut message,
                     );
 
                     if action.take_rebuild() {

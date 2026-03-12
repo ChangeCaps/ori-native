@@ -18,26 +18,24 @@ impl NativeWidget<Platform> for Text {
 impl NativeText<Platform> for Text {
     type Layout = TextLayout;
 
-    fn build(
-        _platform: &mut Platform,
-        spans: Box<[TextSpan]>,
-        text: String,
-        wrap: Wrap,
-    ) -> (Self, Self::Layout) {
+    fn build(_platform: &mut Platform) -> Self {
         let view = gtk4::TextView::new();
         view.set_editable(false);
         view.set_cursor_visible(false);
         view.set_sensitive(false);
 
-        let mut this = Self { view };
-        let leaf = this.set_text(spans, text, wrap);
-
-        (this, leaf)
+        Self { view }
     }
 
     fn teardown(self, _platform: &mut Platform) {}
 
-    fn set_text(&mut self, spans: Box<[TextSpan]>, text: String, wrap: Wrap) -> Self::Layout {
+    fn set_text(
+        &mut self,
+        _platform: &mut Platform,
+        spans: Box<[TextSpan]>,
+        text: String,
+        wrap: Wrap,
+    ) -> Self::Layout {
         match wrap {
             Wrap::Word => self.view.set_wrap_mode(gtk4::WrapMode::Word),
             Wrap::Char => self.view.set_wrap_mode(gtk4::WrapMode::Char),

@@ -2,7 +2,7 @@ group = "ori"
 version = "1.0.0"
 
 plugins {
-    id("com.android.library") version "8.7.3"
+    id("com.android.library") version "9.0.1"
 }
 
 android {
@@ -17,4 +17,8 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+}
+
+dependencies {
+    implementation("androidx.appcompat:appcompat:1.7.0")
 }

@@ -6,3 +6,19 @@ authors.workspace = true
 license.workspace = true
 
 [dependencies]
+ori-native-core = { workspace = true }
+
+ori     = { workspace = true }
+tokio   = { workspace = true }
+taffy   = { workspace = true }
+tracing = { workspace = true }
+
+jni = "0.22"
+
+[dependencies.tracing-subscriber]
+workspace = true
+features = ["fmt", "env-filter"]
+
+[dependencies.ndk-sys]
+version = "0.6"
+features = ["test"]

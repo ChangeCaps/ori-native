@@ -27,14 +27,14 @@ impl NativeWindow<Platform> for Window {
         self.destroy();
     }
 
-    fn get_size(&self) -> (u32, u32) {
+    fn get_size(&self, _platform: &mut Platform) -> (u32, u32) {
         (
             self.width() as u32,
             self.height() as u32,
         )
     }
 
-    fn get_preferred_size(&self) -> (Option<u32>, Option<u32>) {
+    fn get_preferred_size(&self, _platform: &mut Platform) -> (Option<u32>, Option<u32>) {
         #[allow(unused_mut)]
         let mut min_width = None;
         #[allow(unused_mut)]
@@ -62,7 +62,11 @@ impl NativeWindow<Platform> for Window {
         (min_width, min_height)
     }
 
-    fn set_on_animation_frame(&mut self, on_frame: impl Fn(Duration) + 'static) {
+    fn set_on_animation_frame(
+        &mut self,
+        _platform: &mut Platform,
+        on_frame: impl Fn(Duration) + 'static,
+    ) {
         if let Some(frame_clock) = self.frame_clock() {
             let previous = self.imp().previous_frame.clone();
 
@@ -80,18 +84,26 @@ impl NativeWindow<Platform> for Window {
         }
     }
 
-    fn set_on_close_requested(&mut self, on_close_requested: impl Fn() + 'static) {
+    fn set_on_close_requested(
+        &mut self,
+        _platform: &mut Platform,
+        on_close_requested: impl Fn() + 'static,
+    ) {
         self.connect_close_request(move |_| {
             on_close_requested();
             gtk4::glib::Propagation::Stop
         });
     }
 
-    fn set_on_resize(&mut self, on_resize: impl Fn() + 'static) {
+    fn set_on_resize(&mut self, _platform: &mut Platform, on_resize: impl Fn() + 'static) {
         self.set_on_size_allocate(on_resize);
     }
 
-    fn set_on_key(&mut self, on_key: impl Fn(Key, Modifiers, bool) -> bool + 'static) {
+    fn set_on_key(
+        &mut self,
+        _platform: &mut Platform,
+        on_key: impl Fn(Key, Modifiers, bool) -> bool + 'static,
+    ) {
         for controller in self.observe_controllers().into_iter() {
             if let Ok(controller) = controller
                 && let Ok(controller) = controller.dynamic_cast::<gtk4::EventControllerKey>()
@@ -131,7 +143,7 @@ impl NativeWindow<Platform> for Window {
         self.add_controller(controller);
     }
 
-    fn set_title(&mut self, title: String) {
+    fn set_title(&mut self, _platform: &mut Platform, title: String) {
         gtk4::ApplicationWindow::set_title(self.as_ref(), Some(&title));
     }
 
@@ -144,7 +156,7 @@ impl NativeWindow<Platform> for Window {
         }
     }
 
-    fn set_min_size(&mut self, width: u32, height: u32) {
+    fn set_min_size(&mut self, _platform: &mut Platform, width: u32, height: u32) {
         #[cfg(feature = "layer-shell")]
         {
             use gtk4_layer_shell::LayerShell;
@@ -157,25 +169,25 @@ impl NativeWindow<Platform> for Window {
         self.set_size_request(width as i32, height as i32);
     }
 
-    fn set_size(&mut self, width: u32, height: u32) {
+    fn set_size(&mut self, _platform: &mut Platform, width: u32, height: u32) {
         self.set_default_size(
             width.max(1) as i32,
             height.max(1) as i32,
         );
     }
 
-    fn set_resizable(&mut self, resizable: bool) {
+    fn set_resizable(&mut self, _platform: &mut Platform, resizable: bool) {
         gtk4::Window::set_resizable(self.as_ref(), resizable);
     }
 
-    fn start_animating(&mut self) {
+    fn start_animating(&mut self, _platform: &mut Platform) {
         if let Some(frame_clock) = self.frame_clock() {
             frame_clock.begin_updating();
             self.imp().previous_frame.set(None);
         }
     }
 
-    fn stop_animating(&mut self) {
+    fn stop_animating(&mut self, _platform: &mut Platform) {
         if let Some(frame_clock) = self.frame_clock() {
             frame_clock.end_updating();
         }
