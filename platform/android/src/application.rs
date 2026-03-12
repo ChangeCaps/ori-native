@@ -4,14 +4,15 @@ use std::{
         Arc, Mutex, OnceLock,
         mpsc::{Receiver, Sender},
     },
+    time::Duration,
 };
 
 use jni::{objects::JObject, refs::Global, vm::JavaVM};
 use ori::{Effect, Message, Proxied, Tracker};
-use ori_native_core::Context;
+use ori_native_core::{Context, native::Press};
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt};
 
-use crate::{Platform, log::MakeAndroidWriter};
+use crate::{Platform, log::MakeAndroidWriter, platform::WidgetId};
 
 #[derive(Debug)]
 pub enum Error {
@@ -57,7 +58,7 @@ impl Application {
             .try_lock()
             .map_err(|_| Error::MultipleApplications)?;
 
-        let platform = Platform::new();
+        let platform = Platform::new().unwrap();
         let mut context = Context::new(platform);
 
         let view = build(data);
@@ -109,9 +110,25 @@ pub struct Activity {
     pub activity: Arc<Global<JObject<'static>>>,
 }
 
+impl Activity {
+    pub fn event(&self, widget: WidgetId, event: WidgetEvent) {
+        let _ = self.sender.send(Event::Widget(widget, event));
+    }
+}
+
+#[derive(Debug)]
 pub enum Event {
     Rebuild,
     Message(Message),
+    Frame(Duration),
+    Widget(WidgetId, WidgetEvent),
+}
+
+#[derive(Debug)]
+pub enum WidgetEvent {
+    Press(Press),
+    Change(String),
+    Submit(String),
 }
 
 struct State<'a, T, V, B>
@@ -143,6 +160,8 @@ where
                     &mut self.context,
                     self.data,
                 );
+
+                self.context.platform.run_ui_tasks();
             }
 
             Event::Message(mut message) => {
@@ -154,6 +173,8 @@ where
                     self.data,
                     &mut message,
                 );
+
+                self.context.platform.run_ui_tasks();
 
                 if action.take_rebuild() {
                     let view = (self.build)(self.data);
@@ -170,6 +191,10 @@ where
                 action.rebuild = false;
                 self.context.send_action(action);
             }
+
+            Event::Frame(duration) => self.context.platform.on_animation_frame(duration),
+
+            Event::Widget(id, event) => self.context.platform.handle_event(id, event),
         }
     }
 

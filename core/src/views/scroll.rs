@@ -79,7 +79,7 @@ where
             contents.widget.widget(),
         );
 
-        widget.set_direction(self.direction);
+        widget.set_direction(&mut cx.platform, self.direction);
 
         let pod = Pod::new(node, widget);
         let state = ScrollState {
@@ -103,7 +103,7 @@ where
 
         if state.direction != self.direction {
             state.direction = self.direction;
-            element.widget.set_direction(self.direction);
+            (element.widget).set_direction(&mut cx.platform, self.direction);
         }
 
         self.contents.rebuild(
@@ -122,21 +122,23 @@ where
         message: &mut Message,
     ) -> Action {
         if let Some(Lifecycle::Layout) = message.get() {
-            if let Ok(layout) = cx.get_computed_layout(*element.node)
-                && state.layout != *layout
+            if let Ok(layout) = cx.get_computed_layout(*element.node).copied()
+                && state.layout != layout
             {
-                state.layout = *layout;
+                state.layout = layout;
                 element.widget.set_content_size(
+                    &mut cx.platform,
                     layout.content_size.width,
                     layout.content_size.height,
                 );
             }
 
-            if let Ok(layout) = cx.get_computed_layout(contents.node)
-                && state.content_layout != *layout
+            if let Ok(layout) = cx.get_computed_layout(contents.node).copied()
+                && state.content_layout != layout
             {
-                state.content_layout = *layout;
+                state.content_layout = layout;
                 element.widget.set_content_layout(
+                    &mut cx.platform,
                     layout.location.x,
                     layout.location.y,
                     layout.size.width,

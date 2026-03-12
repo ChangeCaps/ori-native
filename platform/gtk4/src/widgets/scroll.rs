@@ -40,14 +40,21 @@ impl NativeScroll<Platform> for Scroll {
 
     fn teardown(self, _platform: &mut Platform) {}
 
-    fn set_content_size(&mut self, width: f32, height: f32) {
+    fn set_content_size(&mut self, _platform: &mut Platform, width: f32, height: f32) {
         self.fixed.set_size_request(
             width.round() as i32,
             height.round() as i32,
         );
     }
 
-    fn set_content_layout(&mut self, x: f32, y: f32, width: f32, height: f32) {
+    fn set_content_layout(
+        &mut self,
+        _platform: &mut Platform,
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+    ) {
         if let Some(child) = self.fixed.first_child() {
             self.fixed.move_(&child, x as f64, y as f64);
 
@@ -58,7 +65,7 @@ impl NativeScroll<Platform> for Scroll {
         }
     }
 
-    fn set_direction(&mut self, direction: Direction) {
+    fn set_direction(&mut self, _platform: &mut Platform, direction: Direction) {
         self.scroll.set_hscrollbar_policy(match direction {
             Direction::Horizontal => gtk4::PolicyType::Automatic,
             Direction::Vertical => gtk4::PolicyType::Never,

@@ -35,7 +35,7 @@ impl NativeParent<Platform> for Pressable {
 }
 
 impl NativePressable<Platform> for Pressable {
-    fn build(_plaform: &mut Platform, contents: &gtk4::Widget) -> Self {
+    fn build(_platform: &mut Platform, contents: &gtk4::Widget) -> Self {
         let fixed = gtk4::Fixed::new();
         fixed.put(contents, 0.0, 0.0);
         fixed.set_focusable(true);
@@ -51,9 +51,9 @@ impl NativePressable<Platform> for Pressable {
         }
     }
 
-    fn teardown(self, _plaform: &mut Platform) {}
+    fn teardown(self, _platform: &mut Platform) {}
 
-    fn set_content_size(&mut self, _plaform: &mut Platform, width: f32, height: f32) {
+    fn set_content_size(&mut self, _platform: &mut Platform, width: f32, height: f32) {
         if let Some(child) = self.fixed.first_child() {
             child.set_size_request(
                 width.round() as i32,
@@ -62,7 +62,7 @@ impl NativePressable<Platform> for Pressable {
         }
     }
 
-    fn set_on_press(&mut self, on_press: impl Fn(Press) + 'static) {
+    fn set_on_press(&mut self, _platform: &mut Platform, on_press: impl Fn(Press) + 'static) {
         if let Some(press) = self.press.take() {
             self.fixed.remove_controller(&press);
         }
@@ -89,7 +89,7 @@ impl NativePressable<Platform> for Pressable {
         self.fixed.add_controller(controller);
     }
 
-    fn set_on_hover(&mut self, on_hover: impl Fn(bool) + 'static) {
+    fn set_on_hover(&mut self, _platform: &mut Platform, on_hover: impl Fn(bool) + 'static) {
         if let Some(hover) = self.hover.take() {
             self.fixed.remove_controller(&hover);
         }
@@ -111,7 +111,7 @@ impl NativePressable<Platform> for Pressable {
         self.fixed.add_controller(controller);
     }
 
-    fn set_on_focus(&mut self, on_focus: impl Fn(bool) + 'static) {
+    fn set_on_focus(&mut self, _platform: &mut Platform, on_focus: impl Fn(bool) + 'static) {
         if let Some(focus) = self.focus.take() {
             self.fixed.remove_controller(&focus);
         }
@@ -133,7 +133,11 @@ impl NativePressable<Platform> for Pressable {
         self.fixed.add_controller(controller);
     }
 
-    fn set_on_key(&mut self, on_key: impl Fn(Key, Modifiers, bool) -> bool + 'static) {
+    fn set_on_key(
+        &mut self,
+        _platform: &mut Platform,
+        on_key: impl Fn(Key, Modifiers, bool) -> bool + 'static,
+    ) {
         if let Some(key) = self.key.take() {
             self.fixed.remove_controller(&key);
         }

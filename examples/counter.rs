@@ -13,7 +13,7 @@ struct Data {
 fn ui(data: &Data) -> impl Effect<Data> + use<> {
     window(
         column((
-            pressable(|_, state| {
+            pressable(|state, _| {
                 if state.pressed {
                     text("Pressed!")
                 } else if state.hovered {

@@ -8,16 +8,16 @@ where
 {
     type Error: Error;
 
-    fn build(plaform: &mut P) -> Self;
-    fn teardown(self, plaform: &mut P);
+    fn build(platform: &mut P) -> Self;
+    fn teardown(self, platform: &mut P);
 
     fn load_data(
         &mut self,
-        plaform: &mut P,
+        platform: &mut P,
         data: Cow<'static, [u8]>,
     ) -> Result<impl LayoutLeaf<P>, Self::Error>;
 
-    fn set_tint(&mut self, tint: Option<Color>);
+    fn set_tint(&mut self, platform: &mut P, tint: Option<Color>);
 }
 
 impl<P> NativeImage<P> for Unsupported
@@ -26,24 +26,24 @@ where
 {
     type Error = Infallible;
 
-    fn build(_plaform: &mut P) -> Self {
+    fn build(_platform: &mut P) -> Self {
         unsupported!("image view")
     }
 
-    fn teardown(self, _plaform: &mut P) {
+    fn teardown(self, _platform: &mut P) {
         unreachable!()
     }
 
     #[allow(refining_impl_trait)]
     fn load_data(
         &mut self,
-        _plaform: &mut P,
+        _platform: &mut P,
         _data: Cow<'static, [u8]>,
     ) -> Result<Infallible, Self::Error> {
         unreachable!()
     }
 
-    fn set_tint(&mut self, _tint: Option<Color>) {
+    fn set_tint(&mut self, _platform: &mut P, _tint: Option<Color>) {
         unreachable!()
     }
 }

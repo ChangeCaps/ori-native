@@ -8,11 +8,6 @@ import android.graphics.Path;
 import android.graphics.Paint;
 
 public class OriGroup extends ViewGroup {
-    public OriGroup(Context context) {
-        super(context);
-        setWillNotDraw(false);
-    }
-
     private int backgroundColor = 0;
     private int borderColor = 0;
 
@@ -34,6 +29,11 @@ public class OriGroup extends ViewGroup {
     private Path clipPath = new Path();
 
     private boolean overflowVisible = false;
+
+    public OriGroup(Context context) {
+        super(context);
+        setWillNotDraw(false);
+    }
 
     public void setBackgroundColor(int color) {
         this.backgroundColor = color;

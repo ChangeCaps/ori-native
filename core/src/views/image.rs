@@ -51,7 +51,7 @@ where
 
     fn build(self, cx: &mut Context<P>, _data: &mut T) -> (Self::Element, Self::State) {
         let mut widget = P::Image::build(&mut cx.platform);
-        widget.set_tint(self.tint);
+        widget.set_tint(&mut cx.platform, self.tint);
 
         let hash = seahash::hash(&self.data);
         let node = match widget.load_data(&mut cx.platform, self.data) {
@@ -98,7 +98,7 @@ where
 
         if state.tint != self.tint {
             state.tint = self.tint;
-            element.widget.set_tint(self.tint);
+            element.widget.set_tint(&mut cx.platform, self.tint);
         }
     }
 

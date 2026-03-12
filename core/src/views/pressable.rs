@@ -8,7 +8,7 @@ use crate::{
 };
 
 /// [`View`] that reacts to presses and focus.
-pub fn pressable<V, T>(build: impl FnMut(&T, PressState) -> V + 'static) -> Pressable<V, T> {
+pub fn pressable<V, T>(build: impl FnMut(PressState, &T) -> V + 'static) -> Pressable<V, T> {
     Pressable::new(build)
 }
 
@@ -28,7 +28,7 @@ pub struct PressState {
 /// [`View`] that reacts to presses and focus.
 #[allow(clippy::type_complexity)]
 pub struct Pressable<V, T> {
-    build:    Box<dyn FnMut(&T, PressState) -> V>,
+    build:    Box<dyn FnMut(PressState, &T) -> V>,
     on_press: Box<dyn FnMut(&mut T) -> Action>,
     on_hover: Box<dyn FnMut(&mut T, bool) -> Action>,
     on_focus: Box<dyn FnMut(&mut T, bool) -> Action>,
@@ -37,7 +37,7 @@ pub struct Pressable<V, T> {
 
 impl<V, T> Pressable<V, T> {
     /// Create new [`Pressable`].
-    pub fn new(build: impl FnMut(&T, PressState) -> V + 'static) -> Self {
+    pub fn new(build: impl FnMut(PressState, &T) -> V + 'static) -> Self {
         Self {
             build:    Box::new(build),
             on_press: Box::new(|_| Action::new()),
@@ -111,7 +111,7 @@ where
             focused: false,
         };
 
-        let view = (self.build)(data, press);
+        let view = (self.build)(press, data);
         let (contents, state) = view.build(cx, data);
 
         let mut widget = P::Pressable::build(
@@ -122,8 +122,10 @@ where
         let view_id = ViewId::next();
         cx.register(view_id);
 
-        widget.set_on_press({
-            let proxy = cx.proxy();
+        let proxy = cx.proxy();
+
+        widget.set_on_press(&mut cx.platform, {
+            let proxy = proxy.cloned();
 
             move |pressed| {
                 proxy.message(Message::new(
@@ -133,8 +135,8 @@ where
             }
         });
 
-        widget.set_on_hover({
-            let proxy = cx.proxy();
+        widget.set_on_hover(&mut cx.platform, {
+            let proxy = proxy.cloned();
 
             move |hovered| {
                 proxy.message(Message::new(
@@ -144,8 +146,8 @@ where
             }
         });
 
-        widget.set_on_focus({
-            let proxy = cx.proxy();
+        widget.set_on_focus(&mut cx.platform, {
+            let proxy = proxy.cloned();
 
             move |focused| {
                 proxy.message(Message::new(
@@ -157,8 +159,8 @@ where
 
         let (filter, handler) = self.input.split();
 
-        widget.set_on_key({
-            let proxy = cx.proxy();
+        widget.set_on_key(&mut cx.platform, {
+            let proxy = proxy.cloned();
 
             move |key, modifiers, pressed| {
                 if let Some(message) = filter.filter_key(key, modifiers, pressed) {
@@ -195,7 +197,7 @@ where
         cx: &mut Context<P>,
         data: &mut T,
     ) {
-        let view = (self.build)(data, state.press);
+        let view = (self.build)(state.press, data);
 
         view.rebuild(
             element.map_widget(&mut state.widget),
@@ -207,9 +209,9 @@ where
         state.on_press = self.on_press;
 
         let (filter, handler) = self.input.split();
+        let proxy = cx.proxy();
 
-        element.widget.set_on_key({
-            let proxy = cx.proxy();
+        element.widget.set_on_key(&mut cx.platform, {
             let view_id = state.view_id;
 
             move |key, modifiers, pressed| {
@@ -271,7 +273,7 @@ where
                 }
             }
 
-            let view = (state.build)(data, state.press);
+            let view = (state.build)(state.press, data);
             view.rebuild(
                 element.map_widget(&mut state.widget),
                 &mut state.state,
@@ -312,7 +314,7 @@ where
     press:    PressState,
     view_id:  ViewId,
     layout:   taffy::Layout,
-    build:    Box<dyn FnMut(&T, PressState) -> V>,
+    build:    Box<dyn FnMut(PressState, &T) -> V>,
     on_press: Box<dyn FnMut(&mut T) -> Action>,
     on_hover: Box<dyn FnMut(&mut T, bool) -> Action>,
     on_focus: Box<dyn FnMut(&mut T, bool) -> Action>,

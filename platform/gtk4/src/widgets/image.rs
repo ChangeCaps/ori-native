@@ -22,7 +22,7 @@ impl NativeWidget<Platform> for Image {
 impl NativeImage<Platform> for Image {
     type Error = io::Error;
 
-    fn build(_plaform: &mut Platform) -> Self {
+    fn build(_platform: &mut Platform) -> Self {
         let picture = gtk4::Picture::new();
 
         Self {
@@ -32,11 +32,11 @@ impl NativeImage<Platform> for Image {
         }
     }
 
-    fn teardown(self, _plaform: &mut Platform) {}
+    fn teardown(self, _platform: &mut Platform) {}
 
     fn load_data(
         &mut self,
-        _plaform: &mut Platform,
+        _platform: &mut Platform,
         data: Cow<'static, [u8]>,
     ) -> Result<impl LayoutLeaf<Platform>, Self::Error> {
         let paintable = Paintable::new(&data)?;
@@ -48,7 +48,7 @@ impl NativeImage<Platform> for Image {
         Ok(Layout { paintable })
     }
 
-    fn set_tint(&mut self, tint: Option<Color>) {
+    fn set_tint(&mut self, _platform: &mut Platform, tint: Option<Color>) {
         self.tint = tint;
 
         if let Some(ref paintable) = self.paintable {

@@ -19,17 +19,15 @@ impl NativeText<Platform> for Text {
     fn build(platform: &mut Platform) -> Self {
         let id = platform.next_id();
 
-        platform
-            .jni(|env, activity| {
-                env.call_method(
-                    activity,
-                    jni_str!("createText"),
-                    jni_sig!((long) -> void),
-                    &[id.into()],
-                )?
-                .v()
-            })
-            .unwrap();
+        let _ = platform.jni(|env, activity| {
+            env.call_method(
+                activity,
+                jni_str!("createText"),
+                jni_sig!((long)),
+                &[id.into()],
+            )?
+            .v()
+        });
 
         Self { id }
     }
@@ -45,34 +43,34 @@ impl NativeText<Platform> for Text {
         text: String,
         wrap: Wrap,
     ) -> Self::Layout {
-        platform
-            .jni(|env, activity| {
-                let text = env.new_string(text)?;
+        let _ = platform.jni(|env, activity| {
+            let text = env.new_string(text)?;
 
-                let wrap = match wrap {
-                    Wrap::None => 3,
-                    Wrap::Char => 1,
-                    Wrap::Word => 2,
+            let wrap = match wrap {
+                Wrap::None => 3,
+                Wrap::Char => 1,
+                Wrap::Word => 2,
+            };
+
+            env.call_method(
+                activity,
+                jni_str!("textSetText"),
+                jni_sig!((long, JString, int)),
+                &[self.id.into(), (&text).into(), wrap.into()],
+            )?
+            .v()?;
+
+            for span in spans {
+                let family = match span.font.family {
+                    Some(family) => env.new_string(family)?,
+                    None => JString::null(),
                 };
 
                 env.call_method(
                     activity,
-                    jni_str!("textSetText"),
-                    jni_sig!((long, JString, int) -> void),
-                    &[self.id.into(), (&text).into(), wrap.into()],
-                )?
-                .v()?;
-
-                for span in spans {
-                    let family = match span.font.family {
-                        Some(family) => env.new_string(family)?,
-                        None => JString::null(),
-                    };
-
-                    env.call_method(
-                        activity,
-                        jni_str!("textSetSpan"),
-                        jni_sig!((
+                    jni_str!("textSetSpan"),
+                    jni_sig!(
+                        (
                             long,
                             int,
                             int,
@@ -86,29 +84,29 @@ impl NativeText<Platform> for Text {
                             float,
                             float,
                             float,
-                        ) -> void),
-                        &[
-                            self.id.into(),
-                            (span.range.start as i32).into(),
-                            (span.range.end as i32).into(),
-                            span.font.size.into(),
-                            (&family).into(),
-                            (span.font.weight.0 as i32).into(),
-                            0i32.into(),
-                            span.font.italic.into(),
-                            span.font.striketrough.into(),
-                            span.font.color.r.into(),
-                            span.font.color.g.into(),
-                            span.font.color.b.into(),
-                            span.font.color.a.into(),
-                        ],
-                    )?
-                    .v()?;
-                }
+                        ) -> void
+                    ),
+                    &[
+                        self.id.into(),
+                        (span.range.start as i32).into(),
+                        (span.range.end as i32).into(),
+                        span.font.size.into(),
+                        (&family).into(),
+                        (span.font.weight.0 as i32).into(),
+                        0i32.into(),
+                        span.font.italic.into(),
+                        span.font.striketrough.into(),
+                        span.font.color.r.into(),
+                        span.font.color.g.into(),
+                        span.font.color.b.into(),
+                        span.font.color.a.into(),
+                    ],
+                )?
+                .v()?;
+            }
 
-                Ok::<_, jni::errors::Error>(())
-            })
-            .unwrap();
+            Ok::<_, jni::errors::Error>(())
+        });
 
         TextLayout { id: self.id }
     }
@@ -135,7 +133,7 @@ impl LayoutLeaf<Platform> for TextLayout {
                 )?
                 .f()
             })
-            .unwrap();
+            .unwrap_or(0.0);
 
         let height = platform
             .jni(|env, activity| {
@@ -147,7 +145,7 @@ impl LayoutLeaf<Platform> for TextLayout {
                 )?
                 .f()
             })
-            .unwrap();
+            .unwrap_or(0.0);
 
         taffy::Size {
             width: width + 1.0,

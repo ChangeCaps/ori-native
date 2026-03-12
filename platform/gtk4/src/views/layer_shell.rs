@@ -224,6 +224,7 @@ where
 
         let state = WindowState::new(
             cx,
+            data,
             window,
             view_id,
             self.attributes,

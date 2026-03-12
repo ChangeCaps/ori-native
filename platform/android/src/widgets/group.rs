@@ -15,7 +15,25 @@ impl NativeWidget<Platform> for Group {
 
 impl NativeParent<Platform> for Group {
     fn replace_child(&mut self, platform: &mut Platform, index: usize, child: &WidgetId) {
-        todo!()
+        platform
+            .jni(|env, activity| {
+                env.call_method(
+                    activity,
+                    jni_str!("groupRemove"),
+                    jni_sig!((long, int)),
+                    &[self.id.into(), (index as i32).into()],
+                )?
+                .v()?;
+
+                env.call_method(
+                    activity,
+                    jni_str!("groupInsert"),
+                    jni_sig!((long, int, long)),
+                    &[self.id.into(), (index as i32).into(), child.into()],
+                )?
+                .v()
+            })
+            .unwrap();
     }
 }
 

@@ -13,3 +13,4 @@ ori-native = { workspace = true }
 
 [package.metadata.android]
 package = "ori.example"
+name = "Ori mobile example"

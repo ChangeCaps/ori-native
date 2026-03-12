@@ -67,6 +67,7 @@ public class OriPlugin implements Plugin<Project> {
         android.getDefaultConfig().setApplicationId(meta.applicationId);
         android.getDefaultConfig().setMinSdk(21);
         android.getDefaultConfig().setTargetSdk(35);
+        android.getDefaultConfig().getManifestPlaceholders().put("appLabel", meta.label);
 
         android.getCompileOptions().setSourceCompatibility(JavaVersion.VERSION_17);
         android.getCompileOptions().setTargetCompatibility(JavaVersion.VERSION_17);
@@ -185,6 +186,7 @@ public class OriPlugin implements Plugin<Project> {
 class CargoMetadata {
     String targetDirectory;
 
+    String label;
     String namespace;
     String applicationId;
 
@@ -215,6 +217,12 @@ class CargoMetadata {
 
         if (meta == null) {
             throw new RuntimeException("Android metadata not found in `Cargo.toml`");
+        }
+
+        if (meta.get("name") != null) {
+            label = meta.get("name").asText();
+        } else {
+            label = pkg.get("name").asText();
         }
 
         namespace = meta.get("package").asText();

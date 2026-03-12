@@ -1,9 +1,13 @@
 use std::time::Duration;
 
-use jni::{jni_sig, jni_str};
+use jni::{EnvUnowned, jni_sig, jni_str, objects::JObject};
 use ori_native_core::{Key, Modifiers, NativeParent, native::NativeWindow};
 
-use crate::{Platform, platform::WidgetId};
+use crate::{
+    Platform,
+    application::{ACTIVITY, Event},
+    platform::WidgetId,
+};
 
 pub struct Window {}
 
@@ -78,9 +82,10 @@ impl NativeWindow<Platform> for Window {
 
     fn set_on_animation_frame(
         &mut self,
-        _platform: &mut Platform,
-        _on_frame: impl Fn(Duration) + 'static,
+        platform: &mut Platform,
+        on_frame: impl Fn(Duration) + 'static,
     ) {
+        platform.set_on_animation_frame(on_frame);
     }
 
     fn set_on_resize(&mut self, _platform: &mut Platform, _on_resize: impl Fn() + 'static) {}
@@ -99,9 +104,33 @@ impl NativeWindow<Platform> for Window {
     ) {
     }
 
-    fn start_animating(&mut self, _platform: &mut Platform) {}
+    fn start_animating(&mut self, platform: &mut Platform) {
+        platform
+            .jni(|env, activity| {
+                env.call_method(
+                    activity,
+                    jni_str!("windowStartAnimating"),
+                    jni_sig!(()),
+                    &[],
+                )?
+                .v()
+            })
+            .unwrap();
+    }
 
-    fn stop_animating(&mut self, _platform: &mut Platform) {}
+    fn stop_animating(&mut self, platform: &mut Platform) {
+        platform
+            .jni(|env, activity| {
+                env.call_method(
+                    activity,
+                    jni_str!("windowStopAnimating"),
+                    jni_sig!(()),
+                    &[],
+                )?
+                .v()
+            })
+            .unwrap();
+    }
 
     fn set_content_size(&mut self, platform: &mut Platform, width: f32, height: f32) {
         platform
@@ -121,4 +150,16 @@ impl NativeWindow<Platform> for Window {
     fn set_min_size(&mut self, _platform: &mut Platform, _width: u32, _height: u32) {}
     fn set_size(&mut self, _platform: &mut Platform, _width: u32, _height: u32) {}
     fn set_resizable(&mut self, _platform: &mut Platform, _resizable: bool) {}
+}
+
+#[unsafe(no_mangle)]
+extern "system" fn Java_ori_OriActivity_onAnimationFrame<'local>(
+    _env: EnvUnowned<'local>,
+    _this: JObject<'local>,
+    duration_nanos: i64,
+) {
+    if let Some(activity) = ACTIVITY.get() {
+        let duration = Duration::from_nanos(duration_nanos as u64);
+        let _ = activity.sender.send(Event::Frame(duration));
+    }
 }
