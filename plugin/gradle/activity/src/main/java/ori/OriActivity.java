@@ -700,8 +700,6 @@ public class OriActivity extends AppCompatActivity {
 
     /* ---------- HELPER ---------- */
 
-    private static final Handler mainHandler = new Handler(Looper.getMainLooper());
-
     ArrayDeque<Runnable> uiTasks = new ArrayDeque<>();
 
     public void queueUiTask(Runnable task) {
@@ -709,9 +707,15 @@ public class OriActivity extends AppCompatActivity {
     }
 
     public void runUiTasks() {
-        runOnUiThreadBlocking(() -> {
-            while (!uiTasks.isEmpty()) {
-                uiTasks.removeFirst().run();
+        runOnUiThread(() -> {
+            root.suppressLayout(true);
+
+            try {
+                while (!uiTasks.isEmpty()) {
+                    uiTasks.removeFirst().run();
+                }
+            } finally {
+                root.suppressLayout(false);
             }
         });
     }
@@ -745,28 +749,6 @@ public class OriActivity extends AppCompatActivity {
             }
 
             return Typeface.create(base, style);
-        }
-    }
-
-    public static void runOnUiThreadBlocking(Runnable task) {
-        if (Looper.myLooper() == Looper.getMainLooper()) {
-            task.run();
-            return;
-        }
-
-        CountDownLatch latch = new CountDownLatch(1);
-        mainHandler.post(() -> {
-            try {
-                task.run();
-            } finally {
-                latch.countDown();
-            }
-        });
-
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
         }
     }
 }

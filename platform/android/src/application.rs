@@ -82,6 +82,15 @@ impl Application {
             && let Ok(event) = state.receiver.recv()
         {
             state.handle_event(event);
+
+            // we want to handle every task in the queue before updating the ui.
+            while let Ok(event) = state.receiver.try_recv() {
+                state.handle_event(event);
+            }
+
+            // after all events have been handled, and we expect to be idle,
+            // execute batched ui updates.
+            state.context.platform.run_ui_tasks();
         }
 
         state.teardown();
@@ -163,13 +172,11 @@ where
                     &mut self.context,
                     self.data,
                 );
-
-                self.context.platform.run_ui_tasks();
             }
 
             Event::Message(mut message) => {
                 self.context.tree().reset();
-                let mut action = V::message(
+                let action = V::message(
                     (),
                     &mut self.state,
                     &mut self.context,
@@ -177,23 +184,6 @@ where
                     &mut message,
                 );
 
-                self.context.platform.run_ui_tasks();
-
-                if action.take_rebuild() {
-                    let view = (self.build)(self.data);
-
-                    self.context.tree().reset();
-                    view.rebuild(
-                        (),
-                        &mut self.state,
-                        &mut self.context,
-                        self.data,
-                    );
-
-                    self.context.platform.run_ui_tasks();
-                }
-
-                action.rebuild = false;
                 self.context.send_action(action);
             }
 
