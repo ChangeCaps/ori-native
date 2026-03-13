@@ -2,22 +2,22 @@ package ori;
 
 import android.content.Context;
 import android.view.KeyEvent;
-import android.widget.EditText;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.text.TextWatcher;
 import android.text.Editable;
 import android.text.Spannable;
 import android.text.SpannableString;
-import android.text.style.TypefaceSpan;
 import android.text.style.AbsoluteSizeSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StrikethroughSpan;
 import android.view.inputmethod.EditorInfo;
 
+import androidx.appcompat.widget.AppCompatEditText;
+
 import java.lang.CharSequence;
 
-public class OriEditText extends EditText {
+public class OriEditText extends AppCompatEditText {
     long id;
 
     String placeholderText = "";
@@ -111,7 +111,7 @@ public class OriEditText extends EditText {
         int end = text.length();
 
         text.setSpan(
-                new TypefaceSpan(placeholderTypeface),
+                new OriTypefaceSpan(placeholderTypeface),
                 start, end,
                 Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
 

@@ -1,5 +1,6 @@
 package ori;
 
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Looper;
 import android.os.Handler;
@@ -19,11 +20,11 @@ import android.graphics.Typeface;
 import android.graphics.Rect;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.text.Layout;
 import android.text.TextPaint;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.StaticLayout;
-import android.text.style.TypefaceSpan;
 import android.text.style.AbsoluteSizeSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StrikethroughSpan;
@@ -410,14 +411,10 @@ public class OriActivity extends AppCompatActivity {
             float b,
             float a) {
         TextLayout layout = textLayout.get(id);
-
-        Typeface typeface = Typeface.create(
-                Typeface.create(family, 0),
-                weight,
-                italic);
+        Typeface typeface = createTypeface(family, weight, italic);
 
         layout.text.setSpan(
-                new TypefaceSpan(typeface),
+                new OriTypefaceSpan(typeface),
                 start, end,
                 Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
 
@@ -449,12 +446,14 @@ public class OriActivity extends AppCompatActivity {
     public float textMeasureWidth(long id, float maxWidth) {
         TextLayout layout = textLayout.get(id);
 
-        StaticLayout staticLayout = StaticLayout.Builder.obtain(
+        StaticLayout staticLayout = new StaticLayout(
                 layout.text,
-                0, layout.text.length(),
                 new TextPaint(),
-                px(maxWidth))
-                .build();
+                px(maxWidth),
+                Layout.Alignment.ALIGN_NORMAL,
+                1.0f,
+                0.0f,
+                true);
 
         float width = 0.0f;
 
@@ -468,12 +467,14 @@ public class OriActivity extends AppCompatActivity {
     public float textMeasureHeight(long id, float maxWidth) {
         TextLayout layout = textLayout.get(id);
 
-        int height = StaticLayout.Builder.obtain(
+        int height = new StaticLayout(
                 layout.text,
-                0, layout.text.length(),
                 new TextPaint(),
-                px(maxWidth))
-                .build()
+                px(maxWidth),
+                Layout.Alignment.ALIGN_NORMAL,
+                1.0f,
+                0.0f,
+                true)
                 .getHeight();
 
         return lc(height) + 1.0f;
@@ -519,11 +520,7 @@ public class OriActivity extends AppCompatActivity {
             float g,
             float b,
             float a) {
-        Typeface typeface = Typeface.create(
-                Typeface.create(family, 0),
-                weight,
-                italic);
-
+        Typeface typeface = createTypeface(family, weight, italic);
         TextInputLayout layout = textInputLayout.get(id);
         layout.typeface = typeface;
         layout.textSize = textSize;
@@ -557,11 +554,7 @@ public class OriActivity extends AppCompatActivity {
             float g,
             float b,
             float a) {
-        Typeface typeface = Typeface.create(
-                Typeface.create(family, 0),
-                weight,
-                italic);
-
+        Typeface typeface = createTypeface(family, weight, italic);
         TextInputLayout layout = textInputLayout.get(id);
         layout.placeholderTypeface = typeface;
         layout.placeholderTextSize = textSize;
@@ -709,7 +702,35 @@ public class OriActivity extends AppCompatActivity {
     }
 
     public static int rgba(float r, float g, float b, float a) {
-        return Color.argb(a, r * a, g * a, b * a);
+        return Color.argb(
+                (int) Math.round(a * 255.0f),
+                (int) Math.round(r * a * 255.0f),
+                (int) Math.round(g * a * 255.0f),
+                (int) Math.round(b * a * 255.0f));
+    }
+
+    public static Typeface createTypeface(String family, int weight, boolean italic) {
+        Typeface base = Typeface.create(family, Typeface.NORMAL);
+
+        if (base == null) {
+            base = Typeface.DEFAULT;
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            return Typeface.create(base, weight, italic);
+        } else {
+            int style = Typeface.NORMAL;
+
+            if (weight >= 700 && !italic) {
+                style = Typeface.BOLD;
+            } else if (weight >= 700 && italic) {
+                style = Typeface.BOLD_ITALIC;
+            } else if (weight < 700 && italic) {
+                style = Typeface.ITALIC;
+            }
+
+            return Typeface.create(base, style);
+        }
     }
 
     public static void runOnUiThreadBlocking(Runnable task) {

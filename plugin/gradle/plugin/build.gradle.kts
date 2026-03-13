@@ -20,3 +20,18 @@ dependencies {
     compileOnly("com.android.tools.build:gradle:9.0.1")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
 }
+
+publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+            from(components["java"])
+        }
+    }
+
+    repositories {
+        maven {
+            name = "BuildRepo"
+            url = uri("${buildDir}/repo")
+        }
+    }
+}
