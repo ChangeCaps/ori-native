@@ -118,7 +118,7 @@ impl NativeTextInput<Platform> for TextInput {
 
     fn set_text(&mut self, platform: &mut Platform, text: String) {
         let _ = platform.jni(|env, activity| {
-            let text = env.new_string(text).unwrap();
+            let text = env.new_string(text)?;
 
             env.call_method(
                 activity,
@@ -175,7 +175,7 @@ impl NativeTextInput<Platform> for TextInput {
 
     fn set_placeholder_text(&mut self, platform: &mut Platform, text: String) {
         let _ = platform.jni(|env, activity| {
-            let text = env.new_string(text).unwrap();
+            let text = env.new_string(text)?;
 
             env.call_method(
                 activity,

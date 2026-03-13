@@ -1,3 +1,5 @@
+#![warn(clippy::unwrap_used)]
+
 mod application;
 mod entry;
 mod log;

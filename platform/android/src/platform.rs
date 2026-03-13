@@ -10,7 +10,7 @@ use jni::{Env, JValue, jni_sig, jni_str, objects::JObject, refs::Global, vm::Jav
 use ori::{Message, Proxied, Proxy};
 
 use crate::{
-    application::{ACTIVITY, Event, WidgetEvent},
+    application::{Activity, Event, WidgetEvent},
     widgets,
 };
 
@@ -29,8 +29,7 @@ pub struct Platform {
 }
 
 impl Platform {
-    pub fn new() -> io::Result<Self> {
-        let activity = ACTIVITY.get().unwrap();
+    pub fn new(activity: &Activity) -> io::Result<Self> {
         let runtime = Arc::new(tokio::runtime::Runtime::new()?);
 
         Ok(Self {

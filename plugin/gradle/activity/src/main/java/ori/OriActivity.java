@@ -176,6 +176,23 @@ public class OriActivity extends AppCompatActivity {
         });
     }
 
+    public void groupSwap(long id, int indexA, int indexB) {
+        queueUiTask(() -> {
+            OriGroup view = (OriGroup) views.get(id);
+
+            int first = Math.min(indexA, indexB);
+            int last = Math.max(indexA, indexB);
+
+            View firstView = view.getChildAt(first);
+            View lastView = view.getChildAt(last);
+
+            view.removeViewAt(last);
+            view.removeViewAt(first);
+            view.addView(lastView, first);
+            view.addView(firstView, last);
+        });
+    }
+
     public void groupSetChildLayout(long id, int index,
             float x, float y,
             float width, float height) {
@@ -428,7 +445,6 @@ public class OriActivity extends AppCompatActivity {
                     new StrikethroughSpan(),
                     start, end,
                     Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-
         }
 
         int color = rgba(r, g, b, a);
@@ -467,17 +483,16 @@ public class OriActivity extends AppCompatActivity {
     public float textMeasureHeight(long id, float maxWidth) {
         TextLayout layout = textLayout.get(id);
 
-        int height = new StaticLayout(
+        StaticLayout staticLayout = new StaticLayout(
                 layout.text,
                 new TextPaint(),
                 px(maxWidth),
                 Layout.Alignment.ALIGN_NORMAL,
                 1.0f,
                 0.0f,
-                true)
-                .getHeight();
+                true);
 
-        return lc(height) + 1.0f;
+        return lc(staticLayout.getHeight());
     }
 
     static class TextLayout {

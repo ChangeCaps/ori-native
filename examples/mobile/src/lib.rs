@@ -103,7 +103,7 @@ fn todo(index: usize, _todo: &Todo) -> impl View<Data> + use<> {
                 .color(theme::TEXT.fade(0.6))
                 .strikethrough(true)
         } else {
-            text(&todo.name).color(theme::TEXT)
+            text(&todo.name).family("Noto Sans").color(theme::TEXT)
         };
 
         row((

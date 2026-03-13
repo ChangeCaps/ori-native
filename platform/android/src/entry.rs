@@ -40,7 +40,7 @@ where
             let activity = unsafe { JObject::from_raw(env, activity.cast()) };
             env.new_global_ref(activity)
         })
-        .unwrap();
+        .expect("creating global ref should work");
 
     let (sender, receiver) = mpsc::channel();
 

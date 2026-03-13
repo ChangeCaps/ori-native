@@ -44,7 +44,7 @@ impl NativeText<Platform> for Text {
         wrap: Wrap,
     ) -> Self::Layout {
         let _ = platform.jni(|env, activity| {
-            let text = env.new_string(text)?;
+            let jstring = env.new_string(&text)?;
 
             let wrap = match wrap {
                 Wrap::None => 3,
@@ -56,7 +56,7 @@ impl NativeText<Platform> for Text {
                 activity,
                 jni_str!("textSetText"),
                 jni_sig!((long, JString, int)),
-                &[self.id.into(), (&text).into(), wrap.into()],
+                &[self.id.into(), (&jstring).into(), wrap.into()],
             )?
             .v()?;
 
@@ -65,6 +65,20 @@ impl NativeText<Platform> for Text {
                     Some(family) => env.new_string(family)?,
                     None => JString::null(),
                 };
+
+                let start = text
+                    .char_indices()
+                    .enumerate()
+                    .find(|(_, (offset, _))| *offset == span.range.start)
+                    .map(|(i, _)| i)
+                    .unwrap_or(0);
+
+                let end = text
+                    .char_indices()
+                    .enumerate()
+                    .find(|(_, (offset, _))| *offset == span.range.end)
+                    .map(|(i, _)| i)
+                    .unwrap_or_else(|| text.chars().count());
 
                 env.call_method(
                     activity,
@@ -88,8 +102,8 @@ impl NativeText<Platform> for Text {
                     ),
                     &[
                         self.id.into(),
-                        (span.range.start as i32).into(),
-                        (span.range.end as i32).into(),
+                        (start as i32).into(),
+                        (end as i32).into(),
                         span.font.size.into(),
                         (&family).into(),
                         (span.font.weight.0 as i32).into(),

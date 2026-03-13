@@ -22,17 +22,15 @@ impl NativeWidget<Platform> for Pressable {
 
 impl NativeParent<Platform> for Pressable {
     fn replace_child(&mut self, platform: &mut Platform, _index: usize, child: &WidgetId) {
-        platform
-            .jni(|env, activity| {
-                env.call_method(
-                    activity,
-                    jni_str!("pressableSetContents"),
-                    jni_sig!((long, long)),
-                    &[self.id.into(), child.into()],
-                )?
-                .v()
-            })
-            .unwrap();
+        let _ = platform.jni(|env, activity| {
+            env.call_method(
+                activity,
+                jni_str!("pressableSetContents"),
+                jni_sig!((long, long)),
+                &[self.id.into(), child.into()],
+            )?
+            .v()
+        });
     }
 }
 
@@ -40,25 +38,23 @@ impl NativePressable<Platform> for Pressable {
     fn build(platform: &mut Platform, contents: &WidgetId) -> Self {
         let id = platform.next_id();
 
-        platform
-            .jni(|env, activity| {
-                env.call_method(
-                    activity,
-                    jni_str!("createPressable"),
-                    jni_sig!((long)),
-                    &[id.into()],
-                )?
-                .v()?;
+        let _ = platform.jni(|env, activity| {
+            env.call_method(
+                activity,
+                jni_str!("createPressable"),
+                jni_sig!((long)),
+                &[id.into()],
+            )?
+            .v()?;
 
-                env.call_method(
-                    activity,
-                    jni_str!("pressableSetContents"),
-                    jni_sig!((long, long)),
-                    &[id.into(), contents.into()],
-                )?
-                .v()
-            })
-            .unwrap();
+            env.call_method(
+                activity,
+                jni_str!("pressableSetContents"),
+                jni_sig!((long, long)),
+                &[id.into(), contents.into()],
+            )?
+            .v()
+        });
 
         Self { id }
     }
@@ -68,17 +64,15 @@ impl NativePressable<Platform> for Pressable {
     }
 
     fn set_content_size(&mut self, platform: &mut Platform, width: f32, height: f32) {
-        platform
-            .jni(|env, activity| {
-                env.call_method(
-                    activity,
-                    jni_str!("pressableSetContentSize"),
-                    jni_sig!((long, float, float)),
-                    &[self.id.into(), width.into(), height.into()],
-                )?
-                .v()
-            })
-            .unwrap()
+        let _ = platform.jni(|env, activity| {
+            env.call_method(
+                activity,
+                jni_str!("pressableSetContentSize"),
+                jni_sig!((long, float, float)),
+                &[self.id.into(), width.into(), height.into()],
+            )?
+            .v()
+        });
     }
 
     fn set_on_press(&mut self, platform: &mut Platform, on_press: impl Fn(Press) + 'static) {

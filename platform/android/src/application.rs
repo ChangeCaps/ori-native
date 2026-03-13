@@ -1,5 +1,5 @@
 use std::{
-    error, fmt,
+    error, fmt, io,
     sync::{
         Arc, Mutex, OnceLock,
         mpsc::{Receiver, Sender},
@@ -18,6 +18,7 @@ use crate::{Platform, log::MakeAndroidWriter, platform::WidgetId};
 pub enum Error {
     Uninitialized,
     MultipleApplications,
+    Io(io::Error),
 }
 
 impl fmt::Display for Error {
@@ -28,6 +29,8 @@ impl fmt::Display for Error {
             Error::MultipleApplications => f.write_str(
                 "running multiple applications at the same time is not supported on android",
             ),
+
+            Error::Io(err) => err.fmt(f),
         }
     }
 }
@@ -58,7 +61,7 @@ impl Application {
             .try_lock()
             .map_err(|_| Error::MultipleApplications)?;
 
-        let platform = Platform::new().unwrap();
+        let platform = Platform::new(activity).map_err(Error::Io)?;
         let mut context = Context::new(platform);
 
         let view = build(data);
@@ -186,6 +189,8 @@ where
                         &mut self.context,
                         self.data,
                     );
+
+                    self.context.platform.run_ui_tasks();
                 }
 
                 action.rebuild = false;

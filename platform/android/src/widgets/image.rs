@@ -43,19 +43,17 @@ impl NativeImage<Platform> for Image {
         platform: &mut Platform,
         data: Cow<'static, [u8]>,
     ) -> Result<impl LayoutLeaf<Platform>, Self::Error> {
-        platform
-            .jni(|env, activity| {
-                let bytes = env.byte_array_from_slice(&data)?;
+        let _ = platform.jni(|env, activity| {
+            let bytes = env.byte_array_from_slice(&data)?;
 
-                env.call_method(
-                    activity,
-                    jni_str!("imageLoad"),
-                    jni_sig!((long, byte[])),
-                    &[self.id.into(), (&bytes).into()],
-                )?
-                .v()
-            })
-            .unwrap();
+            env.call_method(
+                activity,
+                jni_str!("imageLoad"),
+                jni_sig!((long, byte[])),
+                &[self.id.into(), (&bytes).into()],
+            )?
+            .v()
+        });
 
         Ok(ImageLayout { id: self.id })
     }

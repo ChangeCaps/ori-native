@@ -13,33 +13,29 @@ pub struct Window {}
 
 impl NativeParent<Platform> for Window {
     fn replace_child(&mut self, platform: &mut Platform, _index: usize, child: &WidgetId) {
-        platform
-            .jni(|env, activity| {
-                env.call_method(
-                    activity,
-                    jni_str!("windowSetContents"),
-                    jni_sig!((long)),
-                    &[child.into()],
-                )?
-                .v()
-            })
-            .unwrap();
+        let _ = platform.jni(|env, activity| {
+            env.call_method(
+                activity,
+                jni_str!("windowSetContents"),
+                jni_sig!((long)),
+                &[child.into()],
+            )?
+            .v()
+        });
     }
 }
 
 impl NativeWindow<Platform> for Window {
     fn build(platform: &mut Platform, contents: &WidgetId) -> Self {
-        platform
-            .jni(|env, activity| {
-                env.call_method(
-                    activity,
-                    jni_str!("windowSetContents"),
-                    jni_sig!((long)),
-                    &[contents.into()],
-                )?
-                .v()
-            })
-            .unwrap();
+        let _ = platform.jni(|env, activity| {
+            env.call_method(
+                activity,
+                jni_str!("windowSetContents"),
+                jni_sig!((long)),
+                &[contents.into()],
+            )?
+            .v()
+        });
 
         Self {}
     }
@@ -57,7 +53,7 @@ impl NativeWindow<Platform> for Window {
                 )?
                 .i()
             })
-            .unwrap();
+            .unwrap_or(0);
 
         let height = platform
             .jni(|env, activity| {
@@ -69,7 +65,7 @@ impl NativeWindow<Platform> for Window {
                 )?
                 .i()
             })
-            .unwrap();
+            .unwrap_or(0);
 
         (width as u32, height as u32)
     }
@@ -105,45 +101,39 @@ impl NativeWindow<Platform> for Window {
     }
 
     fn start_animating(&mut self, platform: &mut Platform) {
-        platform
-            .jni(|env, activity| {
-                env.call_method(
-                    activity,
-                    jni_str!("windowStartAnimating"),
-                    jni_sig!(()),
-                    &[],
-                )?
-                .v()
-            })
-            .unwrap();
+        let _ = platform.jni(|env, activity| {
+            env.call_method(
+                activity,
+                jni_str!("windowStartAnimating"),
+                jni_sig!(()),
+                &[],
+            )?
+            .v()
+        });
     }
 
     fn stop_animating(&mut self, platform: &mut Platform) {
-        platform
-            .jni(|env, activity| {
-                env.call_method(
-                    activity,
-                    jni_str!("windowStopAnimating"),
-                    jni_sig!(()),
-                    &[],
-                )?
-                .v()
-            })
-            .unwrap();
+        let _ = platform.jni(|env, activity| {
+            env.call_method(
+                activity,
+                jni_str!("windowStopAnimating"),
+                jni_sig!(()),
+                &[],
+            )?
+            .v()
+        });
     }
 
     fn set_content_size(&mut self, platform: &mut Platform, width: f32, height: f32) {
-        platform
-            .jni(|env, activity| {
-                env.call_method(
-                    activity,
-                    jni_str!("windowSetContentSize"),
-                    jni_sig!((float, float)),
-                    &[width.into(), height.into()],
-                )?
-                .v()
-            })
-            .unwrap();
+        let _ = platform.jni(|env, activity| {
+            env.call_method(
+                activity,
+                jni_str!("windowSetContentSize"),
+                jni_sig!((float, float)),
+                &[width.into(), height.into()],
+            )?
+            .v()
+        });
     }
 
     fn set_title(&mut self, _platform: &mut Platform, _title: String) {}
