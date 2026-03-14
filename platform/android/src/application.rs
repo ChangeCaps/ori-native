@@ -103,6 +103,8 @@ impl Application {
 
         if cfg!(debug_assertions) {
             filter = filter.add_directive(tracing::Level::DEBUG.into());
+        } else {
+            filter = filter.add_directive(tracing::Level::WARN.into());
         }
 
         let subscriber = tracing_subscriber::registry()

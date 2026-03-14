@@ -1,8 +1,12 @@
-use std::{error, fmt, io};
+use std::{
+    error, fmt, io,
+    sync::atomic::{AtomicBool, Ordering},
+};
 
 use gtk4::prelude::ApplicationExt;
 use ori::{Effect, Message, Proxied, Tracker};
 use ori_native_core::Context;
+use tracing_subscriber::layer::SubscriberExt;
 
 use crate::Platform;
 
@@ -47,7 +51,7 @@ impl Application {
     where
         V: Effect<Context<Platform>, T>,
     {
-        Self::init_log();
+        Self::set_writer_func();
         gtk4::init().map_err(|_| Error::GtkInit)?;
 
         let (sender, mut receiver) = tokio::sync::mpsc::unbounded_channel();
@@ -93,6 +97,28 @@ impl Application {
     }
 
     pub fn init_log() {
+        let mut filter = tracing_subscriber::EnvFilter::default();
+
+        if cfg!(debug_assertions) {
+            filter = filter.add_directive(tracing::Level::DEBUG.into());
+        } else {
+            filter = filter.add_directive(tracing::Level::WARN.into());
+        }
+
+        let subscriber = tracing_subscriber::registry()
+            .with(filter)
+            .with(tracing_subscriber::fmt::layer());
+
+        let _ = tracing::subscriber::set_global_default(subscriber);
+    }
+
+    fn set_writer_func() {
+        static WRITER_SET: AtomicBool = AtomicBool::new(false);
+
+        if WRITER_SET.swap(true, Ordering::SeqCst) {
+            return;
+        }
+
         glib::log_set_writer_func(|level, fields| {
             let mut message = None;
 

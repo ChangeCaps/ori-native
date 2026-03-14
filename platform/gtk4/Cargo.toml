@@ -43,3 +43,7 @@ optional = true
 version  = "0.3"
 features = ["v1_1"]
 optional = true
+
+[dependencies.tracing-subscriber]
+workspace = true
+features = ["fmt", "env-filter"]
