@@ -160,7 +160,6 @@ impl NativeWindow<Platform> for Window {
         height: f32,
     ) {
         if let Some(child) = self.imp().fixed.first_child() {
-            dbg!((x, y));
             self.imp().fixed.move_(&child, x as f64, y as f64);
 
             child.set_size_request(
@@ -285,6 +284,10 @@ mod imp {
             self.parent_size_allocate(width, height, baseline);
             let on_size_allocate = self.on_size_allocate.borrow();
             on_size_allocate();
+        }
+
+        fn measure(&self, _orientation: gtk4::Orientation, _for_size: i32) -> (i32, i32, i32, i32) {
+            (0, 0, -1, -1)
         }
     }
 
