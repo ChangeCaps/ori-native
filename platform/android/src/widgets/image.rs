@@ -46,7 +46,7 @@ impl NativeImage<Platform> for Image {
         let _ = platform.jni(|env, activity| {
             let bytes = env.byte_array_from_slice(&data)?;
 
-            if data[..32].windows(4).any(|w| w == "<svg".as_bytes()) {
+            if data[..64].windows(4).any(|w| w == b"<svg") {
                 env.call_method(
                     activity,
                     jni_str!("imageLoadSvg"),
