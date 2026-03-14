@@ -1,7 +1,7 @@
 use ori::{Action, Message, Mut, View, ViewMarker};
 
 use crate::{
-    Bordered, Color, Container, Context, Direction, FlexContainer, Layoutable, Lifecycle, Overflow,
+    Border, Color, Container, Context, Direction, FlexContainer, Layout, Lifecycle, Overflow,
     Platform, Pod, Shadow, element::WidgetViewSeq, native::WrappedGroup,
 };
 
@@ -149,7 +149,7 @@ impl<V> Flex<V> {
     }
 }
 
-impl<V> Layoutable for Flex<V> {
+impl<V> Layout for Flex<V> {
     fn style_mut(&mut self) -> &mut taffy::Style {
         &mut self.layout
     }
@@ -157,7 +157,7 @@ impl<V> Layoutable for Flex<V> {
 
 impl<V> Container for Flex<V> {}
 impl<V> FlexContainer for Flex<V> {}
-impl<V> Bordered for Flex<V> {}
+impl<V> Border for Flex<V> {}
 
 impl<V> ViewMarker for Flex<V> {}
 impl<P, T, V> View<Context<P>, T> for Flex<V>

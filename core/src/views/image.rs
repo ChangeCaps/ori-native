@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use ori::{Action, Message, Mut, View, ViewMarker};
 
-use crate::{Color, Context, Layoutable, Platform, Pod, native::NativeImage};
+use crate::{Color, Context, Layout, Platform, Pod, native::NativeImage};
 
 /// [`View`] of an image.
 pub fn image(data: impl Into<Cow<'static, [u8]>>) -> Image {
@@ -35,7 +35,7 @@ impl Image {
     }
 }
 
-impl Layoutable for Image {
+impl Layout for Image {
     fn style_mut(&mut self) -> &mut taffy::Style {
         &mut self.style
     }

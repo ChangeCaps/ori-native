@@ -7,8 +7,8 @@ mod window;
 
 pub use color::Color;
 pub use layout::{
-    Align, AutoLength, Bordered, Container, Direction, FlexContainer, Fract, Justify, Layoutable,
-    Length, Position,
+    Align, AutoLength, Border, Container, Direction, FlexContainer, Fract, Justify, Layout, Length,
+    Position,
 };
 pub use overflow::Overflow;
 pub use shadow::Shadow;

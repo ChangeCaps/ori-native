@@ -1,7 +1,7 @@
 use ori::{Action, Message, Mut, View, ViewMarker};
 
 use crate::{
-    Container, Context, Direction, Layoutable, Lifecycle, NativeWidget, Platform, Pod, WidgetView,
+    Container, Context, Direction, Layout, Lifecycle, NativeWidget, Platform, Pod, WidgetView,
     native::NativeScroll,
 };
 
@@ -53,7 +53,7 @@ impl<V> Scroll<V> {
     }
 }
 
-impl<V> Layoutable for Scroll<V> {
+impl<V> Layout for Scroll<V> {
     fn style_mut(&mut self) -> &mut taffy::Style {
         &mut self.style
     }

@@ -114,7 +114,7 @@ pub enum Position {
 }
 
 /// A trait for views that can style its layout.
-pub trait Layoutable: Sized {
+pub trait Layout: Sized {
     /// Get a mutable reference to the layout style.
     fn style_mut(&mut self) -> &mut taffy::Style;
 
@@ -279,7 +279,7 @@ pub trait Layoutable: Sized {
 }
 
 /// A trait for views with borders.
-pub trait Bordered: Layoutable {
+pub trait Border: Layout {
     /// Set the border width on all sides.
     fn border(self, width: impl Into<Length>) -> Self {
         let width = width.into();
@@ -326,7 +326,7 @@ pub trait Bordered: Layoutable {
 }
 
 /// A trait for container views.
-pub trait Container: Layoutable {
+pub trait Container: Layout {
     /// Set the padding on all sides.
     fn padding(self, width: impl Into<Length>) -> Self {
         let width = width.into();
