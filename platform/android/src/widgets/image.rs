@@ -46,13 +46,23 @@ impl NativeImage<Platform> for Image {
         let _ = platform.jni(|env, activity| {
             let bytes = env.byte_array_from_slice(&data)?;
 
-            env.call_method(
-                activity,
-                jni_str!("imageLoad"),
-                jni_sig!((long, byte[])),
-                &[self.id.into(), (&bytes).into()],
-            )?
-            .v()
+            if data[..32].windows(4).any(|w| w == "<svg".as_bytes()) {
+                env.call_method(
+                    activity,
+                    jni_str!("imageLoadSvg"),
+                    jni_sig!((long, byte[])),
+                    &[self.id.into(), (&bytes).into()],
+                )?
+                .v()
+            } else {
+                env.call_method(
+                    activity,
+                    jni_str!("imageLoadBitmap"),
+                    jni_sig!((long, byte[])),
+                    &[self.id.into(), (&bytes).into()],
+                )?
+                .v()
+            }
         });
 
         Ok(ImageLayout { id: self.id })

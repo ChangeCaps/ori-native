@@ -93,7 +93,7 @@ glib::wrapper! {
 
 impl Paintable {
     fn new(data: &[u8]) -> io::Result<Self> {
-        if data.starts_with(&[0x3c, 0x3f, 0x78, 0x6d, 0x6c]) {
+        if data[..32].windows(4).any(|w| w == "<svg".as_bytes()) {
             Self::new_svg(data)
         } else {
             Self::new_texture(data)
