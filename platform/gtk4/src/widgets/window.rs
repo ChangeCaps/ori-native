@@ -280,8 +280,8 @@ mod imp {
     impl ObjectImpl for ApplicationWindow {}
 
     impl WidgetImpl for ApplicationWindow {
-        fn size_allocate(&self, width: i32, height: i32, baseline: i32) {
-            self.parent_size_allocate(width, height, baseline);
+        fn size_allocate(&self, _width: i32, _height: i32, baseline: i32) {
+            self.parent_size_allocate(i32::MAX, i32::MAX, baseline);
             let on_size_allocate = self.on_size_allocate.borrow();
             on_size_allocate();
         }
