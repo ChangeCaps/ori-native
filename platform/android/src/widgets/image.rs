@@ -75,9 +75,12 @@ impl NativeImage<Platform> for Image {
             env.call_method(
                 activity,
                 jni_str!("imageSetTint"),
-                jni_sig!((long, float, float, float, float)),
+                jni_sig!((
+                    long, boolean, float, float, float, float
+                )),
                 &[
                     self.id.into(),
+                    tint.is_some().into(),
                     color.r.into(),
                     color.g.into(),
                     color.b.into(),
