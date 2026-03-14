@@ -340,7 +340,7 @@ where
 
         if changed {
             let layout = element.widget.get_layout(&mut cx.platform);
-            let _ = cx.set_layout_leaf(*element.node, layout);
+            let _ = cx.set_layout_measure(*element.node, layout);
         }
 
         state.on_change = self.on_change;

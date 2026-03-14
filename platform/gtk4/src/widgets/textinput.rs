@@ -3,7 +3,7 @@ use std::{cell::Cell, rc::Rc};
 use glib::object::ObjectExt;
 use gtk4::prelude::{TextBufferExt, TextViewExt, WidgetExt};
 use ori_native_core::{
-    Font, LayoutLeaf, NativeWidget, Stretch, native::NativeTextInput, views::Newline,
+    Font, Measure, NativeWidget, Stretch, native::NativeTextInput, views::Newline,
 };
 
 use crate::{Platform, platform::StyleNode};
@@ -184,7 +184,7 @@ impl NativeTextInput<Platform> for TextInput {
         );
     }
 
-    fn get_layout(&mut self, _platform: &mut Platform) -> impl LayoutLeaf<Platform> {
+    fn get_layout(&mut self, _platform: &mut Platform) -> impl Measure<Platform> {
         Layout {
             view:             self.view.clone(),
             font:             self.font.clone(),
@@ -199,7 +199,7 @@ struct Layout {
     placeholder_font: Font,
 }
 
-impl LayoutLeaf<Platform> for Layout {
+impl Measure<Platform> for Layout {
     fn measure(
         &mut self,
         _platform: &mut Platform,

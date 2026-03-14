@@ -1,6 +1,6 @@
 use gtk4::prelude::{TextBufferExt, TextBufferExtManual, TextTagExt, TextViewExt, WidgetExt};
 use ori_native_core::{
-    Font, LayoutLeaf, NativeWidget, Stretch, TextSpan, Weight, Wrap, native::NativeText,
+    Font, Measure, NativeWidget, Stretch, TextSpan, Weight, Wrap, native::NativeText,
 };
 
 use crate::Platform;
@@ -80,7 +80,7 @@ struct CachedSize {
     available_space: taffy::Size<taffy::AvailableSpace>,
 }
 
-impl LayoutLeaf<Platform> for TextLayout {
+impl Measure<Platform> for TextLayout {
     fn measure(
         &mut self,
         _platform: &mut Platform,

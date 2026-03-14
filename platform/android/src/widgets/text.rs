@@ -1,5 +1,5 @@
 use jni::{jni_sig, jni_str, objects::JString};
-use ori_native_core::{LayoutLeaf, NativeWidget, TextSpan, Wrap, native::NativeText};
+use ori_native_core::{Measure, NativeWidget, TextSpan, Wrap, native::NativeText};
 
 use crate::{Platform, platform::WidgetId};
 
@@ -130,7 +130,7 @@ pub struct TextLayout {
     id: WidgetId,
 }
 
-impl LayoutLeaf<Platform> for TextLayout {
+impl Measure<Platform> for TextLayout {
     fn measure(
         &mut self,
         platform: &mut Platform,

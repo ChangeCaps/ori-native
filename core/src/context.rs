@@ -8,7 +8,7 @@ use ori::{Action, AnyView, Base, Message, Provider, Proxied, Proxy, Tracker, Tre
 use crate::{AnimateRequest, BoxedWidget, LayoutRequest, Platform};
 
 /// A leaf in the layout tree.
-pub trait LayoutLeaf<P>: 'static {
+pub trait Measure<P>: 'static {
     /// Compute the size for the given constraints.
     fn measure(
         &mut self,
@@ -18,7 +18,7 @@ pub trait LayoutLeaf<P>: 'static {
     ) -> taffy::Size<f32>;
 }
 
-impl<P> LayoutLeaf<P> for Infallible {
+impl<P> Measure<P> for Infallible {
     fn measure(
         &mut self,
         _platform: &mut P,
@@ -33,7 +33,7 @@ impl<P> LayoutLeaf<P> for Infallible {
 pub struct Context<P> {
     /// The [`Platform`] of this context.
     pub platform:         P,
-    layout_tree:          taffy::TaffyTree<Box<dyn LayoutLeaf<P>>>,
+    layout_tree:          taffy::TaffyTree<Box<dyn Measure<P>>>,
     layout_controller:    Option<ViewId>,
     animation_controller: Option<ViewId>,
     resources:            Vec<Resource>,
@@ -78,7 +78,7 @@ where
     /// Create a new layout leaf.
     pub fn new_layout_leaf<T>(&mut self, style: taffy::Style, leaf: T) -> taffy::NodeId
     where
-        T: LayoutLeaf<P> + 'static,
+        T: Measure<P> + 'static,
     {
         self.request_relayout();
         self.layout_tree
@@ -143,10 +143,10 @@ where
         self.layout_tree.set_style(node, style)
     }
 
-    /// Set the leaf of a layout.
-    pub fn set_layout_leaf<T>(&mut self, node: taffy::NodeId, leaf: T) -> taffy::TaffyResult<()>
+    /// Set the measure of a layout.
+    pub fn set_layout_measure<T>(&mut self, node: taffy::NodeId, leaf: T) -> taffy::TaffyResult<()>
     where
-        T: LayoutLeaf<P> + 'static,
+        T: Measure<P> + 'static,
     {
         self.request_relayout();
         self.layout_tree

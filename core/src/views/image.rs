@@ -89,7 +89,7 @@ where
 
             match element.widget.load_data(&mut cx.platform, self.data) {
                 Ok(layout) => {
-                    let _ = cx.set_layout_leaf(*element.node, layout);
+                    let _ = cx.set_layout_measure(*element.node, layout);
                 }
 
                 Err(error) => tracing::error!(?error, "loading image failed"),

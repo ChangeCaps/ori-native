@@ -3,7 +3,7 @@ use std::{borrow::Cow, io};
 use gdk4::{gdk_pixbuf::prelude::PixbufLoaderExt, prelude::PaintableExt};
 use glib::subclass::types::ObjectSubclassIsExt;
 use librsvg::prelude::HandleExt;
-use ori_native_core::{Color, LayoutLeaf, NativeWidget, native::NativeImage};
+use ori_native_core::{Color, Measure, NativeWidget, native::NativeImage};
 
 use crate::Platform;
 
@@ -38,7 +38,7 @@ impl NativeImage<Platform> for Image {
         &mut self,
         _platform: &mut Platform,
         data: Cow<'static, [u8]>,
-    ) -> Result<impl LayoutLeaf<Platform>, Self::Error> {
+    ) -> Result<impl Measure<Platform>, Self::Error> {
         let paintable = Paintable::new(&data)?;
         paintable.set_tint(self.tint);
 
@@ -61,7 +61,7 @@ struct Layout {
     paintable: Paintable,
 }
 
-impl LayoutLeaf<Platform> for Layout {
+impl Measure<Platform> for Layout {
     fn measure(
         &mut self,
         _platform: &mut Platform,

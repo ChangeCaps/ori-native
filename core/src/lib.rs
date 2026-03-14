@@ -13,7 +13,7 @@ mod text;
 pub mod native;
 pub mod views;
 
-pub use context::{BoxedEffect, Context, LayoutLeaf};
+pub use context::{BoxedEffect, Context, Measure};
 pub use element::{BoxedWidget, NativeParent, NativeWidget, Pod, PodMut, WidgetView};
 pub use input::{Input, InputFilter, InputHandler, InputMessage, MatchKey};
 pub use lifecycle::{AnimateRequest, LayoutRequest, Lifecycle};

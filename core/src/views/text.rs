@@ -150,7 +150,7 @@ where
             self.wrap,
         );
 
-        let _ = cx.set_layout_leaf(*element.node, layout);
+        let _ = cx.set_layout_measure(*element.node, layout);
     }
 
     fn message(

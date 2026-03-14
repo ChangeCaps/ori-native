@@ -1,7 +1,7 @@
 use std::{borrow::Cow, convert::Infallible};
 
 use jni::{jni_sig, jni_str};
-use ori_native_core::{Color, LayoutLeaf, NativeWidget, native::NativeImage};
+use ori_native_core::{Color, Measure, NativeWidget, native::NativeImage};
 
 use crate::{Platform, platform::WidgetId};
 
@@ -42,7 +42,7 @@ impl NativeImage<Platform> for Image {
         &mut self,
         platform: &mut Platform,
         data: Cow<'static, [u8]>,
-    ) -> Result<impl LayoutLeaf<Platform>, Self::Error> {
+    ) -> Result<impl Measure<Platform>, Self::Error> {
         let _ = platform.jni(|env, activity| {
             let bytes = env.byte_array_from_slice(&data)?;
 
@@ -96,7 +96,7 @@ pub struct ImageLayout {
     id: WidgetId,
 }
 
-impl LayoutLeaf<Platform> for ImageLayout {
+impl Measure<Platform> for ImageLayout {
     fn measure(
         &mut self,
         platform: &mut Platform,

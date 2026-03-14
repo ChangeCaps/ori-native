@@ -2,7 +2,7 @@ use jni::{
     EnvUnowned, jni_sig, jni_str,
     objects::{JObject, JString},
 };
-use ori_native_core::{Font, LayoutLeaf, NativeWidget, native::NativeTextInput, views::Newline};
+use ori_native_core::{Font, Measure, NativeWidget, native::NativeTextInput, views::Newline};
 
 use crate::{
     Platform,
@@ -187,7 +187,7 @@ impl NativeTextInput<Platform> for TextInput {
         });
     }
 
-    fn get_layout(&mut self, _platform: &mut Platform) -> impl LayoutLeaf<Platform> {
+    fn get_layout(&mut self, _platform: &mut Platform) -> impl Measure<Platform> {
         TextInputLayout { id: self.id }
     }
 }
@@ -196,7 +196,7 @@ pub struct TextInputLayout {
     id: WidgetId,
 }
 
-impl LayoutLeaf<Platform> for TextInputLayout {
+impl Measure<Platform> for TextInputLayout {
     fn measure(
         &mut self,
         platform: &mut Platform,
