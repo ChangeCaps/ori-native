@@ -124,13 +124,20 @@ impl NativeWindow<Platform> for Window {
         });
     }
 
-    fn set_content_size(&mut self, platform: &mut Platform, width: f32, height: f32) {
+    fn set_content_layout(
+        &mut self,
+        platform: &mut Platform,
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+    ) {
         let _ = platform.jni(|env, activity| {
             env.call_method(
                 activity,
-                jni_str!("windowSetContentSize"),
-                jni_sig!((float, float)),
-                &[width.into(), height.into()],
+                jni_str!("windowSetContentLayout"),
+                jni_sig!((float, float, float, float)),
+                &[x.into(), y.into(), width.into(), height.into()],
             )?
             .v()
         });

@@ -1,7 +1,7 @@
 use std::{rc::Rc, time::Duration};
 
 use glib::{object::Cast, subclass::types::ObjectSubclassIsExt};
-use gtk4::prelude::{GtkWindowExt, WidgetExt};
+use gtk4::prelude::{FixedExt, GtkWindowExt, WidgetExt};
 use ori_native_core::{Key, Modifiers, NativeParent, native::NativeWindow};
 
 use crate::{Platform, key};
@@ -10,14 +10,18 @@ impl NativeParent<Platform> for Window {
     fn replace_child(&mut self, _platform: &mut Platform, index: usize, child: &gtk4::Widget) {
         debug_assert_eq!(index, 0);
 
-        self.set_child(Some(child));
+        if let Some(child) = self.imp().fixed.first_child() {
+            self.imp().fixed.remove(&child);
+        }
+
+        self.imp().fixed.put(child, 0.0, 0.0);
     }
 }
 
 impl NativeWindow<Platform> for Window {
     fn build(platform: &mut Platform, contents: &gtk4::Widget) -> Self {
         let window = Self::new(&platform.application);
-        window.set_child(Some(contents));
+        window.imp().fixed.put(contents, 0.0, 0.0);
         window.show();
 
         window
@@ -147,8 +151,18 @@ impl NativeWindow<Platform> for Window {
         gtk4::ApplicationWindow::set_title(self.as_ref(), Some(&title));
     }
 
-    fn set_content_size(&mut self, _platform: &mut Platform, width: f32, height: f32) {
-        if let Some(child) = self.first_child() {
+    fn set_content_layout(
+        &mut self,
+        _platform: &mut Platform,
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+    ) {
+        if let Some(child) = self.imp().fixed.first_child() {
+            dbg!((x, y));
+            self.imp().fixed.move_(&child, x as f64, y as f64);
+
             child.set_size_request(
                 width.round() as i32,
                 height.round() as i32,
@@ -216,6 +230,7 @@ impl Window {
     pub fn new(application: &gtk4::Application) -> Self {
         let window: Window = gtk4::glib::Object::builder().build();
         window.set_application(Some(application));
+        window.set_child(Some(&window.imp().fixed));
         window
     }
 
@@ -241,6 +256,7 @@ mod imp {
     };
 
     pub struct ApplicationWindow {
+        pub fixed:            gtk4::Fixed,
         pub on_size_allocate: RefCell<Box<dyn Fn()>>,
         pub previous_frame:   Rc<Cell<Option<i64>>>,
     }
@@ -248,6 +264,7 @@ mod imp {
     impl Default for ApplicationWindow {
         fn default() -> Self {
             Self {
+                fixed:            gtk4::Fixed::new(),
                 on_size_allocate: RefCell::new(Box::new(|| {})),
                 previous_frame:   Rc::new(Cell::new(None)),
             }

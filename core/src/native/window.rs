@@ -27,7 +27,7 @@ where
     fn start_animating(&mut self, platform: &mut P);
     fn stop_animating(&mut self, platform: &mut P);
 
-    fn set_content_size(&mut self, platform: &mut P, width: f32, height: f32);
+    fn set_content_layout(&mut self, platform: &mut P, x: f32, y: f32, width: f32, height: f32);
 
     fn set_title(&mut self, platform: &mut P, title: String);
     fn set_min_size(&mut self, platform: &mut P, width: u32, height: u32);
@@ -91,7 +91,14 @@ where
         unreachable!()
     }
 
-    fn set_content_size(&mut self, _platform: &mut P, _width: f32, _height: f32) {
+    fn set_content_layout(
+        &mut self,
+        _platform: &mut P,
+        _x: f32,
+        _y: f32,
+        _width: f32,
+        _height: f32,
+    ) {
         unreachable!()
     }
 

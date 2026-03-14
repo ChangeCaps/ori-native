@@ -154,8 +154,9 @@ where
     /// The id of the view.
     pub view_id: ViewId,
 
-    node:   taffy::NodeId,
-    layout: taffy::Layout,
+    node:           taffy::NodeId,
+    layout:         taffy::Layout,
+    content_layout: taffy::Layout,
 
     title:   String,
     sizing:  Sizing,
@@ -254,6 +255,7 @@ where
             view_id,
             node,
             layout: Default::default(),
+            content_layout: Default::default(),
             title: attributes.title,
             sizing: attributes.sizing,
             handler,
@@ -403,11 +405,19 @@ where
                     layout.size.height.round() as u32,
                 );
             }
+        }
 
-            self.window.set_content_size(
+        if let Ok(layout) = cx.get_computed_layout(self.contents.node).copied()
+            && self.content_layout != layout
+        {
+            self.content_layout = layout;
+
+            self.window.set_content_layout(
                 &mut cx.platform,
-                layout.content_size.width,
-                layout.content_size.height,
+                layout.location.x,
+                layout.location.y,
+                layout.size.width,
+                layout.size.height,
             );
         }
 
