@@ -5,7 +5,7 @@ use ori_native_core::{Key, Modifiers, NativeParent, native::NativeWindow};
 
 use crate::{
     Platform,
-    application::{ACTIVITY, Event},
+    application::{Event, GLOBAL_STATE},
     platform::WidgetId,
 };
 
@@ -155,7 +155,7 @@ extern "system" fn Java_ori_OriActivity_onAnimationFrame<'local>(
     _this: JObject<'local>,
     duration_nanos: i64,
 ) {
-    if let Some(activity) = ACTIVITY.get() {
+    if let Some(activity) = GLOBAL_STATE.get() {
         let duration = Duration::from_nanos(duration_nanos as u64);
         let _ = activity.sender.send(Event::Frame(duration));
     }

@@ -6,7 +6,7 @@ use ori_native_core::{
 
 use crate::{
     Platform,
-    application::{ACTIVITY, WidgetEvent},
+    application::{GlobalState, WidgetEvent},
     platform::WidgetId,
 };
 
@@ -101,19 +101,17 @@ extern "system" fn Java_ori_OriPressable_onPress<'local>(
     id: i64,
     state: i32,
 ) -> bool {
-    if let Some(activity) = ACTIVITY.get() {
-        let state = match state {
-            0 => Press::Pressed,
-            1 => Press::Released,
-            2 => Press::Cancelled,
-            _ => return false,
-        };
+    let state = match state {
+        0 => Press::Pressed,
+        1 => Press::Released,
+        2 => Press::Cancelled,
+        _ => return false,
+    };
 
-        activity.event(
-            WidgetId::new(id as u64),
-            WidgetEvent::Press(state),
-        );
-    }
+    GlobalState::event(
+        WidgetId::new(id as u64),
+        WidgetEvent::Press(state),
+    );
 
     true
 }

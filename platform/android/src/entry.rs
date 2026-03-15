@@ -7,7 +7,7 @@ use std::{
 
 use jni::{EnvUnowned, Outcome, objects::JObject};
 
-use crate::application::{ACTIVITY, Activity};
+use crate::application::{Event, GLOBAL_STATE, GlobalState};
 
 /// # Safety
 /// - `jni_env` must be a valid pointer to a valid JNI environment.
@@ -16,6 +16,21 @@ pub unsafe fn entry<E>(jni_env: *mut ffi::c_void, activity: *mut ffi::c_void, ma
 where
     E: Termination + 'static,
 {
+    if let Some(state) = GLOBAL_STATE.get() {
+        let activity = state
+            .jvm
+            .attach_current_thread(|env| {
+                let activity = unsafe { JObject::from_raw(env, activity.cast()) };
+                env.new_global_ref(activity)
+            })
+            .expect("creating global ref should work");
+
+        *state.activity.lock().expect("mutex not poisoned") = Arc::new(activity);
+        let _ = state.sender.send(Event::Recreate);
+
+        return;
+    }
+
     std::panic::set_hook(Box::new(|info| {
         if let Ok(message) = ffi::CString::new(info.to_string()) {
             unsafe {
@@ -44,16 +59,22 @@ where
 
     let (sender, receiver) = mpsc::channel();
 
-    let activity = Activity {
+    let state = GlobalState {
         sender,
         jvm,
         receiver: Mutex::new(receiver),
-        activity: Arc::new(activity),
+        activity: Mutex::new(Arc::new(activity)),
     };
 
-    let _ = ACTIVITY.set(activity);
+    let _ = GLOBAL_STATE.set(state);
 
     thread::spawn(move || {
-        main();
+        let exit_code = main().report();
+
+        if exit_code == std::process::ExitCode::SUCCESS {
+            std::process::exit(0);
+        } else {
+            std::process::exit(1);
+        }
     });
 }

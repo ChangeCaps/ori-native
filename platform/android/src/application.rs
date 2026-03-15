@@ -54,14 +54,14 @@ impl Application {
     where
         V: Effect<Context<Platform>, T>,
     {
-        let activity = ACTIVITY.get().ok_or(Error::Uninitialized)?;
+        let state = GLOBAL_STATE.get().ok_or(Error::Uninitialized)?;
 
-        let mut receiver = activity
+        let mut receiver = state
             .receiver
             .try_lock()
             .map_err(|_| Error::MultipleApplications)?;
 
-        let platform = Platform::new(activity).map_err(Error::Io)?;
+        let platform = Platform::new(state).map_err(Error::Io)?;
         let mut context = Context::new(platform);
 
         let view = build(data);
@@ -72,7 +72,7 @@ impl Application {
         let mut state = State {
             data,
             build,
-            state,
+            state: Some(state),
             context,
             running: true,
             receiver: &mut receiver,
@@ -115,23 +115,26 @@ impl Application {
     }
 }
 
-pub static ACTIVITY: OnceLock<Activity> = OnceLock::new();
+pub static GLOBAL_STATE: OnceLock<GlobalState> = OnceLock::new();
 
-pub struct Activity {
+pub struct GlobalState {
     pub sender:   Sender<Event>,
     pub receiver: Mutex<Receiver<Event>>,
     pub jvm:      JavaVM,
-    pub activity: Arc<Global<JObject<'static>>>,
+    pub activity: Mutex<Arc<Global<JObject<'static>>>>,
 }
 
-impl Activity {
-    pub fn event(&self, widget: WidgetId, event: WidgetEvent) {
-        let _ = self.sender.send(Event::Widget(widget, event));
+impl GlobalState {
+    pub fn event(widget: WidgetId, event: WidgetEvent) {
+        if let Some(this) = GLOBAL_STATE.get() {
+            let _ = this.sender.send(Event::Widget(widget, event));
+        }
     }
 }
 
 #[derive(Debug)]
 pub enum Event {
+    Recreate,
     Rebuild,
     Message(Message),
     Frame(Duration),
@@ -151,7 +154,7 @@ where
 {
     data:     &'a mut T,
     build:    B,
-    state:    V::State,
+    state:    Option<V::State>,
     context:  Context<Platform>,
     running:  bool,
     receiver: &'a mut Receiver<Event>,
@@ -164,29 +167,44 @@ where
 {
     fn handle_event(&mut self, event: Event) {
         match event {
-            Event::Rebuild => {
-                let view = (self.build)(self.data);
+            Event::Recreate => {
+                if let Some(state) = self.state.take() {
+                    self.context.tree().reset();
+                    V::teardown((), state, &mut self.context);
+                    let view = (self.build)(self.data);
 
-                self.context.tree().reset();
-                view.rebuild(
-                    (),
-                    &mut self.state,
-                    &mut self.context,
-                    self.data,
-                );
+                    if let Some(state) = GLOBAL_STATE.get() {
+                        self.context.platform.recreate(state);
+                    }
+
+                    self.context.tree().reset();
+                    let ((), state) = view.build(&mut self.context, self.data);
+                    self.state = Some(state);
+                }
+            }
+
+            Event::Rebuild => {
+                if let Some(ref mut state) = self.state {
+                    let view = (self.build)(self.data);
+
+                    self.context.tree().reset();
+                    view.rebuild((), state, &mut self.context, self.data);
+                }
             }
 
             Event::Message(mut message) => {
-                self.context.tree().reset();
-                let action = V::message(
-                    (),
-                    &mut self.state,
-                    &mut self.context,
-                    self.data,
-                    &mut message,
-                );
+                if let Some(ref mut state) = self.state {
+                    self.context.tree().reset();
+                    let action = V::message(
+                        (),
+                        state,
+                        &mut self.context,
+                        self.data,
+                        &mut message,
+                    );
 
-                self.context.send_action(action);
+                    self.context.send_action(action);
+                }
             }
 
             Event::Frame(duration) => self.context.platform.on_animation_frame(duration),
@@ -196,6 +214,8 @@ where
     }
 
     fn teardown(mut self) {
-        V::teardown((), self.state, &mut self.context);
+        if let Some(state) = self.state {
+            V::teardown((), state, &mut self.context);
+        }
     }
 }

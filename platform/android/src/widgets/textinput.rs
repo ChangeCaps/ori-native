@@ -6,7 +6,7 @@ use ori_native_core::{Font, Measure, NativeWidget, native::NativeTextInput, view
 
 use crate::{
     Platform,
-    application::{ACTIVITY, WidgetEvent},
+    application::{GlobalState, WidgetEvent},
     platform::WidgetId,
 };
 
@@ -226,13 +226,11 @@ extern "system" fn Java_ori_OriEditText_onChange<'local>(
     id: i64,
     text: JString<'local>,
 ) {
-    if let Some(activity) = ACTIVITY.get() {
-        let text = text.to_string();
-        activity.event(
-            WidgetId::new(id as u64),
-            WidgetEvent::Change(text),
-        );
-    }
+    let text = text.to_string();
+    GlobalState::event(
+        WidgetId::new(id as u64),
+        WidgetEvent::Change(text),
+    );
 }
 
 #[unsafe(no_mangle)]
@@ -242,11 +240,9 @@ extern "system" fn Java_ori_OriEditText_onSubmit<'local>(
     id: i64,
     text: JString<'local>,
 ) {
-    if let Some(activity) = ACTIVITY.get() {
-        let text = text.to_string();
-        activity.event(
-            WidgetId::new(id as u64),
-            WidgetEvent::Submit(text),
-        );
-    }
+    let text = text.to_string();
+    GlobalState::event(
+        WidgetId::new(id as u64),
+        WidgetEvent::Submit(text),
+    );
 }

@@ -10,7 +10,7 @@ use jni::{Env, JValue, jni_sig, jni_str, objects::JObject, refs::Global, vm::Jav
 use ori::{Message, Proxied, Proxy};
 
 use crate::{
-    application::{Activity, Event, WidgetEvent},
+    application::{Event, GlobalState, WidgetEvent},
     widgets,
 };
 
@@ -29,13 +29,14 @@ pub struct Platform {
 }
 
 impl Platform {
-    pub fn new(activity: &Activity) -> io::Result<Self> {
+    pub fn new(state: &GlobalState) -> io::Result<Self> {
         let runtime = Arc::new(tokio::runtime::Runtime::new()?);
+        let activity = state.activity.lock().expect("mutex not poisoned");
 
         Ok(Self {
-            sender: activity.sender.clone(),
-            jvm: activity.jvm.clone(),
-            activity: activity.activity.clone(),
+            sender: state.sender.clone(),
+            jvm: state.jvm.clone(),
+            activity: activity.clone(),
             handlers: HashMap::new(),
             runtime,
 
@@ -43,6 +44,13 @@ impl Platform {
 
             next_id: 0,
         })
+    }
+
+    pub fn recreate(&mut self, state: &GlobalState) {
+        debug_assert!(self.handlers.is_empty());
+
+        let activity = state.activity.lock().expect("mutex not poisoned");
+        self.activity = activity.clone();
     }
 
     pub fn on_animation_frame(&self, duration: Duration) {
