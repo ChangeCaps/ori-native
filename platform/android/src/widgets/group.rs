@@ -209,5 +209,27 @@ impl NativeGroup<Platform> for Group {
         });
     }
 
-    fn set_shadow(&mut self, _platform: &mut Platform, _shadow: Shadow) {}
+    fn set_shadow(&mut self, platform: &mut Platform, shadow: Shadow) {
+        let _ = platform.jni(|env, activity| {
+            env.call_method(
+                activity,
+                jni_str!("groupSetShadow"),
+                jni_sig!((
+                    long, float, float, float, float, float, float, float, float
+                )),
+                &[
+                    self.id.into(),
+                    shadow.color.r.into(),
+                    shadow.color.g.into(),
+                    shadow.color.b.into(),
+                    shadow.color.a.into(),
+                    shadow.offset_x.into(),
+                    shadow.offset_y.into(),
+                    shadow.radius.into(),
+                    shadow.spread.into(),
+                ],
+            )?
+            .v()
+        });
+    }
 }
