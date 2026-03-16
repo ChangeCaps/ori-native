@@ -219,7 +219,7 @@ where
             self.contents.build(cx, data)
         });
 
-        window.set_child(Some(contents.widget.widget()));
+        window.set_child(contents.widget.widget(), 0.0, 0.0);
         window.show();
 
         let state = WindowState::new(

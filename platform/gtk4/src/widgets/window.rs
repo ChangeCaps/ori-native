@@ -1,6 +1,9 @@
 use std::{rc::Rc, time::Duration};
 
-use glib::{object::Cast, subclass::types::ObjectSubclassIsExt};
+use glib::{
+    object::{Cast, IsA},
+    subclass::types::ObjectSubclassIsExt,
+};
 use gtk4::prelude::{FixedExt, GtkWindowExt, WidgetExt};
 use ori_native_core::{Key, Modifiers, NativeParent, native::NativeWindow};
 
@@ -10,18 +13,14 @@ impl NativeParent<Platform> for Window {
     fn replace_child(&mut self, _platform: &mut Platform, index: usize, child: &gtk4::Widget) {
         debug_assert_eq!(index, 0);
 
-        if let Some(child) = self.imp().fixed.first_child() {
-            self.imp().fixed.remove(&child);
-        }
-
-        self.imp().fixed.put(child, 0.0, 0.0);
+        self.set_child(child, 0.0, 0.0);
     }
 }
 
 impl NativeWindow<Platform> for Window {
     fn build(platform: &mut Platform, contents: &gtk4::Widget) -> Self {
         let window = Self::new(&platform.application);
-        window.imp().fixed.put(contents, 0.0, 0.0);
+        window.set_child(contents, 0.0, 0.0);
         window.show();
 
         window
@@ -229,7 +228,11 @@ impl Window {
     pub fn new(application: &gtk4::Application) -> Self {
         let window: Window = gtk4::glib::Object::builder().build();
         window.set_application(Some(application));
-        window.set_child(Some(&window.imp().fixed));
+        gtk4::Window::set_child(
+            window.as_ref(),
+            Some(&window.imp().fixed),
+        );
+
         window
     }
 
@@ -238,6 +241,14 @@ impl Window {
             .imp()
             .on_size_allocate
             .replace(Box::new(on_size_allocate));
+    }
+
+    pub fn set_child(&self, child: &impl IsA<gtk4::Widget>, x: f32, y: f32) {
+        if let Some(child) = self.imp().fixed.first_child() {
+            self.imp().fixed.remove(&child);
+        }
+
+        self.imp().fixed.put(child, x as f64, y as f64);
     }
 }
 
@@ -280,13 +291,14 @@ mod imp {
     impl ObjectImpl for ApplicationWindow {}
 
     impl WidgetImpl for ApplicationWindow {
-        fn size_allocate(&self, _width: i32, _height: i32, baseline: i32) {
-            self.parent_size_allocate(i32::MAX, i32::MAX, baseline);
+        fn size_allocate(&self, width: i32, height: i32, baseline: i32) {
+            self.parent_size_allocate(width, height, baseline);
             let on_size_allocate = self.on_size_allocate.borrow();
             on_size_allocate();
         }
 
-        fn measure(&self, _orientation: gtk4::Orientation, _for_size: i32) -> (i32, i32, i32, i32) {
+        fn measure(&self, orientation: gtk4::Orientation, for_size: i32) -> (i32, i32, i32, i32) {
+            self.parent_measure(orientation, for_size);
             (0, 0, -1, -1)
         }
     }

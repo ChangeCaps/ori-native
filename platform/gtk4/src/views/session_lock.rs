@@ -1,4 +1,4 @@
-use gtk4::prelude::{GtkWindowExt, WidgetExt};
+use gtk4::prelude::WidgetExt;
 use gtk4_session_lock::Instance;
 use ori::{Action, Message, Mut, View, ViewId, ViewMarker};
 use ori_native_core::{
@@ -52,7 +52,7 @@ where
         (self.instance).assign_window_to_monitor(&window, &self.monitor);
         window.set_size_request(1, 1);
 
-        window.set_child(Some(contents.widget.widget()));
+        window.set_child(contents.widget.widget(), 0.0, 0.0);
         window.show();
 
         let state = WindowState::new(
