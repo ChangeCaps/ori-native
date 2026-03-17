@@ -87,7 +87,7 @@ impl Text {
 }
 
 impl Layout for Text {
-    fn style_mut(&mut self) -> &mut taffy::Style {
+    fn get_layout_mut(&mut self) -> &mut taffy::Style {
         &mut self.layout
     }
 }

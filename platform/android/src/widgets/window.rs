@@ -1,7 +1,9 @@
 use std::time::Duration;
 
 use jni::{EnvUnowned, jni_sig, jni_str, objects::JObject};
-use ori_native_core::{Key, Modifiers, NativeParent, native::NativeWindow};
+use ori_native_core::{
+    Key, Modifiers, NativeParent, NavigationBar, StatusBar, native::NativeWindow,
+};
 
 use crate::{
     Platform,
@@ -147,6 +149,54 @@ impl NativeWindow<Platform> for Window {
     fn set_min_size(&mut self, _platform: &mut Platform, _width: u32, _height: u32) {}
     fn set_size(&mut self, _platform: &mut Platform, _width: u32, _height: u32) {}
     fn set_resizable(&mut self, _platform: &mut Platform, _resizable: bool) {}
+
+    fn set_status_bar(&mut self, platform: &mut Platform, bar: StatusBar) {
+        let _ = platform.jni(|env, activity| {
+            let set_color = bar.color.is_some();
+            let color = bar.color.unwrap_or_default();
+
+            env.call_method(
+                activity,
+                jni_str!("windowSetStatusBar"),
+                jni_sig!((
+                    boolean, boolean, float, float, float, float
+                )),
+                &[
+                    bar.light.into(),
+                    set_color.into(),
+                    color.r.into(),
+                    color.g.into(),
+                    color.b.into(),
+                    color.a.into(),
+                ],
+            )?
+            .v()
+        });
+    }
+
+    fn set_navigation_bar(&mut self, platform: &mut Platform, bar: NavigationBar) {
+        let _ = platform.jni(|env, activity| {
+            let set_color = bar.color.is_some();
+            let color = bar.color.unwrap_or_default();
+
+            env.call_method(
+                activity,
+                jni_str!("windowSetNavigationBar"),
+                jni_sig!((
+                    boolean, boolean, float, float, float, float
+                )),
+                &[
+                    bar.light.into(),
+                    set_color.into(),
+                    color.r.into(),
+                    color.g.into(),
+                    color.b.into(),
+                    color.a.into(),
+                ],
+            )?
+            .v()
+        });
+    }
 }
 
 #[unsafe(no_mangle)]
@@ -158,5 +208,24 @@ extern "system" fn Java_ori_OriActivity_onAnimationFrame<'local>(
     if let Some(activity) = GLOBAL_STATE.get() {
         let duration = Duration::from_nanos(duration_nanos as u64);
         let _ = activity.sender.send(Event::Frame(duration));
+    }
+}
+
+#[unsafe(no_mangle)]
+extern "system" fn Java_ori_OriActivity_onInsetsChanged<'local>(
+    _env: EnvUnowned<'local>,
+    _this: JObject<'local>,
+    top: f32,
+    right: f32,
+    bottom: f32,
+    left: f32,
+) {
+    if let Some(activity) = GLOBAL_STATE.get() {
+        let _ = activity.sender.send(Event::Insets {
+            top,
+            right,
+            bottom,
+            left,
+        });
     }
 }

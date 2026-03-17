@@ -36,7 +36,7 @@ impl Image {
 }
 
 impl Layout for Image {
-    fn style_mut(&mut self) -> &mut taffy::Style {
+    fn get_layout_mut(&mut self) -> &mut taffy::Style {
         &mut self.style
     }
 }

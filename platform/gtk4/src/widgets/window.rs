@@ -5,7 +5,9 @@ use glib::{
     subclass::types::ObjectSubclassIsExt,
 };
 use gtk4::prelude::{FixedExt, GtkWindowExt, WidgetExt};
-use ori_native_core::{Key, Modifiers, NativeParent, native::NativeWindow};
+use ori_native_core::{
+    Key, Modifiers, NativeParent, NavigationBar, StatusBar, native::NativeWindow,
+};
 
 use crate::{Platform, key};
 
@@ -204,6 +206,10 @@ impl NativeWindow<Platform> for Window {
             frame_clock.end_updating();
         }
     }
+
+    fn set_status_bar(&mut self, _platform: &mut Platform, _bar: StatusBar) {}
+
+    fn set_navigation_bar(&mut self, _platform: &mut Platform, _bar: NavigationBar) {}
 }
 
 gtk4::glib::wrapper! {

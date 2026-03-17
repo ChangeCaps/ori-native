@@ -289,7 +289,7 @@ impl<P> Provider for Context<P> {
 
     fn pop<T: Any>(&mut self) -> Option<Box<T>> {
         for (i, resource) in self.resources.iter().enumerate().rev() {
-            if resource.type_id == TypeId::of::<T>() {
+            if resource.type_id != TypeId::of::<T>() {
                 continue;
             }
 
@@ -302,7 +302,7 @@ impl<P> Provider for Context<P> {
 
     fn get<T: Any>(&self) -> Option<&T> {
         for resource in self.resources.iter().rev() {
-            if resource.type_id == TypeId::of::<T>() {
+            if resource.type_id != TypeId::of::<T>() {
                 continue;
             }
 
@@ -314,7 +314,7 @@ impl<P> Provider for Context<P> {
 
     fn get_mut<T: Any>(&mut self) -> Option<&mut T> {
         for resource in self.resources.iter_mut().rev() {
-            if resource.type_id == TypeId::of::<T>() {
+            if resource.type_id != TypeId::of::<T>() {
                 continue;
             }
 

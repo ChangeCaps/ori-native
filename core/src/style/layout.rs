@@ -53,10 +53,16 @@ impl From<Fract> for Length {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Direction {
     /// Horizontal or row.
-    Horizontal,
+    Row,
 
     /// Vertical or column.
-    Vertical,
+    Column,
+
+    /// Horizontal or row in reverse order.
+    RowReverse,
+
+    /// Vertical or column in reverse order.
+    ColumnReverse,
 }
 
 /// Alignment of contents.
@@ -116,11 +122,11 @@ pub enum Position {
 /// A trait for views that can style its layout.
 pub trait Layout: Sized {
     /// Get a mutable reference to the layout style.
-    fn style_mut(&mut self) -> &mut taffy::Style;
+    fn get_layout_mut(&mut self) -> &mut taffy::Style;
 
     /// Set the positioning strategy.
     fn position(mut self, position: Position) -> Self {
-        self.style_mut().position = position.into_taffy();
+        self.get_layout_mut().position = position.into_taffy();
         self
     }
 
@@ -132,25 +138,25 @@ pub trait Layout: Sized {
 
     /// Set the inset from the top.
     fn top(mut self, inset: impl Into<AutoLength>) -> Self {
-        self.style_mut().inset.top = inset.into().into_taffy_length_auto();
+        self.get_layout_mut().inset.top = inset.into().into_taffy_length_auto();
         self
     }
 
     /// Set the inset from the right.
     fn right(mut self, inset: impl Into<AutoLength>) -> Self {
-        self.style_mut().inset.right = inset.into().into_taffy_length_auto();
+        self.get_layout_mut().inset.right = inset.into().into_taffy_length_auto();
         self
     }
 
     /// Set the inset from the bottom.
     fn bottom(mut self, inset: impl Into<AutoLength>) -> Self {
-        self.style_mut().inset.bottom = inset.into().into_taffy_length_auto();
+        self.get_layout_mut().inset.bottom = inset.into().into_taffy_length_auto();
         self
     }
 
     /// Set the inset from the left.
     fn left(mut self, inset: impl Into<AutoLength>) -> Self {
-        self.style_mut().inset.left = inset.into().into_taffy_length_auto();
+        self.get_layout_mut().inset.left = inset.into().into_taffy_length_auto();
         self
     }
 
@@ -172,13 +178,13 @@ pub trait Layout: Sized {
 
     /// Set the `width`.
     fn width(mut self, width: impl Into<AutoLength>) -> Self {
-        self.style_mut().size.width = width.into().into_taffy_dimension();
+        self.get_layout_mut().size.width = width.into().into_taffy_dimension();
         self
     }
 
     /// Set the `height`.
     fn height(mut self, height: impl Into<AutoLength>) -> Self {
-        self.style_mut().size.height = height.into().into_taffy_dimension();
+        self.get_layout_mut().size.height = height.into().into_taffy_dimension();
         self
     }
 
@@ -189,13 +195,13 @@ pub trait Layout: Sized {
 
     /// Set the minimum `width`.
     fn min_width(mut self, min_width: impl Into<AutoLength>) -> Self {
-        self.style_mut().min_size.width = min_width.into().into_taffy_dimension();
+        self.get_layout_mut().min_size.width = min_width.into().into_taffy_dimension();
         self
     }
 
     /// Set the minimum `height`.
     fn min_height(mut self, min_height: impl Into<AutoLength>) -> Self {
-        self.style_mut().min_size.height = min_height.into().into_taffy_dimension();
+        self.get_layout_mut().min_size.height = min_height.into().into_taffy_dimension();
         self
     }
 
@@ -206,13 +212,13 @@ pub trait Layout: Sized {
 
     /// Set the maximum `width`.
     fn max_width(mut self, max_width: impl Into<AutoLength>) -> Self {
-        self.style_mut().max_size.width = max_width.into().into_taffy_dimension();
+        self.get_layout_mut().max_size.width = max_width.into().into_taffy_dimension();
         self
     }
 
     /// Set the maximum `height`.
     fn max_height(mut self, max_height: impl Into<AutoLength>) -> Self {
-        self.style_mut().max_size.height = max_height.into().into_taffy_dimension();
+        self.get_layout_mut().max_size.height = max_height.into().into_taffy_dimension();
         self
     }
 
@@ -224,25 +230,25 @@ pub trait Layout: Sized {
 
     /// Set the margin on the top.
     fn margin_top(mut self, width: impl Into<AutoLength>) -> Self {
-        self.style_mut().margin.top = width.into().into_taffy_length_auto();
+        self.get_layout_mut().margin.top = width.into().into_taffy_length_auto();
         self
     }
 
     /// Set the margin on the right.
     fn margin_right(mut self, width: impl Into<AutoLength>) -> Self {
-        self.style_mut().margin.right = width.into().into_taffy_length_auto();
+        self.get_layout_mut().margin.right = width.into().into_taffy_length_auto();
         self
     }
 
     /// Set the margin on the bottom.
     fn margin_bottom(mut self, width: impl Into<AutoLength>) -> Self {
-        self.style_mut().margin.bottom = width.into().into_taffy_length_auto();
+        self.get_layout_mut().margin.bottom = width.into().into_taffy_length_auto();
         self
     }
 
     /// Set the margin on the left.
     fn margin_left(mut self, width: impl Into<AutoLength>) -> Self {
-        self.style_mut().margin.left = width.into().into_taffy_length_auto();
+        self.get_layout_mut().margin.left = width.into().into_taffy_length_auto();
         self
     }
 
@@ -267,13 +273,13 @@ pub trait Layout: Sized {
 
     /// Set the flex growth factor.
     fn flex_grow(mut self, amount: f32) -> Self {
-        self.style_mut().flex_grow = amount;
+        self.get_layout_mut().flex_grow = amount;
         self
     }
 
     /// Set the flex shrinkage factor.
     fn flex_shrink(mut self, amount: f32) -> Self {
-        self.style_mut().flex_shrink = amount;
+        self.get_layout_mut().flex_shrink = amount;
         self
     }
 }
@@ -288,25 +294,25 @@ pub trait Border: Layout {
 
     /// Set the border width on the top.
     fn border_top(mut self, width: impl Into<Length>) -> Self {
-        self.style_mut().border.top = width.into().into_taffy();
+        self.get_layout_mut().border.top = width.into().into_taffy();
         self
     }
 
     /// Set the border width on the right.
     fn border_right(mut self, width: impl Into<Length>) -> Self {
-        self.style_mut().border.right = width.into().into_taffy();
+        self.get_layout_mut().border.right = width.into().into_taffy();
         self
     }
 
     /// Set the border width on the bottom.
     fn border_bottom(mut self, width: impl Into<Length>) -> Self {
-        self.style_mut().border.bottom = width.into().into_taffy();
+        self.get_layout_mut().border.bottom = width.into().into_taffy();
         self
     }
 
     /// Set the border width on the left.
     fn border_left(mut self, width: impl Into<Length>) -> Self {
-        self.style_mut().border.left = width.into().into_taffy();
+        self.get_layout_mut().border.left = width.into().into_taffy();
         self
     }
 
@@ -335,25 +341,25 @@ pub trait Container: Layout {
 
     /// Set the padding on the top.
     fn padding_top(mut self, width: impl Into<Length>) -> Self {
-        self.style_mut().padding.top = width.into().into_taffy();
+        self.get_layout_mut().padding.top = width.into().into_taffy();
         self
     }
 
     /// Set the padding on the right.
     fn padding_right(mut self, width: impl Into<Length>) -> Self {
-        self.style_mut().padding.right = width.into().into_taffy();
+        self.get_layout_mut().padding.right = width.into().into_taffy();
         self
     }
 
     /// Set the padding on the bottom.
     fn padding_bottom(mut self, width: impl Into<Length>) -> Self {
-        self.style_mut().padding.bottom = width.into().into_taffy();
+        self.get_layout_mut().padding.bottom = width.into().into_taffy();
         self
     }
 
     /// Set the padding on the left.
     fn padding_left(mut self, width: impl Into<Length>) -> Self {
-        self.style_mut().padding.left = width.into().into_taffy();
+        self.get_layout_mut().padding.left = width.into().into_taffy();
         self
     }
 
@@ -376,26 +382,26 @@ pub trait Container: Layout {
 pub trait FlexContainer: Container {
     /// Set the gap between items.
     fn gap(mut self, gap: impl Into<Length>) -> Self {
-        self.style_mut().gap.width = gap.into().into_taffy();
-        self.style_mut().gap.height = self.style_mut().gap.width;
+        self.get_layout_mut().gap.width = gap.into().into_taffy();
+        self.get_layout_mut().gap.height = self.get_layout_mut().gap.width;
         self
     }
 
     /// Set the alignment of items.
     fn align_items(mut self, align: Align) -> Self {
-        self.style_mut().align_items = Some(align.into_taffy());
+        self.get_layout_mut().align_items = Some(align.into_taffy());
         self
     }
 
     /// Set the alignment of contents.
     fn align_contents(mut self, justify: Justify) -> Self {
-        self.style_mut().align_content = Some(justify.into_taffy());
+        self.get_layout_mut().align_content = Some(justify.into_taffy());
         self
     }
 
     /// Set the justification of contents.
     fn justify_contents(mut self, justify: Justify) -> Self {
-        self.style_mut().justify_content = Some(justify.into_taffy());
+        self.get_layout_mut().justify_content = Some(justify.into_taffy());
         self
     }
 }

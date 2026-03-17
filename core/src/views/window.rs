@@ -5,7 +5,7 @@ use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarke
 
 use crate::{
     AnimateRequest, Context, Input, InputHandler, LayoutRequest, Lifecycle, MatchKey, NativeWidget,
-    Platform, Pod, Sizing, WidgetView, native::NativeWindow,
+    NavigationBar, Platform, Pod, Sizing, StatusBar, WidgetView, native::NativeWindow,
 };
 
 /// [`View`] of a window.
@@ -37,6 +37,18 @@ impl<T, V> Window<T, V> {
     /// Set the [`Sizing`].
     pub fn sizing(mut self, sizing: Sizing) -> Self {
         self.attributes.sizing = sizing;
+        self
+    }
+
+    /// Set the style of the [`StatusBar`].
+    pub fn status_bar(mut self, status_bar: StatusBar) -> Self {
+        self.attributes.status_bar = status_bar;
+        self
+    }
+
+    /// Set the style of the [`NavigationBar`].
+    pub fn navigation_bar(mut self, navigation_bar: NavigationBar) -> Self {
+        self.attributes.navigation_bar = navigation_bar;
         self
     }
 
@@ -131,6 +143,12 @@ pub struct WindowAttributes<T> {
 
     /// The input handlers of the window.
     pub input: Input<T>,
+
+    /// The style of the status bar.
+    pub status_bar: StatusBar,
+
+    /// The style of the navigation bar.
+    pub navigation_bar: NavigationBar,
 }
 
 impl<T> Default for WindowAttributes<T> {
@@ -139,6 +157,9 @@ impl<T> Default for WindowAttributes<T> {
             title:  String::new(),
             sizing: Sizing::User,
             input:  Default::default(),
+
+            status_bar:     Default::default(),
+            navigation_bar: Default::default(),
         }
     }
 }
@@ -157,6 +178,9 @@ where
     node:           taffy::NodeId,
     layout:         taffy::Layout,
     content_layout: taffy::Layout,
+
+    status_bar:     StatusBar,
+    navigation_bar: NavigationBar,
 
     title:   String,
     sizing:  Sizing,
@@ -245,6 +269,13 @@ where
             }
         });
 
+        window.set_status_bar(&mut cx.platform, attributes.status_bar);
+
+        window.set_navigation_bar(
+            &mut cx.platform,
+            attributes.navigation_bar,
+        );
+
         cx.register(view_id);
 
         let node = cx.new_layout_node(Default::default(), &[contents.node]);
@@ -259,6 +290,8 @@ where
             title: attributes.title,
             sizing: attributes.sizing,
             handler,
+            status_bar: attributes.status_bar,
+            navigation_bar: attributes.navigation_bar,
             width,
             height,
             animating: 0,
@@ -321,6 +354,16 @@ where
                 &mut cx.platform,
                 matches!(attributes.sizing, Sizing::User,),
             );
+        }
+
+        if self.status_bar != attributes.status_bar {
+            self.status_bar = attributes.status_bar;
+            (self.window).set_status_bar(&mut cx.platform, self.status_bar);
+        }
+
+        if self.navigation_bar != attributes.navigation_bar {
+            self.navigation_bar = attributes.navigation_bar;
+            (self.window).set_navigation_bar(&mut cx.platform, self.navigation_bar);
         }
     }
 

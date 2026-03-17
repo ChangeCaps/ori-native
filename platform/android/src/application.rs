@@ -8,8 +8,8 @@ use std::{
 };
 
 use jni::{objects::JObject, refs::Global, vm::JavaVM};
-use ori::{Effect, Message, Proxied, Tracker};
-use ori_native_core::{Context, native::Press};
+use ori::{Action, Effect, Message, Provider, Proxied, Tracker};
+use ori_native_core::{Context, SafeAreaInsets, native::Press};
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt};
 
 use crate::{Platform, log::MakeAndroidWriter, platform::WidgetId};
@@ -139,6 +139,12 @@ pub enum Event {
     Message(Message),
     Frame(Duration),
     Widget(WidgetId, WidgetEvent),
+    Insets {
+        top:    f32,
+        right:  f32,
+        bottom: f32,
+        left:   f32,
+    },
 }
 
 #[derive(Debug)]
@@ -210,6 +216,34 @@ where
             Event::Frame(duration) => self.context.platform.on_animation_frame(duration),
 
             Event::Widget(id, event) => self.context.platform.handle_event(id, event),
+
+            Event::Insets {
+                top,
+                right,
+                bottom,
+                left,
+            } => {
+                let insets = SafeAreaInsets {
+                    top,
+                    right,
+                    bottom,
+                    left,
+                };
+
+                match self.context.get_mut() {
+                    Some(current) => {
+                        if *current != insets {
+                            *current = insets;
+                            self.context.send_action(Action::rebuild());
+                        }
+                    }
+
+                    None => {
+                        self.context.push(Box::new(insets));
+                        self.context.send_action(Action::rebuild());
+                    }
+                }
+            }
         }
     }
 

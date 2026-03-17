@@ -7,12 +7,12 @@ use crate::{
 
 /// [`View`] of a horizontal scroll area.
 pub fn hscroll<V>(contents: V) -> Scroll<V> {
-    Scroll::new(contents, Direction::Horizontal)
+    Scroll::new(contents, Direction::Row)
 }
 
 /// [`View`] of a vertical scroll area.
 pub fn vscroll<V>(contents: V) -> Scroll<V> {
-    Scroll::new(contents, Direction::Vertical)
+    Scroll::new(contents, Direction::Column)
 }
 
 /// [`View`] of a scroll area.
@@ -26,18 +26,20 @@ impl<V> Scroll<V> {
     /// Create new [`Scroll`].
     pub fn new(contents: V, direction: Direction) -> Self {
         let flex_direction = match direction {
-            Direction::Horizontal => taffy::FlexDirection::Row,
-            Direction::Vertical => taffy::FlexDirection::Column,
+            Direction::Row => taffy::FlexDirection::Row,
+            Direction::Column => taffy::FlexDirection::Column,
+            Direction::RowReverse => taffy::FlexDirection::RowReverse,
+            Direction::ColumnReverse => taffy::FlexDirection::ColumnReverse,
         };
 
         let x = match direction {
-            Direction::Horizontal => taffy::Overflow::Scroll,
-            Direction::Vertical => taffy::Overflow::Hidden,
+            Direction::Row | Direction::RowReverse => taffy::Overflow::Scroll,
+            Direction::Column | Direction::ColumnReverse => taffy::Overflow::Hidden,
         };
 
         let y = match direction {
-            Direction::Horizontal => taffy::Overflow::Hidden,
-            Direction::Vertical => taffy::Overflow::Scroll,
+            Direction::Row | Direction::RowReverse => taffy::Overflow::Hidden,
+            Direction::Column | Direction::ColumnReverse => taffy::Overflow::Scroll,
         };
 
         Self {
@@ -54,7 +56,7 @@ impl<V> Scroll<V> {
 }
 
 impl<V> Layout for Scroll<V> {
-    fn style_mut(&mut self) -> &mut taffy::Style {
+    fn get_layout_mut(&mut self) -> &mut taffy::Style {
         &mut self.style
     }
 }

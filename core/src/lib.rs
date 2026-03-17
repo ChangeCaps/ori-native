@@ -7,6 +7,7 @@ mod element;
 mod input;
 mod lifecycle;
 mod platform;
+mod safearea;
 mod style;
 mod text;
 
@@ -18,9 +19,10 @@ pub use element::{BoxedWidget, NativeParent, NativeWidget, Pod, PodMut, WidgetVi
 pub use input::{Input, InputFilter, InputHandler, InputMessage, MatchKey};
 pub use lifecycle::{AnimateRequest, LayoutRequest, Lifecycle};
 pub use platform::{Platform, Unsupported};
+pub use safearea::SafeAreaInsets;
 pub use style::{
     Affine, Align, AutoLength, Border, Color, Container, Direction, FlexContainer, Fract, Justify,
-    Layout, Length, Overflow, Position, Shadow, Sizing,
+    Layout, Length, NavigationBar, Overflow, Position, Shadow, Sizing, StatusBar,
 };
 pub use text::{Font, Stretch, TextSpan, Weight, Wrap};
 

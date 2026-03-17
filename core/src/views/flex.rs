@@ -5,14 +5,19 @@ use crate::{
     Platform, Pod, Shadow, element::WidgetViewSeq, native::WrappedGroup,
 };
 
+/// Container [`View`] with flexbox layout.
+pub fn flex<V>(contents: V) -> Flex<V> {
+    Flex::new(contents)
+}
+
 /// [`View`] of a flex row.
 pub fn row<V>(contents: V) -> Flex<V> {
-    Flex::new(contents, Direction::Horizontal)
+    Flex::new(contents).direction(Direction::Row)
 }
 
 /// [`View`] of a flex column.
 pub fn column<V>(contents: V) -> Flex<V> {
-    Flex::new(contents, Direction::Vertical)
+    Flex::new(contents).direction(Direction::Column)
 }
 
 /// [`View`] of a flex container.
@@ -28,17 +33,11 @@ pub struct Flex<V> {
 
 impl<V> Flex<V> {
     /// Create new [`Flex`].
-    pub fn new(contents: V, direction: Direction) -> Self {
-        let flex_direction = match direction {
-            Direction::Horizontal => taffy::FlexDirection::Row,
-            Direction::Vertical => taffy::FlexDirection::Column,
-        };
-
+    pub fn new(contents: V) -> Self {
         Self {
             contents,
             layout: taffy::Style {
                 display: taffy::Display::Flex,
-                flex_direction,
                 ..Default::default()
             },
             background_color: Color::TRANSPARENT,
@@ -47,6 +46,30 @@ impl<V> Flex<V> {
             overflow: Overflow::Visible,
             shadow: Shadow::default(),
         }
+    }
+
+    /// Set the flex direction.
+    pub fn direction(mut self, direction: Direction) -> Self {
+        self.layout.flex_direction = match direction {
+            Direction::Row => taffy::FlexDirection::Row,
+            Direction::Column => taffy::FlexDirection::Column,
+            Direction::RowReverse => taffy::FlexDirection::RowReverse,
+            Direction::ColumnReverse => taffy::FlexDirection::ColumnReverse,
+        };
+
+        self
+    }
+
+    /// Reverse the direction.
+    pub fn rev(mut self) -> Self {
+        self.layout.flex_direction = match self.layout.flex_direction {
+            taffy::FlexDirection::Row => taffy::FlexDirection::RowReverse,
+            taffy::FlexDirection::Column => taffy::FlexDirection::ColumnReverse,
+            taffy::FlexDirection::RowReverse => taffy::FlexDirection::Row,
+            taffy::FlexDirection::ColumnReverse => taffy::FlexDirection::Column,
+        };
+
+        self
     }
 
     /// Set the background color.
@@ -150,7 +173,7 @@ impl<V> Flex<V> {
 }
 
 impl<V> Layout for Flex<V> {
-    fn style_mut(&mut self) -> &mut taffy::Style {
+    fn get_layout_mut(&mut self) -> &mut taffy::Style {
         &mut self.layout
     }
 }

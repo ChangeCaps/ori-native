@@ -2,7 +2,9 @@ use std::time::Duration;
 
 use keyboard_types::{Key, Modifiers};
 
-use crate::{Platform, Unsupported, element::NativeParent, platform::unsupported};
+use crate::{
+    NavigationBar, Platform, StatusBar, Unsupported, element::NativeParent, platform::unsupported,
+};
 
 pub trait NativeWindow<P>: NativeParent<P>
 where
@@ -33,6 +35,9 @@ where
     fn set_min_size(&mut self, platform: &mut P, width: u32, height: u32);
     fn set_size(&mut self, platform: &mut P, width: u32, height: u32);
     fn set_resizable(&mut self, platform: &mut P, resizable: bool);
+
+    fn set_status_bar(&mut self, platform: &mut P, bar: StatusBar);
+    fn set_navigation_bar(&mut self, platform: &mut P, bar: NavigationBar);
 }
 
 impl<P> NativeWindow<P> for Unsupported
@@ -115,6 +120,14 @@ where
     }
 
     fn set_resizable(&mut self, _platform: &mut P, _resizable: bool) {
+        unreachable!()
+    }
+
+    fn set_status_bar(&mut self, _platform: &mut P, _bar: StatusBar) {
+        unreachable!()
+    }
+
+    fn set_navigation_bar(&mut self, _platform: &mut P, _bar: NavigationBar) {
         unreachable!()
     }
 }
