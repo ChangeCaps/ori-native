@@ -113,7 +113,7 @@ impl<P, T> Element for Pod<P, T> {
 /// Type erased [`Pod`].
 pub type BoxedWidget<P> = Pod<P, Box<dyn NativeWidget<P>>>;
 
-/// A [`View`] with a [`Pod`] as it's element.
+/// A [`View`] with a [`Pod`] as its element.
 pub trait WidgetView<P, T>: View<Context<P>, T, Element = Pod<P, Self::Widget>>
 where
     P: Platform,
@@ -131,6 +131,7 @@ where
     type Widget = W;
 }
 
+/// A [`ViewSeq`] with [`BoxedWidget`]s as elements.
 pub trait WidgetViewSeq<P, T>: ViewSeq<Context<P>, T, BoxedWidget<P>>
 where
     P: Platform,

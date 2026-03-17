@@ -4,7 +4,7 @@ mod app;
 mod view;
 
 pub use app::App;
-pub use view::{Effect, View};
+pub use view::{Effect, View, ViewSeq};
 
 pub use ori::*;
 pub use ori_native_core::*;
@@ -39,7 +39,7 @@ pub mod prelude {
         Action, Align, App, AutoLength, Border, BuildMarker, BuildView, Color, Container, Context,
         Direction, Effect, Element, FlexContainer, Font, Fract, Justify, Key, Keyed, Layout,
         Length, Message, Modifiers, NamedKey, NavigationBar, Overflow, Position, Proxy, Shadow,
-        Sizing, StatusBar, Stretch, View, Weight, Wrap, keyed, views::*,
+        Sizing, StatusBar, Stretch, View, ViewSeq, Weight, Wrap, keyed, views::*,
     };
 
     #[allow(unused_imports)]
