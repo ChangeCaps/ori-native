@@ -1,6 +1,6 @@
 use ori::{BuildMarker, BuildView, views::using_or_default};
 
-use crate::{Container, Context, Layout, Platform, SafeAreaInsets, WidgetView, views::Flex};
+use crate::{Context, Layout, Platform, SafeAreaInsets, WidgetView, views::Flex};
 
 /// [`View`](ori::View) that ensures contents isn't overlapped by system elements.
 pub fn safe_area<V>(contents: V) -> SafeArea<V> {
@@ -31,8 +31,6 @@ impl<V> Layout for SafeArea<V> {
         &mut self.style
     }
 }
-
-impl<V> Container for SafeArea<V> {}
 
 impl<V> BuildMarker for SafeArea<V> {}
 impl<P, T, V> BuildView<Context<P>, T> for SafeArea<V>
