@@ -97,7 +97,7 @@ fn todos(data: &Data) -> impl View<Data> + use<> {
 }
 
 fn todo(index: usize, _todo: &Todo) -> impl View<Data> + use<> {
-    let view = pressable(move |state, todo: &Todo| {
+    let view = pressable(move |todo: &Todo, state| {
         let name = if todo.done {
             text(&todo.name)
                 .color(theme::TEXT.fade(0.6))

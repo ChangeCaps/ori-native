@@ -8,7 +8,7 @@ use crate::{
 };
 
 /// [`View`] that reacts to presses and focus.
-pub fn pressable<V, T>(build: impl FnMut(PressState, &T) -> V + 'static) -> Pressable<V, T> {
+pub fn pressable<V, T>(build: impl FnMut(&T, PressState) -> V + 'static) -> Pressable<V, T> {
     Pressable::new(build)
 }
 
@@ -28,7 +28,7 @@ pub struct PressState {
 /// [`View`] that reacts to presses and focus.
 #[allow(clippy::type_complexity)]
 pub struct Pressable<V, T> {
-    build:    Box<dyn FnMut(PressState, &T) -> V>,
+    build:    Box<dyn FnMut(&T, PressState) -> V>,
     on_press: Box<dyn FnMut(&mut T) -> Action>,
     on_hover: Box<dyn FnMut(&mut T, bool) -> Action>,
     on_focus: Box<dyn FnMut(&mut T, bool) -> Action>,
@@ -37,7 +37,7 @@ pub struct Pressable<V, T> {
 
 impl<V, T> Pressable<V, T> {
     /// Create new [`Pressable`].
-    pub fn new(build: impl FnMut(PressState, &T) -> V + 'static) -> Self {
+    pub fn new(build: impl FnMut(&T, PressState) -> V + 'static) -> Self {
         Self {
             build:    Box::new(build),
             on_press: Box::new(|_| Action::new()),
@@ -111,7 +111,7 @@ where
             focused: false,
         };
 
-        let view = (self.build)(press, data);
+        let view = (self.build)(data, press);
         let (contents, state) = view.build(cx, data);
 
         let mut widget = P::Pressable::build(
@@ -197,7 +197,7 @@ where
         cx: &mut Context<P>,
         data: &mut T,
     ) {
-        let view = (self.build)(state.press, data);
+        let view = (self.build)(data, state.press);
 
         view.rebuild(
             element.map_widget(&mut state.widget),
@@ -273,7 +273,7 @@ where
                 }
             }
 
-            let view = (state.build)(state.press, data);
+            let view = (state.build)(data, state.press);
             view.rebuild(
                 element.map_widget(&mut state.widget),
                 &mut state.state,
@@ -314,7 +314,7 @@ where
     press:    PressState,
     view_id:  ViewId,
     layout:   taffy::Layout,
-    build:    Box<dyn FnMut(PressState, &T) -> V>,
+    build:    Box<dyn FnMut(&T, PressState) -> V>,
     on_press: Box<dyn FnMut(&mut T) -> Action>,
     on_hover: Box<dyn FnMut(&mut T, bool) -> Action>,
     on_focus: Box<dyn FnMut(&mut T, bool) -> Action>,

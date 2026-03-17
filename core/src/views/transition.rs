@@ -18,7 +18,7 @@ pub trait Transition {
 pub fn transition<P, T, U, V>(
     value: U,
     transition: impl Transition,
-    build: impl Fn(U, &T) -> V,
+    build: impl Fn(&T, U) -> V,
 ) -> impl WidgetView<P, T>
 where
     P: Platform,
@@ -42,7 +42,7 @@ impl<T, U, X, F, V> Animation<T> for TransitionAnimation<U, X, F>
 where
     U: Lerp + Clone + PartialEq,
     X: Transition,
-    F: Fn(U, &T) -> V,
+    F: Fn(&T, U) -> V,
 {
     type State = State<U, X, F>;
     type View = V;
@@ -78,7 +78,7 @@ where
     }
 
     fn view(state: &Self::State, data: &T) -> Self::View {
-        (state.build)(state.value(), data)
+        (state.build)(data, state.value())
     }
 }
 
