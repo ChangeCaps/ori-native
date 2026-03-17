@@ -41,7 +41,7 @@ where
 {
     #[allow(refining_impl_trait)]
     fn build(mut self) -> impl WidgetView<P, T> + 'static {
-        using_or_default(|insets: &SafeAreaInsets, _| {
+        using_or_default(|_, insets: &SafeAreaInsets| {
             self.style.padding.top = taffy::LengthPercentage::length(insets.top);
             self.style.padding.right = taffy::LengthPercentage::length(insets.right);
             self.style.padding.bottom = taffy::LengthPercentage::length(insets.bottom);
