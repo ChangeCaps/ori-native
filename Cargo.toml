@@ -29,13 +29,18 @@ ori-native-gtk4    = { path = "platform/gtk4"    }
 
 ori = { git = "https://github.com/ori-ui/ori" }
 
-taffy   = "0.9"
 seahash = "4"
 
 tracing = "0.1"
 tracing-subscriber = "0.3"
 
 keyboard-types = "0.8"
+
+
+[workspace.dependencies.taffy]
+version = "0.9"
+default-features = false
+features = ["flexbox", "grid", "content_size", "taffy_tree"]
 
 [workspace.dependencies.tokio]
 version = "1"

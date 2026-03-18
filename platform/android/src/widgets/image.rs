@@ -65,7 +65,11 @@ impl NativeImage<Platform> for Image {
             }
         });
 
-        Ok(ImageLayout { id: self.id })
+        Ok(ImageLayout {
+            id:     self.id,
+            width:  None,
+            height: None,
+        })
     }
 
     fn set_tint(&mut self, platform: &mut Platform, tint: Option<Color>) {
@@ -93,7 +97,9 @@ impl NativeImage<Platform> for Image {
 }
 
 pub struct ImageLayout {
-    id: WidgetId,
+    id:     WidgetId,
+    width:  Option<f32>,
+    height: Option<f32>,
 }
 
 impl Measure<Platform> for ImageLayout {
@@ -103,33 +109,37 @@ impl Measure<Platform> for ImageLayout {
         known_size: taffy::Size<Option<f32>>,
         _available_space: taffy::Size<taffy::AvailableSpace>,
     ) -> taffy::Size<f32> {
-        let width = platform
-            .jni(|env, activity| {
-                env.call_method(
-                    activity,
-                    jni_str!("imageGetWidth"),
-                    jni_sig!((long) -> float),
-                    &[self.id.into()],
-                )?
-                .f()
-            })
-            .unwrap_or(0.0);
+        let width = self.width.get_or_insert_with(|| {
+            platform
+                .jni(|env, activity| {
+                    env.call_method(
+                        activity,
+                        jni_str!("imageGetWidth"),
+                        jni_sig!((long) -> float),
+                        &[self.id.into()],
+                    )?
+                    .f()
+                })
+                .unwrap_or(0.0)
+        });
 
-        let height = platform
-            .jni(|env, activity| {
-                env.call_method(
-                    activity,
-                    jni_str!("imageGetHeight"),
-                    jni_sig!((long) -> float),
-                    &[self.id.into()],
-                )?
-                .f()
-            })
-            .unwrap_or(0.0);
+        let height = self.height.get_or_insert_with(|| {
+            platform
+                .jni(|env, activity| {
+                    env.call_method(
+                        activity,
+                        jni_str!("imageGetHeight"),
+                        jni_sig!((long) -> float),
+                        &[self.id.into()],
+                    )?
+                    .f()
+                })
+                .unwrap_or(0.0)
+        });
 
         taffy::Size {
-            width:  known_size.width.unwrap_or(width),
-            height: known_size.height.unwrap_or(height),
+            width:  known_size.width.unwrap_or(*width),
+            height: known_size.height.unwrap_or(*height),
         }
     }
 }

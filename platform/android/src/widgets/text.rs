@@ -122,21 +122,39 @@ impl NativeText<Platform> for Text {
             Ok::<_, jni::errors::Error>(())
         });
 
-        TextLayout { id: self.id }
+        TextLayout {
+            id:    self.id,
+            cache: Vec::new(),
+        }
     }
 }
 
 pub struct TextLayout {
-    id: WidgetId,
+    id:    WidgetId,
+    cache: Vec<CachedSize>,
+}
+
+struct CachedSize {
+    size:            taffy::Size<f32>,
+    known_size:      taffy::Size<Option<f32>>,
+    available_space: taffy::Size<taffy::AvailableSpace>,
 }
 
 impl Measure<Platform> for TextLayout {
     fn measure(
         &mut self,
         platform: &mut Platform,
-        _known_size: taffy::Size<Option<f32>>,
-        _available_space: taffy::Size<taffy::AvailableSpace>,
+        known_size: taffy::Size<Option<f32>>,
+        available_space: taffy::Size<taffy::AvailableSpace>,
     ) -> taffy::Size<f32> {
+        for cached_size in self.cache.iter() {
+            if cached_size.known_size == known_size
+                && cached_size.available_space == available_space
+            {
+                return cached_size.size;
+            }
+        }
+
         let width = platform
             .jni(|env, activity| {
                 env.call_method(
@@ -161,9 +179,17 @@ impl Measure<Platform> for TextLayout {
             })
             .unwrap_or(0.0);
 
-        taffy::Size {
+        let size = taffy::Size {
             width: width + 1.0,
             height,
-        }
+        };
+
+        self.cache.push(CachedSize {
+            size,
+            known_size,
+            available_space,
+        });
+
+        size
     }
 }

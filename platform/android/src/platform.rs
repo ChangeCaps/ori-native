@@ -103,16 +103,17 @@ impl Platform {
         });
     }
 
-    pub fn run_ui_tasks(&mut self) {
-        let _ = self.jni(|env, activity| {
+    pub fn run_ui_tasks(&mut self) -> usize {
+        self.jni(|env, activity| {
             env.call_method(
                 activity,
                 jni_str!("runUiTasks"),
-                jni_sig!(()),
+                jni_sig!(() -> int),
                 &[],
             )?
-            .v()
-        });
+            .i()
+        })
+        .unwrap_or(0) as usize
     }
 
     pub fn next_id(&mut self) -> WidgetId {

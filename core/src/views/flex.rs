@@ -61,7 +61,7 @@ impl<V> Flex<V> {
     }
 
     /// Reverse the direction.
-    pub fn rev(mut self) -> Self {
+    pub fn reverse(mut self) -> Self {
         self.layout.flex_direction = match self.layout.flex_direction {
             taffy::FlexDirection::Row => taffy::FlexDirection::RowReverse,
             taffy::FlexDirection::Column => taffy::FlexDirection::ColumnReverse,

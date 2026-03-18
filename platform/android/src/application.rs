@@ -199,6 +199,8 @@ where
             }
 
             Event::Message(mut message) => {
+                let t = std::time::Instant::now();
+
                 if let Some(ref mut state) = self.state {
                     self.context.tree().reset();
                     let action = V::message(
@@ -211,11 +213,21 @@ where
 
                     self.context.send_action(action);
                 }
+
+                tracing::trace!(
+                    type = message.type_name(),
+                    time = ?t.elapsed(),
+                    "message",
+                );
             }
 
-            Event::Frame(duration) => self.context.platform.on_animation_frame(duration),
+            Event::Frame(duration) => {
+                self.context.platform.on_animation_frame(duration);
+            }
 
-            Event::Widget(id, event) => self.context.platform.handle_event(id, event),
+            Event::Widget(id, event) => {
+                self.context.platform.handle_event(id, event);
+            }
 
             Event::Insets {
                 top,

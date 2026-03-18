@@ -188,12 +188,16 @@ impl NativeTextInput<Platform> for TextInput {
     }
 
     fn get_layout(&mut self, _platform: &mut Platform) -> impl Measure<Platform> {
-        TextInputLayout { id: self.id }
+        TextInputLayout {
+            id:     self.id,
+            height: None,
+        }
     }
 }
 
 pub struct TextInputLayout {
-    id: WidgetId,
+    id:     WidgetId,
+    height: Option<f32>,
 }
 
 impl Measure<Platform> for TextInputLayout {
@@ -203,17 +207,19 @@ impl Measure<Platform> for TextInputLayout {
         _known_size: taffy::Size<Option<f32>>,
         _available_space: taffy::Size<taffy::AvailableSpace>,
     ) -> taffy::Size<f32> {
-        let height = platform
-            .jni(|env, activity| {
-                env.call_method(
-                    activity,
-                    jni_str!("textInputMeasureHeight"),
-                    jni_sig!((long) -> float),
-                    &[self.id.into()],
-                )?
-                .f()
-            })
-            .unwrap_or(0.0);
+        let height = *self.height.get_or_insert_with(|| {
+            platform
+                .jni(|env, activity| {
+                    env.call_method(
+                        activity,
+                        jni_str!("textInputMeasureHeight"),
+                        jni_sig!((long) -> float),
+                        &[self.id.into()],
+                    )?
+                    .f()
+                })
+                .unwrap_or(0.0)
+        });
 
         taffy::Size { width: 0.0, height }
     }
