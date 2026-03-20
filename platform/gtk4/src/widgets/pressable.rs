@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use gtk4::prelude::{AccessibleExt, FixedExt, WidgetExt};
+use gtk4::prelude::{AccessibleExt, FixedExt, GestureExt, WidgetExt};
 use ori_native_core::{
     Key, Modifiers, NativeParent, NativeWidget,
     native::{NativePressable, Press},
@@ -72,7 +72,10 @@ impl NativePressable<Platform> for Pressable {
         let controller = gtk4::GestureClick::new();
         controller.connect_pressed({
             let on_press = on_press.clone();
-            move |_, _, _, _| on_press(Press::Pressed)
+            move |controller, _, _, _| {
+                controller.set_state(gtk4::EventSequenceState::Claimed);
+                on_press(Press::Pressed)
+            }
         });
 
         controller.connect_released({
