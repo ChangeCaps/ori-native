@@ -3,6 +3,7 @@
 mod animate;
 mod flex;
 mod image;
+mod layout;
 mod pressable;
 mod safearea;
 mod scroll;
@@ -15,6 +16,7 @@ mod window;
 pub use animate::{Animate, Animation, animate};
 pub use flex::{Flex, column, flex, row};
 pub use image::{Image, image};
+pub use layout::{OnLayout, on_layout};
 pub use pressable::{PressState, Pressable, pressable};
 pub use safearea::{SafeArea, safe_area};
 pub use scroll::{Scroll, hscroll, vscroll};
