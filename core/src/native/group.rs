@@ -32,6 +32,13 @@ where
     fn set_corner_radii(&mut self, platform: &mut P, radii: [f32; 4]);
     fn set_overflow(&mut self, platform: &mut P, overflow: Overflow);
     fn set_shadow(&mut self, platform: &mut P, shadow: Shadow);
+
+    /* backend specific */
+
+    fn set_hardware_layer(&mut self, platform: &mut P, enabled: bool) {
+        let _ = platform;
+        let _ = enabled;
+    }
 }
 
 impl<P> NativeGroup<P> for Unsupported
@@ -46,7 +53,7 @@ where
         unreachable!()
     }
 
-    fn insert_child(&mut self, _platform: &mut P, _index: usize, _child: &<P as Platform>::Widget) {
+    fn insert_child(&mut self, _platform: &mut P, _index: usize, _child: &P::Widget) {
         unreachable!()
     }
 
@@ -147,6 +154,10 @@ where
 
     pub fn set_shadow(&mut self, cx: &mut Context<P>, shadow: Shadow) {
         self.group.set_shadow(&mut cx.platform, shadow);
+    }
+
+    pub fn set_hardware_layer(&mut self, cx: &mut Context<P>, enabled: bool) {
+        self.group.set_hardware_layer(&mut cx.platform, enabled);
     }
 
     pub fn layout(&mut self, cx: &mut Context<P>, node: taffy::NodeId) {

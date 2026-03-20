@@ -29,6 +29,7 @@ pub struct Flex<V> {
     corner_radii:     [f32; 4],
     overflow:         Overflow,
     shadow:           Shadow,
+    hardware_layer:   bool,
 }
 
 impl<V> Flex<V> {
@@ -45,6 +46,7 @@ impl<V> Flex<V> {
             corner_radii: [0.0; 4],
             overflow: Overflow::Visible,
             shadow: Shadow::default(),
+            hardware_layer: false,
         }
     }
 
@@ -170,6 +172,16 @@ impl<V> Flex<V> {
             .corner_bottom_right(bottom_right)
             .corner_bottom_left(bottom_left)
     }
+
+    /// Set whether to use a hardware layer.
+    ///
+    /// # Platform
+    ///  - `android` set the layer type of the underlying view to hardware.
+    ///  - `other` not supported.
+    pub fn hardware_layer(mut self, enabled: bool) -> Self {
+        self.hardware_layer = enabled;
+        self
+    }
 }
 
 impl<V> Layout for Flex<V> {
@@ -200,6 +212,7 @@ where
         group.set_corner_radii(cx, self.corner_radii);
         group.set_overflow(cx, self.overflow);
         group.set_shadow(cx, self.shadow);
+        group.set_hardware_layer(cx, self.hardware_layer);
 
         let state = self.contents.seq_build(&mut group.elements(node), cx, data);
         let pod = Pod::new(node, group);
@@ -211,6 +224,7 @@ where
             corner_radii: self.corner_radii,
             overflow: self.overflow,
             shadow: self.shadow,
+            hardware_layer: self.hardware_layer,
         };
 
         (pod, state)
@@ -248,6 +262,11 @@ where
         if state.shadow != self.shadow {
             state.shadow = self.shadow;
             (element.widget).set_shadow(cx, self.shadow);
+        }
+
+        if state.hardware_layer != self.hardware_layer {
+            state.hardware_layer = self.hardware_layer;
+            (element.widget).set_hardware_layer(cx, self.hardware_layer);
         }
 
         self.contents.seq_rebuild(
@@ -301,4 +320,5 @@ where
     corner_radii:     [f32; 4],
     overflow:         Overflow,
     shadow:           Shadow,
+    hardware_layer:   bool,
 }

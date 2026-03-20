@@ -232,4 +232,16 @@ impl NativeGroup<Platform> for Group {
             .v()
         });
     }
+
+    fn set_hardware_layer(&mut self, platform: &mut Platform, enabled: bool) {
+        let _ = platform.jni(|env, activity| {
+            env.call_method(
+                activity,
+                jni_str!("viewSetHardwareLayer"),
+                jni_sig!((long, boolean)),
+                &[self.id.into(), enabled.into()],
+            )?
+            .v()
+        });
+    }
 }
