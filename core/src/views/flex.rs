@@ -22,14 +22,14 @@ pub fn column<V>(contents: V) -> Flex<V> {
 
 /// [`View`] of a flex container.
 pub struct Flex<V> {
-    contents:         V,
-    layout:           taffy::Style,
-    background_color: Color,
-    border_color:     Color,
-    corner_radii:     [f32; 4],
-    overflow:         Overflow,
-    shadow:           Shadow,
-    hardware_layer:   bool,
+    contents:       V,
+    layout:         taffy::Style,
+    background:     Color,
+    border_color:   Color,
+    corner_radii:   [f32; 4],
+    overflow:       Overflow,
+    shadow:         Shadow,
+    hardware_layer: bool,
 }
 
 impl<V> Flex<V> {
@@ -41,7 +41,7 @@ impl<V> Flex<V> {
                 display: taffy::Display::Flex,
                 ..Default::default()
             },
-            background_color: Color::TRANSPARENT,
+            background: Color::TRANSPARENT,
             border_color: Color::TRANSPARENT,
             corner_radii: [0.0; 4],
             overflow: Overflow::Visible,
@@ -75,8 +75,8 @@ impl<V> Flex<V> {
     }
 
     /// Set the background color.
-    pub fn background_color(mut self, color: Color) -> Self {
-        self.background_color = color;
+    pub fn background(mut self, color: Color) -> Self {
+        self.background = color;
         self
     }
 
@@ -207,7 +207,7 @@ where
         let node = cx.new_layout_node(self.layout, &[]);
 
         let mut group = WrappedGroup::new(cx);
-        group.set_background_color(cx, self.background_color);
+        group.set_background_color(cx, self.background);
         group.set_border_color(cx, self.border_color);
         group.set_corner_radii(cx, self.corner_radii);
         group.set_overflow(cx, self.overflow);
@@ -219,7 +219,7 @@ where
 
         let state = FlexState {
             state,
-            background_color: self.background_color,
+            background_color: self.background,
             border_color: self.border_color,
             corner_radii: self.corner_radii,
             overflow: self.overflow,
@@ -239,9 +239,9 @@ where
     ) {
         let _ = cx.set_layout_style(*element.node, self.layout);
 
-        if state.background_color != self.background_color {
-            state.background_color = self.background_color;
-            (element.widget).set_background_color(cx, self.background_color);
+        if state.background_color != self.background {
+            state.background_color = self.background;
+            (element.widget).set_background_color(cx, self.background);
         }
 
         if state.border_color != self.border_color {

@@ -43,7 +43,7 @@ fn ui(data: &Data) -> impl Effect<Data> + use<> {
             .flex(1.0)
             .justify_contents(Justify::Center)
             .align_items(Align::Center)
-            .background_color(theme::BACKGROUND),
+            .background(theme::BACKGROUND),
         ),
         receive(|data: &mut Data, Remove(index)| {
             data.todos.remove(index);
@@ -113,7 +113,7 @@ fn todo(index: usize, _todo: &Todo) -> impl View<Data> + use<> {
         .border_color(theme::BORDER)
         .justify_contents(Justify::SpaceBetween)
         .align_items(Align::Center)
-        .background_color(if state.hovered {
+        .background(if state.hovered {
             theme::BACKGROUND.lighten(0.02)
         } else {
             Color::TRANSPARENT
@@ -145,7 +145,7 @@ fn remove<T>(index: usize) -> impl View<T> {
         row(icon)
             .size(28.0, 28.0)
             .corner(8.0)
-            .background_color(theme::DANGER)
+            .background(theme::DANGER)
             .justify_contents(Justify::Center)
             .align_items(Align::Center)
     })
