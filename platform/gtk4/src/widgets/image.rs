@@ -118,9 +118,7 @@ impl Paintable {
     }
 
     fn new_svg(data: &[u8]) -> io::Result<Self> {
-        let handle = librsvg::Handle::from_data(data)
-            .map_err(io::Error::other)?
-            .ok_or_else(|| io::Error::other("no handle"))?;
+        let handle = librsvg::Handle::from_data(data).map_err(io::Error::other)?;
 
         let this: Self = glib::Object::builder().build();
         this.imp().handle.replace(Contents::Svg(handle));
