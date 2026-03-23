@@ -25,10 +25,10 @@ fn ui(data: &Data) -> impl Effect<Data> + use<> {
             .on_press(|data: &mut Data| data.count += 1),
             text(format!("Pressed {} times.", data.count)),
         ))
-        .flex(1.0)
-        .gap(20.0)
-        .justify_contents(Justify::Center)
+        .justify_content(Justify::Center)
         .align_items(Align::Center)
-        .background(Color::WHITE),
+        .background(Color::WHITE)
+        .flex(1.0)
+        .gap(20.0),
     )
 }

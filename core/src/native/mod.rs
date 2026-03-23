@@ -9,7 +9,7 @@ mod textinput;
 mod transform;
 mod window;
 
-pub use group::{NativeGroup, WrappedGroup};
+pub use group::{Group, NativeGroup};
 pub use image::NativeImage;
 pub use pressable::{NativePressable, Press};
 pub use scroll::NativeScroll;

@@ -1,7 +1,8 @@
 use ori::{Action, Message, Mut, View, ViewMarker};
 
 use crate::{
-    Affine, Context, Lifecycle, NativeWidget, Platform, Pod, WidgetView, native::NativeTransform,
+    Affine, Allocation, Context, Lifecycle, NativeWidget, Platform, Pod, WidgetView,
+    native::NativeTransform,
 };
 
 /// [`View`] that transforms its contents.
@@ -67,7 +68,7 @@ where
             widget: contents.widget,
             state,
             affine: self.affine,
-            layout: Default::default(),
+            allocation: None,
         };
 
         (pod, state)
@@ -84,14 +85,14 @@ where
         self.contents.rebuild(pod, &mut state.state, cx, data);
 
         if state.affine != self.affine
-            && let Ok(layout) = cx.get_computed_layout(*element.node).cloned()
+            && let Some(allocation) = cx.layout.get_computed_layout(*element.node)
         {
             state.affine = self.affine;
-            state.layout = layout;
+            state.allocation = Some(allocation);
             element.widget.set_content_transform(
                 &mut cx.platform,
-                layout.size.width,
-                layout.size.height,
+                allocation.size.width,
+                allocation.size.height,
                 state.affine,
             );
         }
@@ -105,14 +106,14 @@ where
         message: &mut Message,
     ) -> Action {
         if let Some(Lifecycle::Layout) = message.get()
-            && let Ok(layout) = cx.get_computed_layout(*element.node).cloned()
-            && state.layout != layout
+            && let Some(allocation) = cx.layout.get_computed_layout(*element.node)
+            && state.allocation != Some(allocation)
         {
-            state.layout = layout;
+            state.allocation = Some(allocation);
             element.widget.set_content_transform(
                 &mut cx.platform,
-                layout.size.width,
-                layout.size.height,
+                allocation.size.width,
+                allocation.size.height,
                 state.affine,
             );
         }
@@ -134,8 +135,8 @@ where
     P: Platform,
     V: WidgetView<P, T>,
 {
-    widget: V::Widget,
-    state:  V::State,
-    affine: Affine,
-    layout: taffy::Layout,
+    widget:     V::Widget,
+    state:      V::State,
+    affine:     Affine,
+    allocation: Option<Allocation>,
 }

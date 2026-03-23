@@ -3,7 +3,8 @@ use std::{cell::Cell, rc::Rc};
 use glib::object::ObjectExt;
 use gtk4::prelude::{TextBufferExt, TextViewExt, WidgetExt};
 use ori_native_core::{
-    Font, Measure, NativeWidget, Stretch, native::NativeTextInput, views::Newline,
+    AvailableSpace, Font, Measure, NativeWidget, Size, Stretch, native::NativeTextInput,
+    views::Newline,
 };
 
 use crate::{Platform, platform::StyleNode};
@@ -203,9 +204,9 @@ impl Measure<Platform> for Layout {
     fn measure(
         &mut self,
         _platform: &mut Platform,
-        _known_size: taffy::Size<Option<f32>>,
-        _available_space: taffy::Size<taffy::AvailableSpace>,
-    ) -> taffy::Size<f32> {
+        _known_size: Size<Option<f32>>,
+        _available_space: Size<AvailableSpace>,
+    ) -> Size<f32> {
         let context = self.view.pango_context();
 
         let desc = super::text::font_description(&self.font);
@@ -216,7 +217,7 @@ impl Measure<Platform> for Layout {
         let metrics = context.metrics(Some(&desc), context.language().as_ref());
         let pheight = (metrics.ascent() + metrics.descent()) as f32 / pango::SCALE as f32;
 
-        taffy::Size {
+        Size {
             width:  0.0,
             height: theight.max(pheight).ceil(),
         }

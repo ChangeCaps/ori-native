@@ -5,6 +5,7 @@
 mod context;
 mod element;
 mod input;
+mod layout;
 mod lifecycle;
 mod platform;
 mod safearea;
@@ -14,17 +15,19 @@ mod text;
 pub mod native;
 pub mod views;
 
-pub use context::{BoxedEffect, Context, Measure};
+pub use context::{BoxedEffect, Context};
 pub use element::{
     BoxedWidget, NativeParent, NativeWidget, Pod, PodMut, WidgetView, WidgetViewSeq,
 };
 pub use input::{Input, InputFilter, InputHandler, InputMessage, MatchKey};
+pub use layout::{Allocation, AvailableSpace, LayoutNode, LayoutTree, Measure};
 pub use lifecycle::{AnimateRequest, LayoutRequest, Lifecycle};
 pub use platform::{Platform, Unsupported};
 pub use safearea::SafeAreaInsets;
 pub use style::{
-    Affine, Align, AutoLength, Border, Color, Container, Direction, FlexContainer, Fract, Justify,
-    Layout, Length, NavigationBar, Overflow, Position, Shadow, Sizing, StatusBar,
+    Affine, Align, AutoLength, Border, BorderStyle, Color, Corners, Direction, Fract, Justify,
+    Layout, LayoutStyle, Length, NavigationBar, Overflow, Padding, Position, Shadow, Sides, Size,
+    Sizing, StatusBar,
 };
 pub use text::{Font, Stretch, TextSpan, Weight, Wrap};
 

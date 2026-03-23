@@ -14,7 +14,7 @@ pub enum Lifecycle {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum LayoutRequest {
     /// Recompute layout of contents.
-    Relayout,
+    Layout,
 }
 
 /// A request regarding animation.

@@ -1,8 +1,8 @@
 use ori::{Action, Message, Mut, View, ViewMarker};
 
 use crate::{
-    Border, Color, Container, Context, Direction, FlexContainer, Layout, Lifecycle, Overflow,
-    Platform, Pod, Shadow, element::WidgetViewSeq, native::WrappedGroup,
+    Align, Border, BorderStyle, Color, Context, Direction, Justify, Layout, LayoutStyle, Length,
+    Lifecycle, Overflow, Padding, Platform, Pod, Shadow, Sides, Size, WidgetViewSeq, native::Group,
 };
 
 /// Container [`View`] with flexbox layout.
@@ -22,14 +22,19 @@ pub fn column<V>(contents: V) -> Flex<V> {
 
 /// [`View`] of a flex container.
 pub struct Flex<V> {
-    contents:       V,
-    layout:         taffy::Style,
-    background:     Color,
-    border_color:   Color,
-    corner_radii:   [f32; 4],
-    overflow:       Overflow,
-    shadow:         Shadow,
-    hardware_layer: bool,
+    contents:        V,
+    layout:          LayoutStyle,
+    border:          BorderStyle,
+    padding:         Sides<Length>,
+    direction:       Direction,
+    justify_content: Option<Justify>,
+    align_items:     Option<Align>,
+    gap:             Length,
+    background:      Color,
+    corner_radii:    [f32; 4],
+    overflow:        Overflow,
+    shadow:          Shadow,
+    hardware_layer:  bool,
 }
 
 impl<V> Flex<V> {
@@ -37,12 +42,14 @@ impl<V> Flex<V> {
     pub fn new(contents: V) -> Self {
         Self {
             contents,
-            layout: taffy::Style {
-                display: taffy::Display::Flex,
-                ..Default::default()
-            },
+            layout: LayoutStyle::default(),
+            border: BorderStyle::default(),
+            padding: Sides::all(Length::Length(0.0)),
+            direction: Direction::Row,
+            justify_content: None,
+            align_items: None,
+            gap: Length::Length(0.0),
             background: Color::TRANSPARENT,
-            border_color: Color::TRANSPARENT,
             corner_radii: [0.0; 4],
             overflow: Overflow::Visible,
             shadow: Shadow::default(),
@@ -52,25 +59,37 @@ impl<V> Flex<V> {
 
     /// Set the flex direction.
     pub fn direction(mut self, direction: Direction) -> Self {
-        self.layout.flex_direction = match direction {
-            Direction::Row => taffy::FlexDirection::Row,
-            Direction::Column => taffy::FlexDirection::Column,
-            Direction::RowReverse => taffy::FlexDirection::RowReverse,
-            Direction::ColumnReverse => taffy::FlexDirection::ColumnReverse,
-        };
-
+        self.direction = direction;
         self
     }
 
     /// Reverse the direction.
     pub fn reverse(mut self) -> Self {
-        self.layout.flex_direction = match self.layout.flex_direction {
-            taffy::FlexDirection::Row => taffy::FlexDirection::RowReverse,
-            taffy::FlexDirection::Column => taffy::FlexDirection::ColumnReverse,
-            taffy::FlexDirection::RowReverse => taffy::FlexDirection::Row,
-            taffy::FlexDirection::ColumnReverse => taffy::FlexDirection::Column,
+        self.direction = match self.direction {
+            Direction::Row => Direction::RowReverse,
+            Direction::Column => Direction::ColumnReverse,
+            Direction::RowReverse => Direction::Row,
+            Direction::ColumnReverse => Direction::Column,
         };
 
+        self
+    }
+
+    /// Set how contents are justified within the container.
+    pub fn justify_content(mut self, justify: Justify) -> Self {
+        self.justify_content = Some(justify);
+        self
+    }
+
+    /// Set how items are aligned within the container.
+    pub fn align_items(mut self, align: Align) -> Self {
+        self.align_items = Some(align);
+        self
+    }
+
+    /// Set the gap between items within the container.
+    pub fn gap(mut self, gap: impl Into<Length>) -> Self {
+        self.gap = gap.into();
         self
     }
 
@@ -80,22 +99,9 @@ impl<V> Flex<V> {
         self
     }
 
-    /// Set the border color.
-    pub fn border_color(mut self, color: Color) -> Self {
-        self.border_color = color;
-        self
-    }
-
     /// Set the overflow behaviour.
     pub fn overflow(mut self, overflow: Overflow) -> Self {
-        let taffy = match overflow {
-            Overflow::Visible => taffy::Overflow::Visible,
-            Overflow::Hidden => taffy::Overflow::Hidden,
-        };
-
         self.overflow = overflow;
-        self.layout.overflow.x = taffy;
-        self.layout.overflow.y = taffy;
         self
     }
 
@@ -185,14 +191,22 @@ impl<V> Flex<V> {
 }
 
 impl<V> Layout for Flex<V> {
-    fn get_layout_mut(&mut self) -> &mut taffy::Style {
+    fn get_layout_style_mut(&mut self) -> &mut LayoutStyle {
         &mut self.layout
     }
 }
 
-impl<V> Container for Flex<V> {}
-impl<V> FlexContainer for Flex<V> {}
-impl<V> Border for Flex<V> {}
+impl<V> Border for Flex<V> {
+    fn get_border_style_mut(&mut self) -> &mut BorderStyle {
+        &mut self.border
+    }
+}
+
+impl<V> Padding for Flex<V> {
+    fn get_padding_mut(&mut self) -> &mut Sides<Length> {
+        &mut self.padding
+    }
+}
 
 impl<V> ViewMarker for Flex<V> {}
 impl<P, T, V> View<Context<P>, T> for Flex<V>
@@ -200,15 +214,26 @@ where
     P: Platform,
     V: WidgetViewSeq<P, T>,
 {
-    type Element = Pod<P, WrappedGroup<P>>;
+    type Element = Pod<P, Group<P>>;
     type State = FlexState<P, T, V>;
 
     fn build(self, cx: &mut Context<P>, data: &mut T) -> (Self::Element, Self::State) {
-        let node = cx.new_layout_node(self.layout, &[]);
+        let node = cx.layout.add_node(&[]);
+        cx.layout.set_layout(node, self.layout);
+        cx.layout.set_border(node, self.border);
+        cx.layout.set_padding(node, self.padding);
+        cx.layout.set_overflow(node, Size::all(self.overflow));
+        cx.layout.set_flex(
+            node,
+            self.direction,
+            self.justify_content,
+            self.align_items,
+            Size::all(self.gap),
+        );
 
-        let mut group = WrappedGroup::new(cx);
-        group.set_background_color(cx, self.background);
-        group.set_border_color(cx, self.border_color);
+        let mut group = Group::new(cx);
+        group.set_background(cx, self.background);
+        group.set_border_color(cx, self.border.color);
         group.set_corner_radii(cx, self.corner_radii);
         group.set_overflow(cx, self.overflow);
         group.set_shadow(cx, self.shadow);
@@ -219,10 +244,16 @@ where
 
         let state = FlexState {
             state,
-            background_color: self.background,
-            border_color: self.border_color,
-            corner_radii: self.corner_radii,
+            layout: self.layout,
+            border: self.border,
+            padding: self.padding,
             overflow: self.overflow,
+            direction: self.direction,
+            justify_content: self.justify_content,
+            align_items: self.align_items,
+            gap: self.gap,
+            background: self.background,
+            corner_radii: self.corner_radii,
             shadow: self.shadow,
             hardware_layer: self.hardware_layer,
         };
@@ -237,16 +268,48 @@ where
         cx: &mut Context<P>,
         data: &mut T,
     ) {
-        let _ = cx.set_layout_style(*element.node, self.layout);
-
-        if state.background_color != self.background {
-            state.background_color = self.background;
-            (element.widget).set_background_color(cx, self.background);
+        if state.layout != self.layout {
+            state.layout = self.layout;
+            (cx.layout).set_layout(*element.node, self.layout);
         }
 
-        if state.border_color != self.border_color {
-            state.border_color = self.border_color;
-            (element.widget).set_border_color(cx, self.border_color);
+        if state.padding != self.padding {
+            state.padding = self.padding;
+            (cx.layout).set_padding(*element.node, self.padding);
+        }
+
+        if state.overflow != self.overflow {
+            state.overflow = self.overflow;
+            (cx.layout).set_overflow(*element.node, Size::all(self.overflow));
+        }
+
+        if state.direction != self.direction
+            || state.justify_content != self.justify_content
+            || state.align_items != self.align_items
+            || state.gap != self.gap
+        {
+            state.direction = self.direction;
+            state.justify_content = self.justify_content;
+            state.align_items = self.align_items;
+            state.gap = self.gap;
+            (cx.layout).set_flex(
+                *element.node,
+                self.direction,
+                self.justify_content,
+                self.align_items,
+                Size::all(self.gap),
+            );
+        }
+
+        if state.border != self.border {
+            state.border = self.border;
+            (cx.layout).set_border(*element.node, self.border);
+            (element.widget).set_border_color(cx, self.border.color);
+        }
+
+        if state.background != self.background {
+            state.background = self.background;
+            (element.widget).set_background(cx, self.background);
         }
 
         if state.corner_radii != self.corner_radii {
@@ -305,7 +368,7 @@ where
         );
 
         element.widget.teardown(cx);
-        let _ = cx.remove_layout_node(element.node);
+        cx.layout.remove_node(element.node);
     }
 }
 
@@ -314,11 +377,17 @@ where
     P: Platform,
     V: WidgetViewSeq<P, T>,
 {
-    state:            V::State,
-    background_color: Color,
-    border_color:     Color,
-    corner_radii:     [f32; 4],
-    overflow:         Overflow,
-    shadow:           Shadow,
-    hardware_layer:   bool,
+    state:           V::State,
+    layout:          LayoutStyle,
+    border:          BorderStyle,
+    padding:         Sides<Length>,
+    overflow:        Overflow,
+    direction:       Direction,
+    justify_content: Option<Justify>,
+    align_items:     Option<Align>,
+    gap:             Length,
+    background:      Color,
+    corner_radii:    [f32; 4],
+    shadow:          Shadow,
+    hardware_layer:  bool,
 }

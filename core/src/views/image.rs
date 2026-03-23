@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use ori::{Action, Message, Mut, View, ViewMarker};
 
-use crate::{Color, Context, Layout, Platform, Pod, native::NativeImage};
+use crate::{Color, Context, Layout, LayoutStyle, Platform, Pod, native::NativeImage};
 
 /// [`View`] of an image.
 pub fn image(data: impl Into<Cow<'static, [u8]>>) -> Image {
@@ -11,16 +11,16 @@ pub fn image(data: impl Into<Cow<'static, [u8]>>) -> Image {
 
 /// [`View`] of an image.
 pub struct Image {
-    style: taffy::Style,
-    data:  Cow<'static, [u8]>,
-    tint:  Option<Color>,
+    layout: LayoutStyle,
+    data:   Cow<'static, [u8]>,
+    tint:   Option<Color>,
 }
 
 impl Image {
     /// Create new [`Image`].
     pub fn new(data: Cow<'static, [u8]>) -> Self {
         Self {
-            style: Default::default(),
+            layout: Default::default(),
             data,
             tint: None,
         }
@@ -36,8 +36,8 @@ impl Image {
 }
 
 impl Layout for Image {
-    fn get_layout_mut(&mut self) -> &mut taffy::Style {
-        &mut self.style
+    fn get_layout_style_mut(&mut self) -> &mut LayoutStyle {
+        &mut self.layout
     }
 }
 
@@ -55,17 +55,20 @@ where
 
         let hash = seahash::hash(&self.data);
         let node = match widget.load_data(&mut cx.platform, self.data) {
-            Ok(layout) => cx.new_layout_leaf(self.style, layout),
+            Ok(layout) => cx.layout.add_leaf(layout),
 
             Err(error) => {
                 tracing::error!(?error, "loading image failed");
-                cx.new_layout_node(self.style, &[])
+                cx.layout.add_node(&[])
             }
         };
+
+        cx.layout.set_layout(node, self.layout);
 
         let pod = Pod::new(node, widget);
 
         let state = ImageState {
+            layout: self.layout,
             hash,
             tint: self.tint,
         };
@@ -80,7 +83,10 @@ where
         cx: &mut Context<P>,
         _data: &mut T,
     ) {
-        let _ = cx.set_layout_style(*element.node, self.style);
+        if state.layout != self.layout {
+            state.layout = self.layout;
+            cx.layout.set_layout(*element.node, self.layout);
+        }
 
         let hash = seahash::hash(&self.data);
 
@@ -89,7 +95,7 @@ where
 
             match element.widget.load_data(&mut cx.platform, self.data) {
                 Ok(layout) => {
-                    let _ = cx.set_layout_measure(*element.node, layout);
+                    cx.layout.set_measure(*element.node, layout);
                 }
 
                 Err(error) => tracing::error!(?error, "loading image failed"),
@@ -118,6 +124,7 @@ where
 }
 
 pub struct ImageState {
-    hash: u64,
-    tint: Option<Color>,
+    layout: LayoutStyle,
+    hash:   u64,
+    tint:   Option<Color>,
 }

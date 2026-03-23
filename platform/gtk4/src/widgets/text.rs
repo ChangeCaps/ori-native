@@ -1,6 +1,7 @@
 use gtk4::prelude::{TextBufferExt, TextBufferExtManual, TextTagExt, TextViewExt, WidgetExt};
 use ori_native_core::{
-    Font, Measure, NativeWidget, Stretch, TextSpan, Weight, Wrap, native::NativeText,
+    AvailableSpace, Font, Measure, NativeWidget, Size, Stretch, TextSpan, Weight, Wrap,
+    native::NativeText,
 };
 
 use crate::Platform;
@@ -75,18 +76,18 @@ pub struct TextLayout {
 }
 
 struct CachedSize {
-    size:            taffy::Size<f32>,
-    known_size:      taffy::Size<Option<f32>>,
-    available_space: taffy::Size<taffy::AvailableSpace>,
+    size:            Size<f32>,
+    known_size:      Size<Option<f32>>,
+    available_space: Size<AvailableSpace>,
 }
 
 impl Measure<Platform> for TextLayout {
     fn measure(
         &mut self,
         _platform: &mut Platform,
-        known_size: taffy::Size<Option<f32>>,
-        available_space: taffy::Size<taffy::AvailableSpace>,
-    ) -> taffy::Size<f32> {
+        known_size: Size<Option<f32>>,
+        available_space: Size<AvailableSpace>,
+    ) -> Size<f32> {
         for cached_size in self.cache.iter() {
             if cached_size.known_size == known_size
                 && cached_size.available_space == available_space
@@ -127,16 +128,16 @@ impl Measure<Platform> for TextLayout {
 
         if !matches!(self.wrap, Wrap::None) {
             match available_space.width {
-                taffy::AvailableSpace::MinContent => layout.set_width(0),
-                taffy::AvailableSpace::MaxContent => layout.set_width(-1),
-                taffy::AvailableSpace::Definite(width) => {
+                AvailableSpace::MinContent => layout.set_width(0),
+                AvailableSpace::MaxContent => layout.set_width(-1),
+                AvailableSpace::Definite(width) => {
                     layout.set_width((width * pango::SCALE as f32).round() as i32);
                 }
             }
         }
 
         let (width, height) = layout.pixel_size();
-        let size = taffy::Size {
+        let size = Size {
             width:  known_size.width.unwrap_or(width as f32),
             height: min_height.max(height as f32),
         };

@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use ori::{Action, Message, Mut, View, ViewMarker};
 
 use crate::{
-    Color, Context, Font, Layout, Platform, Pod, Stretch, TextSpan, Weight, Wrap,
+    Color, Context, Font, Layout, LayoutStyle, Platform, Pod, Stretch, TextSpan, Weight, Wrap,
     native::NativeText,
 };
 
@@ -14,7 +14,7 @@ pub fn text(text: impl Into<String>) -> Text {
 
 /// [`View`] of a text paragraph.
 pub struct Text {
-    layout: taffy::Style,
+    layout: LayoutStyle,
     font:   Font,
     text:   String,
     wrap:   Wrap,
@@ -24,13 +24,7 @@ impl Text {
     /// Create new [`Text`].
     pub fn new(text: impl Into<String>) -> Self {
         Self {
-            layout: taffy::Style {
-                overflow: taffy::Point {
-                    x: taffy::Overflow::Hidden,
-                    y: taffy::Overflow::Hidden,
-                },
-                ..Default::default()
-            },
+            layout: LayoutStyle::default(),
             font:   Default::default(),
             text:   text.into(),
             wrap:   Wrap::None,
@@ -87,7 +81,7 @@ impl Text {
 }
 
 impl Layout for Text {
-    fn get_layout_mut(&mut self) -> &mut taffy::Style {
+    fn get_layout_style_mut(&mut self) -> &mut LayoutStyle {
         &mut self.layout
     }
 }
@@ -98,7 +92,7 @@ where
     P: Platform,
 {
     type Element = Pod<P, P::Text>;
-    type State = (Font, String);
+    type State = TextState;
 
     fn build(self, cx: &mut Context<P>, _data: &mut T) -> (Self::Element, Self::State) {
         let spans = [TextSpan {
@@ -115,28 +109,37 @@ where
             self.wrap,
         );
 
-        let node = cx.new_layout_leaf(self.layout, layout);
+        let node = cx.layout.add_leaf(layout);
+        cx.layout.set_layout(node, self.layout);
 
         let pod = Pod::new(node, widget);
 
-        (pod, (self.font, self.text))
+        let state = TextState {
+            layout: self.layout,
+            font:   self.font,
+            text:   self.text,
+        };
+
+        (pod, state)
     }
 
     fn rebuild(
         self,
         element: Mut<'_, Self::Element>,
-        (font, text): &mut Self::State,
+        state: &mut Self::State,
         cx: &mut Context<P>,
         _data: &mut T,
     ) {
-        let _ = cx.set_layout_style(*element.node, self.layout);
+        if state.layout != self.layout {
+            cx.layout.set_layout(*element.node, self.layout);
+        }
 
-        if self.font == *font && self.text == *text {
+        if state.font == self.font && state.text == self.text {
             return;
         }
 
-        *font = self.font.clone();
-        *text = self.text.clone();
+        state.font = self.font.clone();
+        state.text = self.text.clone();
 
         let spans = [TextSpan {
             font:  self.font,
@@ -150,7 +153,7 @@ where
             self.wrap,
         );
 
-        let _ = cx.set_layout_measure(*element.node, layout);
+        cx.layout.set_measure(*element.node, layout);
     }
 
     fn message(
@@ -165,6 +168,12 @@ where
 
     fn teardown(element: Self::Element, _state: Self::State, cx: &mut Context<P>) {
         element.widget.teardown(&mut cx.platform);
-        let _ = cx.remove_layout_node(element.node);
+        cx.layout.remove_node(element.node);
     }
+}
+
+pub struct TextState {
+    layout: LayoutStyle,
+    font:   Font,
+    text:   String,
 }

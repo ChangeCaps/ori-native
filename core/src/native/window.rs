@@ -14,8 +14,8 @@ where
 
     fn teardown(self, platform: &mut P);
 
-    fn get_size(&self, platform: &mut P) -> (u32, u32);
-    fn get_preferred_size(&self, platform: &mut P) -> (Option<u32>, Option<u32>);
+    fn get_size(&self, platform: &mut P) -> (f32, f32);
+    fn get_preferred_size(&self, platform: &mut P) -> (Option<f32>, Option<f32>);
 
     fn set_on_animation_frame(&mut self, platform: &mut P, on_frame: impl Fn(Duration) + 'static);
     fn set_on_resize(&mut self, platform: &mut P, on_resize: impl Fn() + 'static);
@@ -32,8 +32,8 @@ where
     fn set_content_layout(&mut self, platform: &mut P, x: f32, y: f32, width: f32, height: f32);
 
     fn set_title(&mut self, platform: &mut P, title: String);
-    fn set_min_size(&mut self, platform: &mut P, width: u32, height: u32);
-    fn set_size(&mut self, platform: &mut P, width: u32, height: u32);
+    fn set_min_size(&mut self, platform: &mut P, width: f32, height: f32);
+    fn set_size(&mut self, platform: &mut P, width: f32, height: f32);
     fn set_resizable(&mut self, platform: &mut P, resizable: bool);
 
     fn set_status_bar(&mut self, platform: &mut P, bar: StatusBar);
@@ -52,11 +52,11 @@ where
         unreachable!()
     }
 
-    fn get_size(&self, _platform: &mut P) -> (u32, u32) {
+    fn get_size(&self, _platform: &mut P) -> (f32, f32) {
         unreachable!()
     }
 
-    fn get_preferred_size(&self, _platform: &mut P) -> (Option<u32>, Option<u32>) {
+    fn get_preferred_size(&self, _platform: &mut P) -> (Option<f32>, Option<f32>) {
         unreachable!()
     }
 
@@ -111,11 +111,11 @@ where
         unreachable!()
     }
 
-    fn set_min_size(&mut self, _platform: &mut P, _width: u32, _height: u32) {
+    fn set_min_size(&mut self, _platform: &mut P, _width: f32, _height: f32) {
         unreachable!()
     }
 
-    fn set_size(&mut self, _platform: &mut P, _width: u32, _height: u32) {
+    fn set_size(&mut self, _platform: &mut P, _width: f32, _height: f32) {
         unreachable!()
     }
 

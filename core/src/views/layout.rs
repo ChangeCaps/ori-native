@@ -1,6 +1,6 @@
 use ori::{Action, Message, Mut, Proxied, View, ViewMarker};
 
-use crate::{Context, Lifecycle, Platform, WidgetView};
+use crate::{Allocation, Context, Lifecycle, Platform, WidgetView};
 
 /// [`View`] with a callback when layout changes.
 pub fn on_layout<T, V, A>(
@@ -35,7 +35,7 @@ where
     A: Into<Action>,
 {
     type Element = V::Element;
-    type State = (V::State, F, Option<taffy::Layout>);
+    type State = (V::State, F, Option<Allocation>);
 
     fn build(self, cx: &mut Context<P>, data: &mut T) -> (Self::Element, Self::State) {
         let (element, state) = self.contents.build(cx, data);
@@ -56,21 +56,21 @@ where
 
     fn message(
         element: Mut<'_, Self::Element>,
-        (state, on_layout, current_layout): &mut Self::State,
+        (state, on_layout, current_allocation): &mut Self::State,
         cx: &mut Context<P>,
         data: &mut T,
         message: &mut Message,
     ) -> Action {
         if let Some(Lifecycle::Layout) = message.get()
-            && let Ok(layout) = cx.get_computed_layout(*element.node).copied()
-            && *current_layout != Some(layout)
+            && let Some(allocation) = cx.layout.get_computed_layout(*element.node)
+            && *current_allocation != Some(allocation)
         {
-            *current_layout = Some(layout);
+            *current_allocation = Some(allocation);
 
             let action = on_layout(
                 data,
-                layout.size.width,
-                layout.size.height,
+                allocation.size.width,
+                allocation.size.height,
             );
 
             cx.send_action(action.into());

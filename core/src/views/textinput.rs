@@ -3,7 +3,8 @@ use std::borrow::Cow;
 use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarker};
 
 use crate::{
-    Color, Context, Font, Layout, Platform, Pod, Stretch, Weight, native::NativeTextInput,
+    Color, Context, Font, Layout, LayoutStyle, Platform, Pod, Stretch, Weight,
+    native::NativeTextInput,
 };
 
 /// [`View`] of a text input.
@@ -27,7 +28,7 @@ pub enum Newline {
 /// [`View`] of a text input.
 #[allow(clippy::type_complexity)]
 pub struct TextInput<T> {
-    layout: taffy::Style,
+    layout: LayoutStyle,
     font:   Font,
     text:   Option<String>,
 
@@ -50,13 +51,7 @@ impl<T> TextInput<T> {
     /// Create new [`TextInput`].
     pub fn new() -> Self {
         Self {
-            layout: taffy::Style {
-                overflow: taffy::Point {
-                    x: taffy::Overflow::Hidden,
-                    y: taffy::Overflow::Hidden,
-                },
-                ..Default::default()
-            },
+            layout: LayoutStyle::default(),
             font:   Default::default(),
             text:   None,
 
@@ -207,7 +202,7 @@ impl<T> TextInput<T> {
 }
 
 impl<T> Layout for TextInput<T> {
-    fn get_layout_mut(&mut self) -> &mut taffy::Style {
+    fn get_layout_style_mut(&mut self) -> &mut LayoutStyle {
         &mut self.layout
     }
 }
@@ -247,7 +242,8 @@ where
         widget.set_accept_tab(&mut cx.platform, self.accept_tab);
 
         let layout = widget.get_layout(&mut cx.platform);
-        let node = cx.new_layout_leaf(self.layout, layout);
+        let node = cx.layout.add_leaf(layout);
+        cx.layout.set_layout(node, self.layout);
 
         let view_id = ViewId::next();
         cx.register(view_id);
@@ -270,6 +266,8 @@ where
 
         let pod = Pod::new(node, widget);
         let state = TextInputState {
+            layout: self.layout,
+
             font: self.font,
             text: self.text.unwrap_or_default(),
 
@@ -294,25 +292,28 @@ where
         cx: &mut Context<P>,
         _data: &mut T,
     ) {
-        let _ = cx.set_layout_style(*element.node, self.layout);
+        if state.layout != self.layout {
+            state.layout = self.layout;
+            cx.layout.set_layout(*element.node, self.layout);
+        }
 
         let mut changed = false;
 
-        if self.font != state.font {
+        if state.font != self.font {
             state.font = self.font.clone();
             element.widget.set_font(&mut cx.platform, self.font);
             changed |= true;
         }
 
         if let Some(text) = self.text
-            && text != state.text
+            && state.text != text
         {
             state.text = text.clone();
             element.widget.set_text(&mut cx.platform, text);
             changed |= true;
         }
 
-        if self.placeholder_font != state.placeholder_font {
+        if state.placeholder_font != self.placeholder_font {
             state.placeholder_font = self.placeholder_font.clone();
             element
                 .widget
@@ -320,18 +321,18 @@ where
             changed |= true;
         }
 
-        if self.placeholder_text != state.placeholder_text {
+        if state.placeholder_text != self.placeholder_text {
             state.placeholder_text = self.placeholder_text.clone();
             (element.widget).set_placeholder_text(&mut cx.platform, self.placeholder_text);
             changed |= true;
         }
 
-        if self.newline != state.newline {
+        if state.newline != self.newline {
             state.newline = self.newline;
             element.widget.set_newline(&mut cx.platform, self.newline);
         }
 
-        if self.accept_tab != state.accept_tab {
+        if state.accept_tab != self.accept_tab {
             state.accept_tab = self.accept_tab;
             element
                 .widget
@@ -340,7 +341,7 @@ where
 
         if changed {
             let layout = element.widget.get_layout(&mut cx.platform);
-            let _ = cx.set_layout_measure(*element.node, layout);
+            cx.layout.set_measure(*element.node, layout);
         }
 
         state.on_change = self.on_change;
@@ -370,13 +371,15 @@ where
 
     fn teardown(element: Self::Element, state: Self::State, cx: &mut Context<P>) {
         element.widget.teardown(&mut cx.platform);
-        let _ = cx.remove_layout_node(element.node);
+        cx.layout.remove_node(element.node);
         cx.unregister(state.view_id);
     }
 }
 
 #[allow(clippy::type_complexity)]
 pub struct TextInputState<T> {
+    layout: LayoutStyle,
+
     font: Font,
     text: String,
 

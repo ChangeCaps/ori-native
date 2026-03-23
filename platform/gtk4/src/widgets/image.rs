@@ -3,7 +3,7 @@ use std::{borrow::Cow, io};
 use gdk4::{gdk_pixbuf::prelude::PixbufLoaderExt, prelude::PaintableExt};
 use glib::subclass::types::ObjectSubclassIsExt;
 use librsvg::prelude::HandleExt;
-use ori_native_core::{Color, Measure, NativeWidget, native::NativeImage};
+use ori_native_core::{AvailableSpace, Color, Measure, NativeWidget, Size, native::NativeImage};
 
 use crate::Platform;
 
@@ -65,12 +65,12 @@ impl Measure<Platform> for Layout {
     fn measure(
         &mut self,
         _platform: &mut Platform,
-        known_size: taffy::Size<Option<f32>>,
-        _available_space: taffy::Size<taffy::AvailableSpace>,
-    ) -> taffy::Size<f32> {
+        known_size: Size<Option<f32>>,
+        _available_space: Size<AvailableSpace>,
+    ) -> Size<f32> {
         let (width, height) = self.paintable.intrinsic_size().unwrap_or((0.0, 0.0));
 
-        taffy::Size {
+        Size {
             width:  known_size.width.unwrap_or(width as f32),
             height: known_size.height.unwrap_or(height as f32),
         }

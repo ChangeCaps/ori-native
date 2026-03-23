@@ -44,7 +44,7 @@ impl NativeWindow<Platform> for Window {
 
     fn teardown(self, _platform: &mut Platform) {}
 
-    fn get_size(&self, platform: &mut Platform) -> (u32, u32) {
+    fn get_size(&self, platform: &mut Platform) -> (f32, f32) {
         let width = platform
             .jni(|env, activity| {
                 env.call_method(
@@ -69,10 +69,10 @@ impl NativeWindow<Platform> for Window {
             })
             .unwrap_or(0);
 
-        (width as u32, height as u32)
+        (width as f32, height as f32)
     }
 
-    fn get_preferred_size(&self, platform: &mut Platform) -> (Option<u32>, Option<u32>) {
+    fn get_preferred_size(&self, platform: &mut Platform) -> (Option<f32>, Option<f32>) {
         let (width, height) = self.get_size(platform);
 
         (Some(width), Some(height))
@@ -146,8 +146,8 @@ impl NativeWindow<Platform> for Window {
     }
 
     fn set_title(&mut self, _platform: &mut Platform, _title: String) {}
-    fn set_min_size(&mut self, _platform: &mut Platform, _width: u32, _height: u32) {}
-    fn set_size(&mut self, _platform: &mut Platform, _width: u32, _height: u32) {}
+    fn set_min_size(&mut self, _platform: &mut Platform, _width: f32, _height: f32) {}
+    fn set_size(&mut self, _platform: &mut Platform, _width: f32, _height: f32) {}
     fn set_resizable(&mut self, _platform: &mut Platform, _resizable: bool) {}
 
     fn set_status_bar(&mut self, platform: &mut Platform, bar: StatusBar) {

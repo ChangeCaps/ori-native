@@ -10,7 +10,6 @@ ori-native-core = { workspace = true }
 
 ori     = { workspace = true }
 tokio   = { workspace = true }
-taffy   = { workspace = true }
 tracing = { workspace = true }
 
 jni = "0.22"

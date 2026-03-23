@@ -1,5 +1,7 @@
 use jni::{jni_sig, jni_str, objects::JString};
-use ori_native_core::{Measure, NativeWidget, TextSpan, Wrap, native::NativeText};
+use ori_native_core::{
+    AvailableSpace, Measure, NativeWidget, Size, TextSpan, Wrap, native::NativeText,
+};
 
 use crate::{Platform, platform::WidgetId};
 
@@ -135,18 +137,18 @@ pub struct TextLayout {
 }
 
 struct CachedSize {
-    size:            taffy::Size<f32>,
-    known_size:      taffy::Size<Option<f32>>,
-    available_space: taffy::Size<taffy::AvailableSpace>,
+    size:            Size<f32>,
+    known_size:      Size<Option<f32>>,
+    available_space: Size<AvailableSpace>,
 }
 
 impl Measure<Platform> for TextLayout {
     fn measure(
         &mut self,
         platform: &mut Platform,
-        known_size: taffy::Size<Option<f32>>,
-        available_space: taffy::Size<taffy::AvailableSpace>,
-    ) -> taffy::Size<f32> {
+        known_size: Size<Option<f32>>,
+        available_space: Size<AvailableSpace>,
+    ) -> Size<f32> {
         for cached_size in self.cache.iter() {
             if cached_size.known_size == known_size
                 && cached_size.available_space == available_space
@@ -179,7 +181,7 @@ impl Measure<Platform> for TextLayout {
             })
             .unwrap_or(0.0);
 
-        let size = taffy::Size {
+        let size = Size {
             width: width + 1.0,
             height,
         };

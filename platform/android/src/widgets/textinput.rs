@@ -2,7 +2,9 @@ use jni::{
     EnvUnowned, jni_sig, jni_str,
     objects::{JObject, JString},
 };
-use ori_native_core::{Font, Measure, NativeWidget, native::NativeTextInput, views::Newline};
+use ori_native_core::{
+    AvailableSpace, Font, Measure, NativeWidget, Size, native::NativeTextInput, views::Newline,
+};
 
 use crate::{
     Platform,
@@ -204,9 +206,9 @@ impl Measure<Platform> for TextInputLayout {
     fn measure(
         &mut self,
         platform: &mut Platform,
-        _known_size: taffy::Size<Option<f32>>,
-        _available_space: taffy::Size<taffy::AvailableSpace>,
-    ) -> taffy::Size<f32> {
+        _known_size: Size<Option<f32>>,
+        _available_space: Size<AvailableSpace>,
+    ) -> Size<f32> {
         let height = *self.height.get_or_insert_with(|| {
             platform
                 .jni(|env, activity| {
@@ -221,7 +223,7 @@ impl Measure<Platform> for TextInputLayout {
                 .unwrap_or(0.0)
         });
 
-        taffy::Size { width: 0.0, height }
+        Size { width: 0.0, height }
     }
 }
 

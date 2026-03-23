@@ -1,7 +1,7 @@
 use std::{borrow::Cow, convert::Infallible};
 
 use jni::{jni_sig, jni_str};
-use ori_native_core::{Color, Measure, NativeWidget, native::NativeImage};
+use ori_native_core::{AvailableSpace, Color, Measure, NativeWidget, Size, native::NativeImage};
 
 use crate::{Platform, platform::WidgetId};
 
@@ -106,9 +106,9 @@ impl Measure<Platform> for ImageLayout {
     fn measure(
         &mut self,
         platform: &mut Platform,
-        known_size: taffy::Size<Option<f32>>,
-        _available_space: taffy::Size<taffy::AvailableSpace>,
-    ) -> taffy::Size<f32> {
+        known_size: Size<Option<f32>>,
+        _available_space: Size<AvailableSpace>,
+    ) -> Size<f32> {
         let width = self.width.get_or_insert_with(|| {
             platform
                 .jni(|env, activity| {
@@ -137,7 +137,7 @@ impl Measure<Platform> for ImageLayout {
                 .unwrap_or(0.0)
         });
 
-        taffy::Size {
+        Size {
             width:  known_size.width.unwrap_or(*width),
             height: known_size.height.unwrap_or(*height),
         }

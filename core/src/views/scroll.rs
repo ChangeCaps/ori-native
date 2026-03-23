@@ -1,8 +1,8 @@
 use ori::{Action, Message, Mut, View, ViewMarker};
 
 use crate::{
-    Container, Context, Direction, Layout, Lifecycle, NativeWidget, Platform, Pod, WidgetView,
-    native::NativeScroll,
+    Allocation, Context, Direction, Layout, LayoutStyle, Length, Lifecycle, NativeWidget, Overflow,
+    Platform, Pod, Size, WidgetView, native::NativeScroll,
 };
 
 /// [`View`] of a horizontal scroll area.
@@ -19,49 +19,25 @@ pub fn vscroll<V>(contents: V) -> Scroll<V> {
 pub struct Scroll<V> {
     contents:  V,
     direction: Direction,
-    style:     taffy::Style,
+    layout:    LayoutStyle,
 }
 
 impl<V> Scroll<V> {
     /// Create new [`Scroll`].
     pub fn new(contents: V, direction: Direction) -> Self {
-        let flex_direction = match direction {
-            Direction::Row => taffy::FlexDirection::Row,
-            Direction::Column => taffy::FlexDirection::Column,
-            Direction::RowReverse => taffy::FlexDirection::RowReverse,
-            Direction::ColumnReverse => taffy::FlexDirection::ColumnReverse,
-        };
-
-        let x = match direction {
-            Direction::Row | Direction::RowReverse => taffy::Overflow::Scroll,
-            Direction::Column | Direction::ColumnReverse => taffy::Overflow::Hidden,
-        };
-
-        let y = match direction {
-            Direction::Row | Direction::RowReverse => taffy::Overflow::Hidden,
-            Direction::Column | Direction::ColumnReverse => taffy::Overflow::Scroll,
-        };
-
         Self {
             contents,
             direction,
-            style: taffy::Style {
-                display: taffy::Display::Flex,
-                overflow: taffy::Point { x, y },
-                flex_direction,
-                ..Default::default()
-            },
+            layout: LayoutStyle::default(),
         }
     }
 }
 
 impl<V> Layout for Scroll<V> {
-    fn get_layout_mut(&mut self) -> &mut taffy::Style {
-        &mut self.style
+    fn get_layout_style_mut(&mut self) -> &mut LayoutStyle {
+        &mut self.layout
     }
 }
-
-impl<V> Container for Scroll<V> {}
 
 impl<V> ViewMarker for Scroll<V> {}
 impl<P, T, V> View<Context<P>, T> for Scroll<V>
@@ -74,7 +50,29 @@ where
 
     fn build(self, cx: &mut Context<P>, data: &mut T) -> (Self::Element, Self::State) {
         let (contents, state) = self.contents.build(cx, data);
-        let node = cx.new_layout_node(self.style, &[contents.node]);
+        let node = cx.layout.add_node(&[contents.node]);
+        cx.layout.set_layout(node, self.layout);
+
+        let overflow = match self.direction {
+            Direction::Row | Direction::RowReverse => Size {
+                width:  Overflow::Hidden,
+                height: Overflow::Visible,
+            },
+
+            Direction::Column | Direction::ColumnReverse => Size {
+                width:  Overflow::Visible,
+                height: Overflow::Hidden,
+            },
+        };
+
+        cx.layout.set_overflow(node, overflow);
+        cx.layout.set_flex(
+            node,
+            self.direction,
+            None,
+            None,
+            Size::all(Length::Length(0.0)),
+        );
 
         let mut widget = P::Scroll::build(
             &mut cx.platform,
@@ -87,8 +85,9 @@ where
         let state = ScrollState {
             state,
             direction: self.direction,
-            layout: Default::default(),
-            content_layout: Default::default(),
+            layout: self.layout,
+            allocation: Default::default(),
+            content_allocation: Default::default(),
         };
 
         (pod, (contents, state))
@@ -101,10 +100,35 @@ where
         cx: &mut Context<P>,
         data: &mut T,
     ) {
-        let _ = cx.set_layout_style(*element.node, self.style);
+        if state.layout != self.layout {
+            state.layout = self.layout;
+            cx.layout.set_layout(*element.node, self.layout);
+        }
 
         if state.direction != self.direction {
             state.direction = self.direction;
+
+            let overflow = match self.direction {
+                Direction::Row | Direction::RowReverse => Size {
+                    width:  Overflow::Hidden,
+                    height: Overflow::Visible,
+                },
+
+                Direction::Column | Direction::ColumnReverse => Size {
+                    width:  Overflow::Visible,
+                    height: Overflow::Hidden,
+                },
+            };
+
+            cx.layout.set_overflow(*element.node, overflow);
+            cx.layout.set_flex(
+                *element.node,
+                self.direction,
+                None,
+                None,
+                Size::all(Length::Length(0.0)),
+            );
+
             (element.widget).set_direction(&mut cx.platform, self.direction);
         }
 
@@ -123,30 +147,30 @@ where
         data: &mut T,
         message: &mut Message,
     ) -> Action {
-        if let Some(Lifecycle::Layout) = message.get() {
-            if let Ok(layout) = cx.get_computed_layout(*element.node).copied()
-                && state.layout != layout
-            {
-                state.layout = layout;
-                element.widget.set_content_size(
-                    &mut cx.platform,
-                    layout.content_size.width,
-                    layout.content_size.height,
-                );
-            }
+        if let Some(Lifecycle::Layout) = message.get()
+            && let Some(allocation) = cx.layout.get_computed_layout(*element.node)
+            && state.allocation != Some(allocation)
+        {
+            state.allocation = Some(allocation);
+            element.widget.set_content_size(
+                &mut cx.platform,
+                allocation.content_size.width,
+                allocation.content_size.height,
+            );
+        }
 
-            if let Ok(layout) = cx.get_computed_layout(contents.node).copied()
-                && state.content_layout != layout
-            {
-                state.content_layout = layout;
-                element.widget.set_content_layout(
-                    &mut cx.platform,
-                    layout.location.x,
-                    layout.location.y,
-                    layout.size.width,
-                    layout.size.height,
-                );
-            }
+        if let Some(Lifecycle::Layout) = message.get()
+            && let Some(allocation) = cx.layout.get_computed_layout(contents.node)
+            && state.content_allocation != Some(allocation)
+        {
+            state.content_allocation = Some(allocation);
+            element.widget.set_content_layout(
+                &mut cx.platform,
+                allocation.x,
+                allocation.y,
+                allocation.size.width,
+                allocation.size.height,
+            );
         }
 
         V::message(
@@ -169,8 +193,9 @@ where
     P: Platform,
     V: WidgetView<P, T>,
 {
-    state:          V::State,
-    direction:      Direction,
-    layout:         taffy::Layout,
-    content_layout: taffy::Layout,
+    state:              V::State,
+    direction:          Direction,
+    layout:             LayoutStyle,
+    allocation:         Option<Allocation>,
+    content_allocation: Option<Allocation>,
 }

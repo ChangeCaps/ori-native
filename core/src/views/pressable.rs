@@ -2,7 +2,7 @@ use keyboard_types::Modifiers;
 use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarker};
 
 use crate::{
-    Context, Input, InputHandler, Lifecycle, NativeWidget, Platform, Pod, WidgetView,
+    Allocation, Context, Input, InputHandler, Lifecycle, NativeWidget, Platform, Pod, WidgetView,
     input::MatchKey,
     native::{NativePressable, Press},
 };
@@ -179,7 +179,7 @@ where
             state,
             press,
             view_id,
-            layout: Default::default(),
+            allocation: Default::default(),
             build: self.build,
             on_press: self.on_press,
             on_hover: self.on_hover,
@@ -235,14 +235,14 @@ where
         message: &mut Message,
     ) -> Action {
         if let Some(Lifecycle::Layout) = message.get()
-            && let Ok(layout) = cx.get_computed_layout(*element.node).cloned()
-            && state.layout != layout
+            && let Some(allocation) = cx.layout.get_computed_layout(*element.node)
+            && state.allocation != Some(allocation)
         {
-            state.layout = layout;
+            state.allocation = Some(allocation);
             element.widget.set_content_size(
                 &mut cx.platform,
-                layout.size.width,
-                layout.size.height,
+                allocation.size.width,
+                allocation.size.height,
             );
         }
 
@@ -309,14 +309,14 @@ where
     P: Platform,
     V: WidgetView<P, T>,
 {
-    widget:   V::Widget,
-    state:    V::State,
-    press:    PressState,
-    view_id:  ViewId,
-    layout:   taffy::Layout,
-    build:    Box<dyn FnMut(&T, PressState) -> V>,
-    on_press: Box<dyn FnMut(&mut T) -> Action>,
-    on_hover: Box<dyn FnMut(&mut T, bool) -> Action>,
-    on_focus: Box<dyn FnMut(&mut T, bool) -> Action>,
-    handler:  InputHandler<T>,
+    widget:     V::Widget,
+    state:      V::State,
+    press:      PressState,
+    view_id:    ViewId,
+    allocation: Option<Allocation>,
+    build:      Box<dyn FnMut(&T, PressState) -> V>,
+    on_press:   Box<dyn FnMut(&mut T) -> Action>,
+    on_hover:   Box<dyn FnMut(&mut T, bool) -> Action>,
+    on_focus:   Box<dyn FnMut(&mut T, bool) -> Action>,
+    handler:    InputHandler<T>,
 }

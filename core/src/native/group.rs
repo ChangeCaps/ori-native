@@ -1,8 +1,8 @@
 use ori::{Elements, Mut};
 
 use crate::{
-    BoxedWidget, Color, Context, NativeWidget, Overflow, Platform, PodMut, Shadow, Unsupported,
-    element::NativeParent, platform::unsupported,
+    Allocation, BoxedWidget, Color, Context, LayoutNode, NativeWidget, Overflow, Platform, PodMut,
+    Shadow, Unsupported, element::NativeParent, platform::unsupported,
 };
 
 pub trait NativeGroup<P>: NativeWidget<P> + NativeParent<P>
@@ -102,16 +102,21 @@ where
     }
 }
 
-pub struct WrappedGroup<P>
+pub struct Group<P>
 where
     P: Platform,
 {
     group:        P::Group,
-    children:     Vec<(BoxedWidget<P>, taffy::Layout)>,
+    children:     Vec<Child<P>>,
     border_width: [f32; 4],
 }
 
-impl<P> WrappedGroup<P>
+struct Child<P> {
+    element:    BoxedWidget<P>,
+    allocation: Option<Allocation>,
+}
+
+impl<P> Group<P>
 where
     P: Platform,
 {
@@ -127,7 +132,7 @@ where
         self.group.teardown(&mut cx.platform);
     }
 
-    pub fn elements(&mut self, node: taffy::NodeId) -> impl Elements<Context<P>, BoxedWidget<P>> {
+    pub fn elements(&mut self, node: LayoutNode) -> impl Elements<Context<P>, BoxedWidget<P>> {
         GroupElements {
             node,
             index: 0,
@@ -136,7 +141,7 @@ where
         }
     }
 
-    pub fn set_background_color(&mut self, cx: &mut Context<P>, color: Color) {
+    pub fn set_background(&mut self, cx: &mut Context<P>, color: Color) {
         self.group.set_background_color(&mut cx.platform, color);
     }
 
@@ -160,13 +165,13 @@ where
         self.group.set_hardware_layer(&mut cx.platform, enabled);
     }
 
-    pub fn layout(&mut self, cx: &mut Context<P>, node: taffy::NodeId) {
-        if let Ok(layout) = cx.get_computed_layout(node).cloned() {
+    pub fn layout(&mut self, cx: &mut Context<P>, node: LayoutNode) {
+        if let Some(allocation) = cx.layout.get_computed_layout(node) {
             let border_width = [
-                layout.border.top,
-                layout.border.right,
-                layout.border.bottom,
-                layout.border.left,
+                allocation.border.top,
+                allocation.border.right,
+                allocation.border.bottom,
+                allocation.border.left,
             ];
 
             if self.border_width != border_width {
@@ -175,25 +180,25 @@ where
             }
         }
 
-        for (index, (child, current_layout)) in self.children.iter_mut().enumerate() {
-            if let Ok(layout) = cx.get_computed_layout(child.node).cloned()
-                && *current_layout != layout
+        for (index, child) in self.children.iter_mut().enumerate() {
+            if let Some(allocation) = cx.layout.get_computed_layout(child.element.node)
+                && child.allocation != Some(allocation)
             {
-                *current_layout = layout;
+                child.allocation = Some(allocation);
                 self.group.set_child_layout(
                     &mut cx.platform,
                     index,
-                    layout.location.x,
-                    layout.location.y,
-                    layout.size.width,
-                    layout.size.height,
+                    allocation.x,
+                    allocation.y,
+                    allocation.size.width,
+                    allocation.size.height,
                 );
             }
         }
     }
 }
 
-impl<P> NativeWidget<P> for WrappedGroup<P>
+impl<P> NativeWidget<P> for Group<P>
 where
     P: Platform,
 {
@@ -206,10 +211,10 @@ struct GroupElements<'a, P>
 where
     P: Platform,
 {
-    node:     taffy::NodeId,
+    node:     LayoutNode,
     index:    usize,
     group:    &'a mut P::Group,
-    children: &'a mut Vec<(BoxedWidget<P>, taffy::Layout)>,
+    children: &'a mut Vec<Child<P>>,
 }
 
 impl<P> Elements<Context<P>, BoxedWidget<P>> for GroupElements<'_, P>
@@ -217,14 +222,14 @@ where
     P: Platform,
 {
     fn next(&mut self, _cx: &mut Context<P>) -> Option<Mut<'_, BoxedWidget<P>>> {
-        let (child, _) = self.children.get_mut(self.index)?;
+        let child = self.children.get_mut(self.index)?;
         let pod = PodMut {
             parent_node:   self.node,
             parent_widget: self.group,
 
             index:  self.index,
-            node:   &mut child.node,
-            widget: &mut child.widget,
+            node:   &mut child.element.node,
+            widget: &mut child.element.widget,
         };
 
         self.index += 1;
@@ -232,7 +237,7 @@ where
     }
 
     fn insert(&mut self, cx: &mut Context<P>, element: BoxedWidget<P>) {
-        let _ = cx.insert_layout_child(self.node, self.index, element.node);
+        cx.layout.insert_child(self.node, self.index, element.node);
 
         self.group.insert_child(
             &mut cx.platform,
@@ -242,7 +247,10 @@ where
 
         self.children.insert(
             self.index,
-            (element, Default::default()),
+            Child {
+                element,
+                allocation: None,
+            },
         );
 
         self.index += 1;
@@ -250,23 +258,23 @@ where
 
     fn remove(&mut self, cx: &mut Context<P>) -> Option<BoxedWidget<P>> {
         self.group.remove_child(&mut cx.platform, self.index);
-        let (child, _) = self.children.remove(self.index);
-        let _ = cx.remove_layout_child(self.node, self.index);
+        let child = self.children.remove(self.index);
+        cx.layout.remove_child(self.node, self.index);
 
-        Some(child)
+        Some(child.element)
     }
 
     fn swap(&mut self, cx: &mut Context<P>, offset: usize) {
-        let _ = cx.replace_layout_child(
+        cx.layout.replace_child(
             self.node,
             self.index,
-            self.children[self.index + offset].0.node,
+            self.children[self.index + offset].element.node,
         );
 
-        let _ = cx.replace_layout_child(
+        cx.layout.replace_child(
             self.node,
             self.index + offset,
-            self.children[self.index].0.node,
+            self.children[self.index].element.node,
         );
 
         self.group.swap_children(

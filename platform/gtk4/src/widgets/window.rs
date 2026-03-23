@@ -32,14 +32,14 @@ impl NativeWindow<Platform> for Window {
         self.destroy();
     }
 
-    fn get_size(&self, _platform: &mut Platform) -> (u32, u32) {
+    fn get_size(&self, _platform: &mut Platform) -> (f32, f32) {
         (
-            self.width() as u32,
-            self.height() as u32,
+            self.width() as f32,
+            self.height() as f32,
         )
     }
 
-    fn get_preferred_size(&self, _platform: &mut Platform) -> (Option<u32>, Option<u32>) {
+    fn get_preferred_size(&self, _platform: &mut Platform) -> (Option<f32>, Option<f32>) {
         #[allow(unused_mut)]
         let mut min_width = None;
         #[allow(unused_mut)]
@@ -55,11 +55,11 @@ impl NativeWindow<Platform> for Window {
                 let geometry = monitor.geometry();
 
                 if self.is_anchor(Edge::Left) && self.is_anchor(Edge::Right) {
-                    min_width = Some(geometry.width() as u32);
+                    min_width = Some(geometry.width() as f32);
                 }
 
                 if self.is_anchor(Edge::Top) && self.is_anchor(Edge::Bottom) {
-                    min_height = Some(geometry.height() as u32);
+                    min_height = Some(geometry.height() as f32);
                 }
             }
         }
@@ -170,7 +170,7 @@ impl NativeWindow<Platform> for Window {
         }
     }
 
-    fn set_min_size(&mut self, _platform: &mut Platform, width: u32, height: u32) {
+    fn set_min_size(&mut self, _platform: &mut Platform, width: f32, height: f32) {
         #[cfg(feature = "layer-shell")]
         {
             use gtk4_layer_shell::LayerShell;
@@ -180,13 +180,16 @@ impl NativeWindow<Platform> for Window {
             }
         }
 
-        self.set_size_request(width as i32, height as i32);
+        self.set_size_request(
+            width.round() as i32,
+            height.round() as i32,
+        );
     }
 
-    fn set_size(&mut self, _platform: &mut Platform, width: u32, height: u32) {
+    fn set_size(&mut self, _platform: &mut Platform, width: f32, height: f32) {
         self.set_default_size(
-            width.max(1) as i32,
-            height.max(1) as i32,
+            width.max(1.0).round() as i32,
+            height.max(1.0).round() as i32,
         );
     }
 

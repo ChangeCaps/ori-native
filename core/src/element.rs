@@ -6,12 +6,12 @@ use std::{
 
 use ori::{Element, Is, Mut, View, ViewSeq};
 
-use crate::{Context, Platform};
+use crate::{Context, LayoutNode, Platform};
 
 /// An [`Element`] in the [`View`] tree.
 pub struct Pod<P, T> {
     /// The layout node of the [`Element`].
-    pub node: taffy::NodeId,
+    pub node: LayoutNode,
 
     /// The native widget of the [`Element`].
     pub widget: T,
@@ -21,7 +21,7 @@ pub struct Pod<P, T> {
 
 impl<P, T> Pod<P, T> {
     /// Create new [`Pod`].
-    pub fn new(node: taffy::NodeId, widget: T) -> Self {
+    pub fn new(node: LayoutNode, widget: T) -> Self {
         Self {
             node,
             widget,
@@ -42,7 +42,7 @@ impl<P, T> Pod<P, T> {
     /// Borrow `self` as a [`PodMut`].
     pub fn as_mut<'a>(
         &'a mut self,
-        parent_node: taffy::NodeId,
+        parent_node: LayoutNode,
         parent_widget: &'a mut dyn NativeParent<P>,
         index: usize,
     ) -> PodMut<'a, P, T> {
@@ -59,7 +59,7 @@ impl<P, T> Pod<P, T> {
 /// A mutable [`Pod`] passed to [`View`]s.
 pub struct PodMut<'a, P, T> {
     /// The layout node of the parent.
-    pub parent_node: taffy::NodeId,
+    pub parent_node: LayoutNode,
 
     /// The native parent widget.
     pub parent_widget: &'a mut dyn NativeParent<P>,
@@ -68,7 +68,7 @@ pub struct PodMut<'a, P, T> {
     pub index: usize,
 
     /// The layout node of this [`Element`].
-    pub node: &'a mut taffy::NodeId,
+    pub node: &'a mut LayoutNode,
 
     /// The native widget of this [`Element`].
     pub widget: &'a mut T,
@@ -178,7 +178,7 @@ where
     T: NativeWidget<P>,
 {
     fn replace(cx: &mut Context<P>, other: Mut<'_, BoxedWidget<P>>, this: Self) -> BoxedWidget<P> {
-        let _ = cx.replace_layout_child(
+        cx.layout.replace_child(
             other.parent_node,
             other.index,
             this.node,

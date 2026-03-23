@@ -37,11 +37,11 @@ fn ui(data: &Data) -> impl Effect<Data> + use<> {
                 ))
                 .width(300.0)
                 .align_items(Align::Stretch)
-                .border(1.0)
+                .border_width(1.0)
                 .border_color(theme::BORDER),
             )
             .flex(1.0)
-            .justify_contents(Justify::Center)
+            .justify_content(Justify::Center)
             .align_items(Align::Center)
             .background(theme::BACKGROUND),
         ),
@@ -88,7 +88,7 @@ fn todos(data: &Data) -> impl View<Data> + use<> {
 
     column(vscroll(column(todos)))
         .max_height(400.0)
-        .border_top(1.0)
+        .border_width_top(1.0)
         .border_color(theme::BORDER)
 }
 
@@ -109,9 +109,9 @@ fn todo(index: usize, _todo: &Todo) -> impl View<Data> + use<> {
         ))
         .gap(8.0)
         .padding(8.0)
-        .border_top(if index > 0 { 1.0 } else { 0.0 })
+        .border_width_top(if index > 0 { 1.0 } else { 0.0 })
         .border_color(theme::BORDER)
-        .justify_contents(Justify::SpaceBetween)
+        .justify_content(Justify::SpaceBetween)
         .align_items(Align::Center)
         .background(if state.hovered {
             theme::BACKGROUND.lighten(0.02)
@@ -131,10 +131,10 @@ fn done(todo: &Todo) -> impl View<Todo> + use<> {
 
     row(icon)
         .size(28.0, 28.0)
-        .border(1.0)
+        .border_width(1.0)
         .corner(14.0)
         .border_color(theme::BORDER)
-        .justify_contents(Justify::Center)
+        .justify_content(Justify::Center)
         .align_items(Align::Center)
 }
 
@@ -146,7 +146,7 @@ fn remove<T>(index: usize) -> impl View<T> {
             .size(28.0, 28.0)
             .corner(8.0)
             .background(theme::DANGER)
-            .justify_contents(Justify::Center)
+            .justify_content(Justify::Center)
             .align_items(Align::Center)
     })
     .on_press(move |_| Message::new(Remove(index), None))

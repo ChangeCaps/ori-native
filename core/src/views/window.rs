@@ -4,8 +4,9 @@ use keyboard_types::Modifiers;
 use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarker};
 
 use crate::{
-    AnimateRequest, Context, Input, InputHandler, LayoutRequest, Lifecycle, MatchKey, NativeWidget,
-    NavigationBar, Platform, Pod, Sizing, StatusBar, WidgetView, native::NativeWindow,
+    Allocation, AnimateRequest, AutoLength, AvailableSpace, Context, Input, InputHandler,
+    LayoutNode, LayoutRequest, LayoutStyle, Lifecycle, MatchKey, NativeWidget, NavigationBar,
+    Platform, Pod, Size, Sizing, StatusBar, WidgetView, native::NativeWindow,
 };
 
 /// [`View`] of a window.
@@ -175,9 +176,9 @@ where
     /// The id of the view.
     pub view_id: ViewId,
 
-    node:           taffy::NodeId,
-    layout:         taffy::Layout,
-    content_layout: taffy::Layout,
+    node:               LayoutNode,
+    allocation:         Option<Allocation>,
+    content_allocation: Option<Allocation>,
 
     status_bar:     StatusBar,
     navigation_bar: NavigationBar,
@@ -186,8 +187,8 @@ where
     sizing:  Sizing,
     handler: InputHandler<T>,
 
-    width:  u32,
-    height: u32,
+    width:  f32,
+    height: f32,
 
     animating: u32,
 
@@ -278,15 +279,16 @@ where
 
         cx.register(view_id);
 
-        let node = cx.new_layout_node(Default::default(), &[contents.node]);
+        let node = cx.layout.add_node(&[contents.node]);
+
         let (width, height) = window.get_size(&mut cx.platform);
 
         let mut state = Self {
             window,
             view_id,
             node,
-            layout: Default::default(),
-            content_layout: Default::default(),
+            allocation: Default::default(),
+            content_allocation: Default::default(),
             title: attributes.title,
             sizing: attributes.sizing,
             handler,
@@ -375,49 +377,58 @@ where
         self.height = height;
 
         if let Sizing::User = self.sizing {
-            let style = taffy::Style {
-                max_size: taffy::Size::from_lengths(0.0, 0.0),
+            let style = LayoutStyle {
+                max_size: Size {
+                    width:  AutoLength::Length(0.0),
+                    height: AutoLength::Length(0.0),
+                },
                 ..Default::default()
             };
 
-            let size = taffy::Size {
-                width:  taffy::AvailableSpace::MinContent,
-                height: taffy::AvailableSpace::MinContent,
+            let size = Size {
+                width:  AvailableSpace::MinContent,
+                height: AvailableSpace::MinContent,
             };
 
-            let _ = cx.set_layout_style(self.node, style);
-            let _ = cx.compute_layout(self.node, size);
+            cx.layout.set_layout(self.node, style);
+            cx.layout.compute_layout(&mut cx.platform, self.node, size);
 
-            if let Ok(layout) = cx.get_computed_layout(self.node).copied() {
+            if let Some(layout) = cx.layout.get_computed_layout(self.node) {
                 self.window.set_min_size(
                     &mut cx.platform,
-                    layout.content_size.width as u32,
-                    layout.content_size.height as u32,
+                    layout.content_size.width,
+                    layout.content_size.height,
                 );
             }
         }
 
         let style = match self.sizing {
-            Sizing::User => taffy::Style {
-                size: taffy::Size::from_lengths(width as f32, height as f32),
+            Sizing::User => LayoutStyle {
+                size: Size {
+                    width:  AutoLength::Length(width),
+                    height: AutoLength::Length(height),
+                },
                 ..Default::default()
             },
 
             Sizing::Content => {
-                let mut size = taffy::Size::auto();
+                let mut size = Size {
+                    width:  AutoLength::Auto,
+                    height: AutoLength::Auto,
+                };
 
                 let (preferred_width, preferred_height) =
                     self.window.get_preferred_size(&mut cx.platform);
 
                 if let Some(min_width) = preferred_width {
-                    size.width = taffy::Dimension::length(min_width as f32);
+                    size.width = AutoLength::Length(min_width);
                 }
 
                 if let Some(min_height) = preferred_height {
-                    size.height = taffy::Dimension::length(min_height as f32);
+                    size.height = AutoLength::Length(min_height);
                 }
 
-                taffy::Style {
+                LayoutStyle {
                     size,
                     ..Default::default()
                 }
@@ -425,42 +436,45 @@ where
         };
 
         let size = match self.sizing {
-            Sizing::User => taffy::Size {
-                width:  taffy::AvailableSpace::Definite(width as f32),
-                height: taffy::AvailableSpace::Definite(height as f32),
+            Sizing::User => Size {
+                width:  AvailableSpace::Definite(width),
+                height: AvailableSpace::Definite(height),
             },
 
-            Sizing::Content => taffy::Size::max_content(),
+            Sizing::Content => Size {
+                width:  AvailableSpace::MaxContent,
+                height: AvailableSpace::MaxContent,
+            },
         };
 
-        let _ = cx.set_layout_style(self.node, style);
-        let _ = cx.compute_layout(self.node, size);
+        cx.layout.set_layout(self.node, style);
+        cx.layout.compute_layout(&mut cx.platform, self.node, size);
 
-        if let Ok(layout) = cx.get_computed_layout(self.node).copied()
-            && self.layout != layout
+        if let Some(allocation) = cx.layout.get_computed_layout(self.node)
+            && self.allocation != Some(allocation)
         {
-            self.layout = layout;
+            self.allocation = Some(allocation);
 
             if let Sizing::Content = self.sizing {
                 self.window.set_size(
                     &mut cx.platform,
-                    layout.size.width.round() as u32,
-                    layout.size.height.round() as u32,
+                    allocation.size.width.round(),
+                    allocation.size.height.round(),
                 );
             }
         }
 
-        if let Ok(layout) = cx.get_computed_layout(self.contents.node).copied()
-            && self.content_layout != layout
+        if let Some(allocation) = cx.layout.get_computed_layout(self.contents.node)
+            && self.content_allocation != Some(allocation)
         {
-            self.content_layout = layout;
+            self.content_allocation = Some(allocation);
 
             self.window.set_content_layout(
                 &mut cx.platform,
-                layout.location.x,
-                layout.location.y,
-                layout.size.width,
-                layout.size.height,
+                allocation.x,
+                allocation.y,
+                allocation.size.width,
+                allocation.size.height,
             );
         }
 
@@ -483,7 +497,7 @@ where
 
         if let Some(message) = message.take_targeted(self.view_id) {
             return match message {
-                LayoutRequest::Relayout => self.layout(cx, data),
+                LayoutRequest::Layout => self.layout(cx, data),
             };
         }
 
@@ -567,7 +581,7 @@ where
         });
 
         self.window.teardown(&mut cx.platform);
-        let _ = cx.remove_layout_node(self.node);
+        cx.layout.remove_node(self.node);
         cx.unregister(self.view_id);
     }
 }

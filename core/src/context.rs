@@ -1,40 +1,17 @@
-use std::{
-    any::{self, Any, TypeId},
-    convert::Infallible,
-};
+use std::any::{self, Any, TypeId};
 
 use ori::{Action, AnyView, Base, Message, Provider, Proxied, Proxy, Tracker, Tree, ViewId};
 
-use crate::{AnimateRequest, BoxedWidget, LayoutRequest, Platform};
-
-/// A leaf in the layout tree.
-pub trait Measure<P>: 'static {
-    /// Compute the size for the given constraints.
-    fn measure(
-        &mut self,
-        platform: &mut P,
-        known_size: taffy::Size<Option<f32>>,
-        available_space: taffy::Size<taffy::AvailableSpace>,
-    ) -> taffy::Size<f32>;
-}
-
-impl<P> Measure<P> for Infallible {
-    fn measure(
-        &mut self,
-        _platform: &mut P,
-        _known_size: taffy::Size<Option<f32>>,
-        _available_space: taffy::Size<taffy::AvailableSpace>,
-    ) -> taffy::Size<f32> {
-        unreachable!()
-    }
-}
+use crate::{AnimateRequest, BoxedWidget, LayoutRequest, LayoutTree, Platform};
 
 /// The context of the [`View`](ori::View) tree.
 pub struct Context<P> {
-    /// The [`Platform`] of this context.
-    pub platform:         P,
-    layout_tree:          taffy::TaffyTree<Box<dyn Measure<P>>>,
-    layout_controller:    Option<ViewId>,
+    /// The [`Platform`].
+    pub platform: P,
+
+    /// The [`LayoutTree`].
+    pub layout: LayoutTree<P>,
+
     animation_controller: Option<ViewId>,
     resources:            Vec<Resource>,
     view_id_tree:         Tree,
@@ -55,140 +32,10 @@ where
     pub fn new(platform: P) -> Self {
         Self {
             platform,
-            layout_tree: taffy::TaffyTree::new(),
-            layout_controller: None,
+            layout: LayoutTree::new(),
             animation_controller: None,
             resources: Vec::new(),
             view_id_tree: Tree::new(),
-        }
-    }
-
-    /// Create a new layout node.
-    pub fn new_layout_node(
-        &mut self,
-        style: taffy::Style,
-        children: &[taffy::NodeId],
-    ) -> taffy::NodeId {
-        self.request_relayout();
-        self.layout_tree
-            .new_with_children(style, children)
-            .expect("should never fail")
-    }
-
-    /// Create a new layout leaf.
-    pub fn new_layout_leaf<T>(&mut self, style: taffy::Style, leaf: T) -> taffy::NodeId
-    where
-        T: Measure<P> + 'static,
-    {
-        self.request_relayout();
-        self.layout_tree
-            .new_leaf_with_context(style, Box::new(leaf))
-            .expect("should never fail")
-    }
-
-    /// Insert a child at `index` in a layout node.
-    pub fn insert_layout_child(
-        &mut self,
-        parent: taffy::NodeId,
-        index: usize,
-        child: taffy::NodeId,
-    ) -> taffy::TaffyResult<()> {
-        self.request_relayout();
-        self.layout_tree.insert_child_at_index(parent, index, child)
-    }
-
-    /// Replace the child at `index` in a layout node.
-    pub fn replace_layout_child(
-        &mut self,
-        parent: taffy::NodeId,
-        index: usize,
-        child: taffy::NodeId,
-    ) -> taffy::TaffyResult<()> {
-        self.request_relayout();
-        self.layout_tree
-            .replace_child_at_index(parent, index, child)
-            .map(|_| ())
-    }
-
-    /// Remove a layout node.
-    pub fn remove_layout_node(&mut self, node: taffy::NodeId) -> taffy::TaffyResult<()> {
-        self.request_relayout();
-        self.layout_tree.remove(node).map(|_| ())
-    }
-
-    /// Remove the child at `index` from a layout node.
-    pub fn remove_layout_child(
-        &mut self,
-        node: taffy::NodeId,
-        index: usize,
-    ) -> taffy::TaffyResult<()> {
-        self.request_relayout();
-        self.layout_tree
-            .remove_child_at_index(node, index)
-            .map(|_| {})
-    }
-
-    /// Set the layout style of a layout node.
-    pub fn set_layout_style(
-        &mut self,
-        node: taffy::NodeId,
-        style: taffy::Style,
-    ) -> taffy::TaffyResult<()> {
-        if let Ok(current) = self.layout_tree.style(node)
-            && *current != style
-        {
-            self.request_relayout();
-        }
-
-        self.layout_tree.set_style(node, style)
-    }
-
-    /// Set the measure of a layout.
-    pub fn set_layout_measure<T>(&mut self, node: taffy::NodeId, leaf: T) -> taffy::TaffyResult<()>
-    where
-        T: Measure<P> + 'static,
-    {
-        self.request_relayout();
-        self.layout_tree
-            .set_node_context(node, Some(Box::new(leaf)))
-    }
-
-    /// Get the computed layout of a layout node.
-    pub fn get_computed_layout(&self, node: taffy::NodeId) -> taffy::TaffyResult<&taffy::Layout> {
-        self.layout_tree.layout(node)
-    }
-
-    /// Compute the layout of a layout tree with `node` as its root.
-    pub fn compute_layout(
-        &mut self,
-        node: taffy::NodeId,
-        available_space: taffy::Size<taffy::AvailableSpace>,
-    ) -> taffy::TaffyResult<()>
-    where
-        P: Platform,
-    {
-        self.layout_tree.compute_layout_with_measure(
-            node,
-            available_space,
-            |known_size, available_space, _node, context, _style| match context {
-                Some(leaf) => leaf.measure(
-                    &mut self.platform,
-                    known_size,
-                    available_space,
-                ),
-
-                None => taffy::Size::ZERO,
-            },
-        )
-    }
-
-    /// Request a relayout of the current layout controller.
-    pub fn request_relayout(&mut self) {
-        if let Some(layout_controller) = self.layout_controller.take() {
-            self.platform.proxy().message(Message::new(
-                LayoutRequest::Relayout,
-                layout_controller,
-            ));
         }
     }
 
@@ -220,9 +67,20 @@ where
         view_id: ViewId,
         f: impl FnOnce(&mut Self) -> T,
     ) -> T {
-        let previous = self.layout_controller.replace(view_id);
+        let previous = self.layout.set_request_layout(Some(Box::new({
+            let proxy = self.platform.proxy();
+            move || {
+                proxy.message(Message::new(
+                    LayoutRequest::Layout,
+                    view_id,
+                ));
+            }
+        })));
+
         let output = f(self);
-        self.layout_controller = previous;
+
+        self.layout.set_request_layout(previous);
+
         output
     }
 
