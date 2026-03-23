@@ -476,25 +476,25 @@ pub trait Border: Sized {
     }
 
     /// Set the border width on the top.
-    fn border_width_top(mut self, width: impl Into<Length>) -> Self {
+    fn border_top_width(mut self, width: impl Into<Length>) -> Self {
         self.get_border_style_mut().width.top = width.into();
         self
     }
 
     /// Set the border width on the right.
-    fn border_width_right(mut self, width: impl Into<Length>) -> Self {
+    fn border_right_width(mut self, width: impl Into<Length>) -> Self {
         self.get_border_style_mut().width.right = width.into();
         self
     }
 
     /// Set the border width on the bottom.
-    fn border_width_bottom(mut self, width: impl Into<Length>) -> Self {
+    fn border_bottom_width(mut self, width: impl Into<Length>) -> Self {
         self.get_border_style_mut().width.bottom = width.into();
         self
     }
 
     /// Set the border width on the left.
-    fn border_width_left(mut self, width: impl Into<Length>) -> Self {
+    fn border_left_width(mut self, width: impl Into<Length>) -> Self {
         self.get_border_style_mut().width.left = width.into();
         self
     }
@@ -507,10 +507,10 @@ pub trait Border: Sized {
         bottom: impl Into<Length>,
         left: impl Into<Length>,
     ) -> Self {
-        self.border_width_top(top)
-            .border_width_right(right)
-            .border_width_bottom(bottom)
-            .border_width_left(left)
+        self.border_top_width(top)
+            .border_right_width(right)
+            .border_bottom_width(bottom)
+            .border_left_width(left)
     }
 }
 

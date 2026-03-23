@@ -88,7 +88,7 @@ fn todos(data: &Data) -> impl View<Data> + use<> {
 
     column(vscroll(column(todos)))
         .max_height(400.0)
-        .border_width_top(1.0)
+        .border_top_width(1.0)
         .border_color(theme::BORDER)
 }
 
@@ -109,7 +109,7 @@ fn todo(index: usize, _todo: &Todo) -> impl View<Data> + use<> {
         ))
         .gap(8.0)
         .padding(8.0)
-        .border_width_top(if index > 0 { 1.0 } else { 0.0 })
+        .border_top_width(if index > 0 { 1.0 } else { 0.0 })
         .border_color(theme::BORDER)
         .justify_content(Justify::SpaceBetween)
         .align_items(Align::Center)
