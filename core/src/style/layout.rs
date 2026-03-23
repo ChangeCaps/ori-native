@@ -287,6 +287,18 @@ pub trait Layout: Sized {
         self
     }
 
+    /// Set how the view should be justified in the container.
+    fn justify_self(mut self, justify_self: Align) -> Self {
+        self.get_layout_style_mut().justify_self = Some(justify_self);
+        self
+    }
+
+    /// Set how the view should be aligned in the container.
+    fn align_self(mut self, align_self: Align) -> Self {
+        self.get_layout_style_mut().align_self = Some(align_self);
+        self
+    }
+
     /// Set the inset from all sides.
     fn inset(self, inset: impl Into<AutoLength>) -> Self {
         let inset = inset.into();
