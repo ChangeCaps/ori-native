@@ -119,8 +119,8 @@ impl<P> LayoutTree<P> {
             },
 
             content_size: Size {
-                width:  layout.size.width,
-                height: layout.size.height,
+                width:  layout.content_size.width,
+                height: layout.content_size.height,
             },
 
             border: Sides {

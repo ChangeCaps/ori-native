@@ -287,8 +287,8 @@ where
             window,
             view_id,
             node,
-            allocation: Default::default(),
-            content_allocation: Default::default(),
+            allocation: None,
+            content_allocation: None,
             title: attributes.title,
             sizing: attributes.sizing,
             handler,
@@ -458,8 +458,8 @@ where
             if let Sizing::Content = self.sizing {
                 self.window.set_size(
                     &mut cx.platform,
-                    allocation.size.width.round(),
-                    allocation.size.height.round(),
+                    allocation.size.width,
+                    allocation.size.height,
                 );
             }
         }

@@ -94,9 +94,9 @@ impl NativeGroup<Platform> for Group {
         if let Some(child) = self.imp().children.borrow_mut().get_mut(index) {
             child.x = x;
             child.y = y;
+            child.widget.set_size_request(width, height);
             child.widget.queue_allocate();
             child.widget.queue_resize();
-            child.widget.set_size_request(width, height);
         }
     }
 
