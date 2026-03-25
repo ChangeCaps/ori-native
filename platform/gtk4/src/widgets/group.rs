@@ -161,7 +161,7 @@ mod imp {
     };
     use gtk4::{
         prelude::{SnapshotExt, SnapshotExtManual, WidgetExt},
-        subclass::widget::{WidgetClassExt, WidgetImpl, WidgetImplExt},
+        subclass::widget::{WidgetImpl, WidgetImplExt},
     };
     use ori_native_core::{Overflow, Shadow};
 
@@ -202,10 +202,6 @@ mod imp {
         const NAME: &'static str = "OriGroup";
         type Type = super::Group;
         type ParentType = gtk4::Widget;
-
-        fn class_init(klass: &mut Self::Class) {
-            klass.set_css_name("group");
-        }
     }
 
     impl ObjectImpl for Group {

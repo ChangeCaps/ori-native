@@ -1,6 +1,8 @@
 use ori_native::prelude::*;
 
 fn main() {
+    App::init_log();
+
     let mut data = Data { todos: Vec::new() };
 
     App::new().run(&mut data, ui).unwrap();

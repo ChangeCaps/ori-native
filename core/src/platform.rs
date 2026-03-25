@@ -3,8 +3,8 @@ use ori::Proxied;
 use crate::{
     NativeParent, NativeWidget,
     native::{
-        NativeGroup, NativeImage, NativePressable, NativeScroll, NativeText, NativeTextInput,
-        NativeTransform, NativeWindow,
+        NativeGroup, NativeImage, NativeMeasure, NativeModal, NativePressable, NativeScroll,
+        NativeText, NativeTextInput, NativeTransform, NativeWindow,
     },
 };
 
@@ -33,6 +33,12 @@ pub trait Platform: Proxied + Sized + 'static {
 
     /// The native transform widget of this platform.
     type Transform: NativeTransform<Self>;
+
+    /// The native modal widget of this platform.
+    type Modal: NativeModal<Self>;
+
+    /// The native measure widget of this platform.
+    type Measure: NativeMeasure<Self>;
 
     /// The native window widget of this platform.
     type Window: NativeWindow<Self>;

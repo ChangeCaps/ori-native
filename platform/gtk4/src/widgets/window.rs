@@ -1,4 +1,4 @@
-use std::{rc::Rc, time::Duration};
+use std::{cell::RefCell, rc::Rc, time::Duration};
 
 use glib::{
     object::{Cast, IsA},
@@ -6,10 +6,66 @@ use glib::{
 };
 use gtk4::prelude::{FixedExt, GtkWindowExt, WidgetExt};
 use ori_native_core::{
-    Key, Modifiers, NativeParent, NavigationBar, StatusBar, native::NativeWindow,
+    Key, Modifiers, NativeParent, NavigationBar, StatusBar,
+    native::{NativeModal, NativeWindow},
 };
 
 use crate::{Platform, key};
+
+pub struct Modal {
+    fixed:    gtk4::Fixed,
+    contents: gtk4::Widget,
+    window:   RefCell<Option<gtk4::Window>>,
+}
+
+impl NativeParent<Platform> for Modal {
+    fn replace_child(&mut self, _platform: &mut Platform, _index: usize, child: &gtk4::Widget) {
+        self.fixed.remove(&self.contents);
+        self.fixed.put(child, 0.0, 0.0);
+        self.contents = child.clone();
+    }
+}
+
+impl NativeModal<Platform> for Modal {
+    fn build(_platform: &mut Platform, contents: &gtk4::Widget) -> Self {
+        let fixed = gtk4::Fixed::new();
+        fixed.put(contents, 0.0, 0.0);
+        fixed.set_can_target(false);
+
+        Self {
+            fixed,
+            contents: contents.clone(),
+            window: Default::default(),
+        }
+    }
+
+    fn teardown(self, _platform: &mut Platform) {}
+
+    fn get_size(&self, _platform: &mut Platform) -> (f32, f32) {
+        match self.window.borrow().as_ref() {
+            Some(window) => (
+                window.width() as f32,
+                window.height() as f32,
+            ),
+            None => (0.0, 0.0),
+        }
+    }
+
+    fn set_content_layout(
+        &mut self,
+        _platform: &mut Platform,
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+    ) {
+        self.fixed.move_(&self.contents, x as f64, y as f64);
+        self.contents.set_size_request(
+            width.round() as i32,
+            height.round() as i32,
+        );
+    }
+}
 
 impl NativeParent<Platform> for Window {
     fn replace_child(&mut self, _platform: &mut Platform, index: usize, child: &gtk4::Widget) {
@@ -148,6 +204,25 @@ impl NativeWindow<Platform> for Window {
         self.add_controller(controller);
     }
 
+    fn open_modal(&mut self, _platform: &mut Platform, modal: &Modal) {
+        modal.fixed.set_parent(self);
+        modal.window.replace(Some(self.clone().upcast()));
+
+        self.imp()
+            .modals
+            .borrow_mut()
+            .push(modal.fixed.clone().upcast());
+    }
+
+    fn close_modal(&mut self, _platform: &mut Platform, modal: &Modal) {
+        modal.fixed.unparent();
+
+        self.imp()
+            .modals
+            .borrow_mut()
+            .retain(|widget| *widget != modal.fixed);
+    }
+
     fn set_title(&mut self, _platform: &mut Platform, title: String) {
         gtk4::ApplicationWindow::set_title(self.as_ref(), Some(&title));
     }
@@ -215,7 +290,7 @@ impl NativeWindow<Platform> for Window {
     fn set_navigation_bar(&mut self, _platform: &mut Platform, _bar: NavigationBar) {}
 }
 
-gtk4::glib::wrapper! {
+glib::wrapper! {
     pub struct Window(
         ObjectSubclass<imp::ApplicationWindow>)
         @extends
@@ -235,7 +310,7 @@ gtk4::glib::wrapper! {
 
 impl Window {
     pub fn new(application: &gtk4::Application) -> Self {
-        let window: Window = gtk4::glib::Object::builder().build();
+        let window: Window = glib::Object::new();
         window.set_application(Some(application));
         gtk4::Window::set_child(
             window.as_ref(),
@@ -268,14 +343,18 @@ mod imp {
     };
 
     use glib::subclass::{object::ObjectImpl, types::ObjectSubclass};
-    use gtk4::subclass::{
-        prelude::ApplicationWindowImpl,
-        widget::{WidgetImpl, WidgetImplExt},
-        window::WindowImpl,
+    use gtk4::{
+        prelude::WidgetExt,
+        subclass::{
+            prelude::ApplicationWindowImpl,
+            widget::{WidgetImpl, WidgetImplExt},
+            window::WindowImpl,
+        },
     };
 
     pub struct ApplicationWindow {
         pub fixed:            gtk4::Fixed,
+        pub modals:           RefCell<Vec<gtk4::Widget>>,
         pub on_size_allocate: RefCell<Box<dyn Fn()>>,
         pub previous_frame:   Rc<Cell<Option<i64>>>,
     }
@@ -284,6 +363,7 @@ mod imp {
         fn default() -> Self {
             Self {
                 fixed:            gtk4::Fixed::new(),
+                modals:           RefCell::new(Vec::new()),
                 on_size_allocate: RefCell::new(Box::new(|| {})),
                 previous_frame:   Rc::new(Cell::new(None)),
             }
@@ -297,17 +377,34 @@ mod imp {
         type ParentType = gtk4::ApplicationWindow;
     }
 
-    impl ObjectImpl for ApplicationWindow {}
+    impl ObjectImpl for ApplicationWindow {
+        fn dispose(&self) {
+            for modal in self.modals.borrow().iter() {
+                modal.unparent();
+            }
+        }
+    }
 
     impl WidgetImpl for ApplicationWindow {
         fn size_allocate(&self, width: i32, height: i32, baseline: i32) {
             self.parent_size_allocate(width, height, baseline);
+
+            for modal in self.modals.borrow().iter() {
+                let allocation = gtk4::Allocation::new(0, 0, width, height);
+                modal.size_allocate(&allocation, -1);
+            }
+
             let on_size_allocate = self.on_size_allocate.borrow();
             on_size_allocate();
         }
 
         fn measure(&self, orientation: gtk4::Orientation, for_size: i32) -> (i32, i32, i32, i32) {
             self.parent_measure(orientation, for_size);
+
+            for modal in self.modals.borrow().iter() {
+                modal.measure(orientation, for_size);
+            }
+
             (0, 0, -1, -1)
         }
     }

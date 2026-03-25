@@ -1,7 +1,7 @@
 use std::convert::Infallible;
 
 use crate::{
-    Font, Measure, NativeWidget, Platform, Unsupported, platform::unsupported, views::Newline,
+    Font, Measurable, NativeWidget, Platform, Unsupported, platform::unsupported, views::Newline,
 };
 
 pub trait NativeTextInput<P>: NativeWidget<P>
@@ -22,7 +22,7 @@ where
     fn set_placeholder_font(&mut self, platform: &mut P, font: Font);
     fn set_placeholder_text(&mut self, platform: &mut P, text: String);
 
-    fn get_layout(&mut self, platform: &mut P) -> impl Measure<P>;
+    fn get_layout(&mut self, platform: &mut P) -> impl Measurable<P>;
 }
 
 impl<P> NativeTextInput<P> for Unsupported

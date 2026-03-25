@@ -1,6 +1,6 @@
 use std::{borrow::Cow, convert::Infallible, error::Error};
 
-use crate::{Color, Measure, NativeWidget, Platform, Unsupported, platform::unsupported};
+use crate::{Color, Measurable, NativeWidget, Platform, Unsupported, platform::unsupported};
 
 pub trait NativeImage<P>: NativeWidget<P>
 where
@@ -15,7 +15,7 @@ where
         &mut self,
         platform: &mut P,
         data: Cow<'static, [u8]>,
-    ) -> Result<impl Measure<P>, Self::Error>;
+    ) -> Result<impl Measurable<P>, Self::Error>;
 
     fn set_tint(&mut self, platform: &mut P, tint: Option<Color>);
 }

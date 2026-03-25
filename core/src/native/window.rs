@@ -26,6 +26,9 @@ where
         on_key: impl Fn(Key, Modifiers, bool) -> bool + 'static,
     );
 
+    fn open_modal(&mut self, platform: &mut P, modal: &P::Modal);
+    fn close_modal(&mut self, platform: &mut P, modal: &P::Modal);
+
     fn start_animating(&mut self, platform: &mut P);
     fn stop_animating(&mut self, platform: &mut P);
 
@@ -85,6 +88,14 @@ where
         _platform: &mut P,
         _on_key: impl Fn(Key, Modifiers, bool) -> bool + 'static,
     ) {
+        unreachable!()
+    }
+
+    fn open_modal(&mut self, _platform: &mut P, _modal: &P::Modal) {
+        unreachable!()
+    }
+
+    fn close_modal(&mut self, _platform: &mut P, _modal: &P::Modal) {
         unreachable!()
     }
 

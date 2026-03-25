@@ -1,5 +1,7 @@
 use std::time::Duration;
 
+use ori::ViewId;
+
 /// An event in the lifecycle of an application.
 #[derive(Clone, Debug)]
 pub enum Lifecycle {
@@ -15,6 +17,22 @@ pub enum Lifecycle {
 pub enum LayoutRequest {
     /// Recompute layout of contents.
     Layout,
+}
+
+/// A request regarding modals.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ModalRequest {
+    /// Open a modal.
+    Open {
+        /// Id of the modal to open.
+        id: ViewId,
+    },
+
+    /// Close a modal,
+    Close {
+        /// Id of the modal to close.
+        id: ViewId,
+    },
 }
 
 /// A request regarding animation.

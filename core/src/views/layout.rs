@@ -62,7 +62,7 @@ where
         message: &mut Message,
     ) -> Action {
         if let Some(Lifecycle::Layout) = message.get()
-            && let Some(allocation) = cx.layout.get_computed_layout(*element.node)
+            && let Some(allocation) = cx.layout.get_allocation(*element.node)
             && *current_allocation != Some(allocation)
         {
             *current_allocation = Some(allocation);

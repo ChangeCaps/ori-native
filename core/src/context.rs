@@ -1,20 +1,35 @@
-use std::any::{self, Any, TypeId};
+use std::{
+    any::{self, Any, TypeId},
+    collections::HashMap,
+};
 
 use ori::{Action, AnyView, Base, Message, Provider, Proxied, Proxy, Tracker, Tree, ViewId};
 
-use crate::{AnimateRequest, BoxedWidget, LayoutRequest, LayoutTree, Platform};
+use crate::{
+    AnimateRequest, BoxedWidget, LayoutRequest, LayoutTree, ModalRequest, Platform,
+    native::NativeModal,
+};
 
 /// The context of the [`View`](ori::View) tree.
-pub struct Context<P> {
+pub struct Context<P>
+where
+    P: Platform,
+{
     /// The [`Platform`].
     pub platform: P,
 
     /// The [`LayoutTree`].
     pub layout: LayoutTree<P>,
 
+    /// The modals in this context.
+    pub modals: HashMap<ViewId, P::Modal>,
+
     animation_controller: Option<ViewId>,
-    resources:            Vec<Resource>,
-    view_id_tree:         Tree,
+    modal_controller:     Option<ViewId>,
+
+    resources: Vec<Resource>,
+
+    view_id_tree: Tree,
 }
 
 #[allow(dead_code)]
@@ -34,6 +49,8 @@ where
             platform,
             layout: LayoutTree::new(),
             animation_controller: None,
+            modal_controller: None,
+            modals: HashMap::new(),
             resources: Vec::new(),
             view_id_tree: Tree::new(),
         }
@@ -56,6 +73,50 @@ where
                 AnimateRequest::Stop,
                 animation_controller,
             ));
+        }
+    }
+
+    /// Open a modal, this will fail if no modal controller is set.
+    pub fn open_modal(&mut self, id: ViewId, modal: P::Modal) -> bool {
+        let Some(controller) = self.modal_controller else {
+            modal.teardown(&mut self.platform);
+            return false;
+        };
+
+        let request = ModalRequest::Open { id };
+        let message = Message::new(request, Some(controller));
+        self.proxy().message(message);
+        self.modals.insert(id, modal);
+        true
+    }
+
+    /// Close a modal, this will fail if no modal controller is set.
+    pub fn close_modal(&mut self, id: ViewId) {
+        let Some(controller) = self.modal_controller else {
+            return;
+        };
+
+        let request = ModalRequest::Close { id };
+        let message = Message::new(request, Some(controller));
+        self.proxy().message(message);
+    }
+
+    /// Get a mutable reference to `self` and a modal at the same time.
+    ///
+    /// Returns `None` if the modal doesn't exist.
+    pub fn with_modal<T>(
+        &mut self,
+        id: ViewId,
+        f: impl FnOnce(&mut Self, &mut P::Modal) -> T,
+    ) -> Option<T> {
+        match self.modals.remove(&id) {
+            Some(mut modal) => {
+                let result = f(self, &mut modal);
+                self.modals.insert(id, modal);
+                Some(result)
+            }
+
+            None => None,
         }
     }
 
@@ -84,6 +145,20 @@ where
         output
     }
 
+    /// Temporarily set the modal controller.
+    ///
+    /// This view will receive [`ModalRequest`]s from its contents.
+    pub fn with_modal_controller<T>(
+        &mut self,
+        view_id: ViewId,
+        f: impl FnOnce(&mut Self) -> T,
+    ) -> T {
+        let previous = self.modal_controller.replace(view_id);
+        let output = f(self);
+        self.modal_controller = previous;
+        output
+    }
+
     /// Temporarily set the animation controller.
     ///
     /// This view will receive [`AnimateRequest`]s from its contents.
@@ -103,7 +178,9 @@ where
     /// This is a shorthand for setting both the layout and animation controller.
     pub fn with_window<T>(&mut self, view_id: ViewId, f: impl FnOnce(&mut Self) -> T) -> T {
         self.with_layout_controller(view_id, |this| {
-            this.with_animation_controller(view_id, f)
+            this.with_modal_controller(view_id, |this| {
+                this.with_animation_controller(view_id, f)
+            })
         })
     }
 }
@@ -111,11 +188,17 @@ where
 /// Type erased [`Effect`](ori::Effect).
 pub type BoxedEffect<P, T> = Box<dyn AnyView<Context<P>, T, ()>>;
 
-impl<P> Base for Context<P> {
+impl<P> Base for Context<P>
+where
+    P: Platform,
+{
     type Element = BoxedWidget<P>;
 }
 
-impl<P> Tracker for Context<P> {
+impl<P> Tracker for Context<P>
+where
+    P: Platform,
+{
     fn tree(&mut self) -> &mut Tree {
         &mut self.view_id_tree
     }
@@ -123,7 +206,7 @@ impl<P> Tracker for Context<P> {
 
 impl<P> Proxied for Context<P>
 where
-    P: Proxied,
+    P: Platform,
 {
     type Proxy = P::Proxy;
 
@@ -136,7 +219,10 @@ where
     }
 }
 
-impl<P> Provider for Context<P> {
+impl<P> Provider for Context<P>
+where
+    P: Platform,
+{
     fn push<T: Any>(&mut self, resource: Box<T>) {
         self.resources.push(Resource {
             type_id:   TypeId::of::<T>(),

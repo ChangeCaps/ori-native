@@ -166,7 +166,7 @@ where
     }
 
     pub fn layout(&mut self, cx: &mut Context<P>, node: LayoutNode) {
-        if let Some(allocation) = cx.layout.get_computed_layout(node) {
+        if let Some(allocation) = cx.layout.get_allocation(node) {
             let border_width = [
                 allocation.border.top,
                 allocation.border.right,
@@ -181,7 +181,7 @@ where
         }
 
         for (index, child) in self.children.iter_mut().enumerate() {
-            if let Some(allocation) = cx.layout.get_computed_layout(child.element.node)
+            if let Some(allocation) = cx.layout.get_allocation(child.element.node)
                 && child.allocation != Some(allocation)
             {
                 child.allocation = Some(allocation);

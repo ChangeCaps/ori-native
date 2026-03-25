@@ -19,3 +19,11 @@ scrolledwindow scrollbar.vertical slider {
 window {
     background: transparent;
 }
+
+popover contents {
+
+    /*
+    background: none;
+    border: none;
+    */
+}

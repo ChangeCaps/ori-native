@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use jni::{EnvUnowned, jni_sig, jni_str, objects::JObject};
 use ori_native_core::{
-    Key, Modifiers, NativeParent, NavigationBar, StatusBar, native::NativeWindow,
+    Key, Modifiers, NativeParent, NavigationBar, StatusBar, Unsupported, native::NativeWindow,
 };
 
 use crate::{
@@ -101,6 +101,10 @@ impl NativeWindow<Platform> for Window {
         _on_key: impl Fn(Key, Modifiers, bool) -> bool + 'static,
     ) {
     }
+
+    fn open_modal(&mut self, _platform: &mut Platform, _modal: &Unsupported) {}
+
+    fn close_modal(&mut self, _platform: &mut Platform, _modal: &Unsupported) {}
 
     fn start_animating(&mut self, platform: &mut Platform) {
         let _ = platform.jni(|env, activity| {

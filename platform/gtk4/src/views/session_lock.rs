@@ -1,8 +1,8 @@
 use gtk4::prelude::WidgetExt;
 use gtk4_session_lock::Instance;
-use ori::{Action, Message, Mut, View, ViewId, ViewMarker};
+use ori::{Action, Message, Mut, View, ViewMarker};
 use ori_native_core::{
-    Context, NativeWidget, WidgetView,
+    Context, WidgetView,
     views::{WindowAttributes, WindowState},
 };
 
@@ -41,28 +41,21 @@ where
     type State = WindowState<Platform, T, V>;
 
     fn build(self, cx: &mut Context<Platform>, data: &mut T) -> (Self::Element, Self::State) {
-        let view_id = ViewId::next();
-
-        let (contents, state) = cx.with_window(view_id, |cx| {
-            self.contents.build(cx, data)
-        });
-
-        let window = Window::new(&cx.platform.application);
-
-        (self.instance).assign_window_to_monitor(&window, &self.monitor);
-        window.set_size_request(1, 1);
-
-        window.set_child(contents.widget.widget(), 0.0, 0.0);
-        window.show();
-
         let state = WindowState::new(
             cx,
             data,
-            window,
-            view_id,
             WindowAttributes::default(),
-            contents,
-            state,
+            self.contents,
+            |platform, contents| {
+                let window = Window::new(&platform.application);
+
+                (self.instance).assign_window_to_monitor(&window, &self.monitor);
+                window.set_size_request(1, 1);
+
+                window.set_child(contents, 0.0, 0.0);
+                window.show();
+                window
+            },
         );
 
         ((), state)

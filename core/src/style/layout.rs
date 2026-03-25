@@ -502,6 +502,26 @@ pub trait Border: Sized {
         self.border_width_all(width, width, width, width)
     }
 
+    /// Set the border width on the top, and color.
+    fn border_top(self, width: impl Into<Length>, color: Color) -> Self {
+        self.border_top_width(width).border_color(color)
+    }
+
+    /// Set the border width on the right, and color.
+    fn border_right(self, width: impl Into<Length>, color: Color) -> Self {
+        self.border_right_width(width).border_color(color)
+    }
+
+    /// Set the border width on the bottom, and color.
+    fn border_bottom(self, width: impl Into<Length>, color: Color) -> Self {
+        self.border_bottom_width(width).border_color(color)
+    }
+
+    /// Set the border width on the left, and color.
+    fn border_left(self, width: impl Into<Length>, color: Color) -> Self {
+        self.border_left_width(width).border_color(color)
+    }
+
     /// Set the border width on the top.
     fn border_top_width(mut self, width: impl Into<Length>) -> Self {
         self.get_border_style_mut().width.top = width.into();

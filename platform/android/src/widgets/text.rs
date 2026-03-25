@@ -1,6 +1,6 @@
 use jni::{jni_sig, jni_str, objects::JString};
 use ori_native_core::{
-    AvailableSpace, Measure, NativeWidget, Size, TextSpan, Wrap, native::NativeText,
+    AvailableSpace, Measurable, NativeWidget, Size, TextSpan, Wrap, native::NativeText,
 };
 
 use crate::{Platform, platform::WidgetId};
@@ -142,7 +142,7 @@ struct CachedSize {
     available_space: Size<AvailableSpace>,
 }
 
-impl Measure<Platform> for TextLayout {
+impl Measurable<Platform> for TextLayout {
     fn measure(
         &mut self,
         platform: &mut Platform,

@@ -3,7 +3,7 @@ use jni::{
     objects::{JObject, JString},
 };
 use ori_native_core::{
-    AvailableSpace, Font, Measure, NativeWidget, Size, native::NativeTextInput, views::Newline,
+    AvailableSpace, Font, Measurable, NativeWidget, Size, native::NativeTextInput, views::Newline,
 };
 
 use crate::{
@@ -189,7 +189,7 @@ impl NativeTextInput<Platform> for TextInput {
         });
     }
 
-    fn get_layout(&mut self, _platform: &mut Platform) -> impl Measure<Platform> {
+    fn get_layout(&mut self, _platform: &mut Platform) -> impl Measurable<Platform> {
         TextInputLayout {
             id:     self.id,
             height: None,
@@ -202,7 +202,7 @@ pub struct TextInputLayout {
     height: Option<f32>,
 }
 
-impl Measure<Platform> for TextInputLayout {
+impl Measurable<Platform> for TextInputLayout {
     fn measure(
         &mut self,
         platform: &mut Platform,

@@ -97,6 +97,8 @@ impl ori_native_core::Platform for Platform {
     type Text = widgets::Text;
     type TextInput = widgets::TextInput;
     type Transform = widgets::Transform;
+    type Modal = widgets::Modal;
+    type Measure = widgets::Measure;
     type Window = widgets::Window;
 
     fn quit(&mut self) {

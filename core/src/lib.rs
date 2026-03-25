@@ -20,8 +20,8 @@ pub use element::{
     BoxedWidget, NativeParent, NativeWidget, Pod, PodMut, WidgetView, WidgetViewSeq,
 };
 pub use input::{Input, InputFilter, InputHandler, InputMessage, MatchKey};
-pub use layout::{Allocation, AvailableSpace, LayoutNode, LayoutTree, Measure};
-pub use lifecycle::{AnimateRequest, LayoutRequest, Lifecycle};
+pub use layout::{Allocation, AvailableSpace, LayoutNode, LayoutTree, Measurable};
+pub use lifecycle::{AnimateRequest, LayoutRequest, Lifecycle, ModalRequest};
 pub use platform::{Platform, Unsupported};
 pub use safearea::SafeAreaInsets;
 pub use style::{

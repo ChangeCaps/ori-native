@@ -5,8 +5,9 @@ use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarke
 
 use crate::{
     Allocation, AnimateRequest, AutoLength, AvailableSpace, Context, Input, InputHandler,
-    LayoutNode, LayoutRequest, LayoutStyle, Lifecycle, MatchKey, NativeWidget, NavigationBar,
-    Platform, Pod, Size, Sizing, StatusBar, WidgetView, native::NativeWindow,
+    LayoutNode, LayoutRequest, LayoutStyle, Lifecycle, MatchKey, ModalRequest, NativeWidget,
+    NavigationBar, Platform, Pod, Size, Sizing, StatusBar, WidgetView,
+    native::{NativeModal, NativeWindow},
 };
 
 /// [`View`] of a window.
@@ -85,25 +86,12 @@ where
     type State = WindowState<P, T, V>;
 
     fn build(self, cx: &mut Context<P>, data: &mut T) -> (Self::Element, Self::State) {
-        let view_id = ViewId::next();
-
-        let (contents, state) = cx.with_window(view_id, |cx| {
-            self.contents.build(cx, data)
-        });
-
-        let window = P::Window::build(
-            &mut cx.platform,
-            contents.widget.widget(),
-        );
-
         let state = WindowState::new(
             cx,
             data,
-            window,
-            view_id,
             self.attributes,
-            contents,
-            state,
+            self.contents,
+            P::Window::build,
         );
 
         ((), state)
@@ -172,7 +160,8 @@ where
     V: WidgetView<P, T>,
 {
     /// The native window.
-    pub window:  P::Window,
+    pub window: P::Window,
+
     /// The id of the view.
     pub view_id: ViewId,
 
@@ -205,12 +194,19 @@ where
     pub fn new(
         cx: &mut Context<P>,
         data: &mut T,
-        mut window: P::Window,
-        view_id: ViewId,
         attributes: WindowAttributes<T>,
-        contents: Pod<P, V::Widget>,
-        state: V::State,
+        contents: V,
+        build: impl FnOnce(&mut P, &P::Widget) -> P::Window,
     ) -> Self {
+        let view_id = ViewId::next();
+
+        let (contents, state) = cx.with_window(view_id, |cx| contents.build(cx, data));
+
+        let mut window = build(
+            &mut cx.platform,
+            contents.widget.widget(),
+        );
+
         window.set_title(
             &mut cx.platform,
             attributes.title.clone(),
@@ -377,23 +373,18 @@ where
         self.height = height;
 
         if let Sizing::User = self.sizing {
-            let style = LayoutStyle {
-                max_size: Size {
-                    width:  AutoLength::Length(0.0),
-                    height: AutoLength::Length(0.0),
-                },
-                ..Default::default()
-            };
-
             let size = Size {
                 width:  AvailableSpace::MinContent,
                 height: AvailableSpace::MinContent,
             };
 
-            cx.layout.set_layout(self.node, style);
-            cx.layout.compute_layout(&mut cx.platform, self.node, size);
+            cx.layout.compute_layout(
+                &mut cx.platform,
+                self.contents.node,
+                size,
+            );
 
-            if let Some(layout) = cx.layout.get_computed_layout(self.node) {
+            if let Some(layout) = cx.layout.get_allocation(self.contents.node) {
                 self.window.set_min_size(
                     &mut cx.platform,
                     layout.content_size.width,
@@ -450,7 +441,7 @@ where
         cx.layout.set_layout(self.node, style);
         cx.layout.compute_layout(&mut cx.platform, self.node, size);
 
-        if let Some(allocation) = cx.layout.get_computed_layout(self.node)
+        if let Some(allocation) = cx.layout.get_allocation(self.node)
             && self.allocation != Some(allocation)
         {
             self.allocation = Some(allocation);
@@ -464,7 +455,7 @@ where
             }
         }
 
-        if let Some(allocation) = cx.layout.get_computed_layout(self.contents.node)
+        if let Some(allocation) = cx.layout.get_allocation(self.contents.node)
             && self.content_allocation != Some(allocation)
         {
             self.content_allocation = Some(allocation);
@@ -518,6 +509,28 @@ where
 
                     if self.animating == 0 {
                         self.window.stop_animating(&mut cx.platform);
+                    }
+
+                    Action::new()
+                }
+            };
+        }
+
+        if let Some(message) = message.take_targeted(self.view_id) {
+            return match message {
+                ModalRequest::Open { id } => {
+                    if let Some(modal) = cx.modals.get(&id) {
+                        self.window.open_modal(&mut cx.platform, modal);
+                        self.layout(cx, data)
+                    } else {
+                        Action::new()
+                    }
+                }
+
+                ModalRequest::Close { id } => {
+                    if let Some(modal) = cx.modals.remove(&id) {
+                        self.window.close_modal(&mut cx.platform, &modal);
+                        modal.teardown(&mut cx.platform);
                     }
 
                     Action::new()

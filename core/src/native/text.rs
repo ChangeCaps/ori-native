@@ -1,12 +1,14 @@
 use std::convert::Infallible;
 
-use crate::{Measure, NativeWidget, Platform, TextSpan, Unsupported, Wrap, platform::unsupported};
+use crate::{
+    Measurable, NativeWidget, Platform, TextSpan, Unsupported, Wrap, platform::unsupported,
+};
 
 pub trait NativeText<P>: NativeWidget<P> + Sized
 where
     P: Platform,
 {
-    type Layout: Measure<P>;
+    type Layout: Measurable<P>;
 
     fn build(platform: &mut P) -> Self;
 

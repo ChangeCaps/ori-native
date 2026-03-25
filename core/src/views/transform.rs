@@ -85,7 +85,7 @@ where
         self.contents.rebuild(pod, &mut state.state, cx, data);
 
         if state.affine != self.affine
-            && let Some(allocation) = cx.layout.get_computed_layout(*element.node)
+            && let Some(allocation) = cx.layout.get_allocation(*element.node)
         {
             state.affine = self.affine;
             state.allocation = Some(allocation);
@@ -106,7 +106,7 @@ where
         message: &mut Message,
     ) -> Action {
         if let Some(Lifecycle::Layout) = message.get()
-            && let Some(allocation) = cx.layout.get_computed_layout(*element.node)
+            && let Some(allocation) = cx.layout.get_allocation(*element.node)
             && state.allocation != Some(allocation)
         {
             state.allocation = Some(allocation);

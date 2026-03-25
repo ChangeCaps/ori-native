@@ -6,7 +6,7 @@ use crate::{
 };
 
 /// A leaf in the layout tree.
-pub trait Measure<P>: 'static {
+pub trait Measurable<P>: 'static {
     /// Compute the size for the given constraints.
     fn measure(
         &mut self,
@@ -16,7 +16,7 @@ pub trait Measure<P>: 'static {
     ) -> Size<f32>;
 }
 
-impl<P> Measure<P> for Infallible {
+impl<P> Measurable<P> for Infallible {
     fn measure(
         &mut self,
         _platform: &mut P,
@@ -69,7 +69,7 @@ pub struct LayoutNode {
 /// The layout tree of an application.
 pub struct LayoutTree<P> {
     request_layout: Option<Box<dyn FnOnce()>>,
-    tree:           taffy::TaffyTree<Box<dyn Measure<P>>>,
+    tree:           taffy::TaffyTree<Box<dyn Measurable<P>>>,
 }
 
 impl<P> Default for LayoutTree<P> {
@@ -106,7 +106,7 @@ impl<P> LayoutTree<P> {
     }
 
     /// Get the computed layout of a layout node.
-    pub fn get_computed_layout(&self, node: LayoutNode) -> Option<Allocation> {
+    pub fn get_allocation(&self, node: LayoutNode) -> Option<Allocation> {
         let layout = self.tree.layout(node.id).ok()?;
 
         Some(Allocation {
@@ -187,13 +187,15 @@ impl<P> LayoutTree<P> {
     }
 
     /// Create a new layout leaf.
-    pub fn add_leaf<T>(&mut self, leaf: T) -> LayoutNode
+    pub fn add_leaf<T>(&mut self, measurable: T) -> LayoutNode
     where
-        T: Measure<P> + 'static,
+        T: Measurable<P> + 'static,
     {
-        let id = self
-            .tree
-            .new_leaf_with_context(taffy::Style::DEFAULT, Box::new(leaf))
+        let id = (self.tree)
+            .new_leaf_with_context(
+                taffy::Style::DEFAULT,
+                Box::new(measurable),
+            )
             .expect("should never fail");
 
         LayoutNode { id }
@@ -345,7 +347,7 @@ impl<P> LayoutTree<P> {
     /// Set the measure of a layout.
     pub fn set_measure<T>(&mut self, node: LayoutNode, leaf: T)
     where
-        T: Measure<P> + 'static,
+        T: Measurable<P> + 'static,
     {
         self.request_layout();
         let _ = self.tree.set_node_context(node.id, Some(Box::new(leaf)));
