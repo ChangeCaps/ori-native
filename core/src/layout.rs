@@ -1,8 +1,8 @@
 use std::{convert::Infallible, mem};
 
 use crate::{
-    Align, AutoLength, BorderStyle, Direction, Justify, LayoutStyle, Length, Overflow, Position,
-    Sides, Size,
+    Align, AutoLength, BorderStyle, Direction, FlexStyle, Justify, LayoutStyle, Length, Overflow,
+    Position, Sides, Size,
 };
 
 /// A leaf in the layout tree.
@@ -318,19 +318,12 @@ impl<P> LayoutTree<P> {
     }
 
     /// Set the flex parameters of a layout node.
-    pub fn set_flex(
-        &mut self,
-        node: LayoutNode,
-        direction: Direction,
-        justify_content: Option<Justify>,
-        align_items: Option<Align>,
-        gap: Size<Length>,
-    ) {
+    pub fn set_flex(&mut self, node: LayoutNode, flex: FlexStyle) {
         let Ok(mut layout) = self.tree.style(node.id).cloned() else {
             return;
         };
 
-        layout.flex_direction = match direction {
+        layout.flex_direction = match flex.direction {
             Direction::Row => taffy::FlexDirection::Row,
             Direction::Column => taffy::FlexDirection::Column,
             Direction::RowReverse => taffy::FlexDirection::RowReverse,
@@ -338,12 +331,12 @@ impl<P> LayoutTree<P> {
         };
 
         layout.gap = taffy::Size {
-            width:  gap.width.into_taffy(),
-            height: gap.height.into_taffy(),
+            width:  flex.gap.width.into_taffy(),
+            height: flex.gap.height.into_taffy(),
         };
 
-        layout.justify_content = justify_content.map(Justify::into_taffy);
-        layout.align_items = align_items.map(Align::into_taffy);
+        layout.justify_content = flex.justify_content.map(Justify::into_taffy);
+        layout.align_items = flex.align_items.map(Align::into_taffy);
 
         self.request_layout();
         let _ = self.tree.set_style(node.id, layout);

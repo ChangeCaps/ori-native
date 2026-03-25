@@ -1,8 +1,8 @@
 use ori::{Action, Message, Mut, View, ViewMarker};
 
 use crate::{
-    Allocation, Context, Direction, Layout, LayoutStyle, Length, Lifecycle, NativeWidget, Overflow,
-    Platform, Pod, Size, WidgetView, native::NativeScroll,
+    Allocation, Context, Direction, FlexStyle, Layout, LayoutStyle, Lifecycle, NativeWidget,
+    Overflow, Platform, Pod, Size, WidgetView, native::NativeScroll,
 };
 
 /// [`View`] of a horizontal scroll area.
@@ -68,10 +68,10 @@ where
         cx.layout.set_overflow(node, overflow);
         cx.layout.set_flex(
             node,
-            self.direction,
-            None,
-            None,
-            Size::all(Length::Length(0.0)),
+            FlexStyle {
+                direction: self.direction,
+                ..Default::default()
+            },
         );
 
         let mut widget = P::Scroll::build(
@@ -123,10 +123,10 @@ where
             cx.layout.set_overflow(*element.node, overflow);
             cx.layout.set_flex(
                 *element.node,
-                self.direction,
-                None,
-                None,
-                Size::all(Length::Length(0.0)),
+                FlexStyle {
+                    direction: self.direction,
+                    ..Default::default()
+                },
             );
 
             (element.widget).set_direction(&mut cx.platform, self.direction);

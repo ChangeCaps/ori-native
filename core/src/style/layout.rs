@@ -276,6 +276,33 @@ impl Default for BorderStyle {
     }
 }
 
+/// The style of a flex container.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct FlexStyle {
+    /// The direction children are layed out.
+    pub direction: Direction,
+
+    /// The justification strategy.
+    pub justify_content: Option<Justify>,
+
+    /// The alignment strategy of iems.
+    pub align_items: Option<Align>,
+
+    /// The gap between items.
+    pub gap: Size<Length>,
+}
+
+impl Default for FlexStyle {
+    fn default() -> Self {
+        Self {
+            direction:       Direction::Row,
+            justify_content: None,
+            align_items:     None,
+            gap:             Size::all(Length::Length(0.0)),
+        }
+    }
+}
+
 /// A trait for views that can style its layout.
 pub trait Layout: Sized {
     /// Get a mutable reference to the layout style.
@@ -561,5 +588,51 @@ pub trait Padding: Sized {
             .padding_right(right)
             .padding_bottom(bottom)
             .padding_left(left)
+    }
+}
+
+/// A trait for flex containers.
+pub trait FlexContainer: Sized {
+    /// Get a mutable reference to the flex style.
+    fn get_flex_style_mut(&mut self) -> &mut FlexStyle;
+
+    /// Set the flex direction.
+    fn direction(mut self, direction: Direction) -> Self {
+        self.get_flex_style_mut().direction = direction;
+        self
+    }
+
+    /// Reverse the direction.
+    fn reverse(mut self) -> Self {
+        self.get_flex_style_mut().direction = match self.get_flex_style_mut().direction {
+            Direction::Row => Direction::RowReverse,
+            Direction::Column => Direction::ColumnReverse,
+            Direction::RowReverse => Direction::Row,
+            Direction::ColumnReverse => Direction::Column,
+        };
+
+        self
+    }
+
+    /// Set how contents are justified within the container.
+    fn justify_content(mut self, justify: impl Into<Option<Justify>>) -> Self {
+        self.get_flex_style_mut().justify_content = justify.into();
+        self
+    }
+
+    /// Set how items are aligned within the container.
+    fn align_items(mut self, align: impl Into<Option<Align>>) -> Self {
+        self.get_flex_style_mut().align_items = align.into();
+        self
+    }
+
+    /// Set the gap between items within the container.
+    fn gap(mut self, gap: impl Into<Length>) -> Self {
+        let gap = gap.into();
+
+        self.get_flex_style_mut().gap.width = gap;
+        self.get_flex_style_mut().gap.width = gap;
+
+        self
     }
 }

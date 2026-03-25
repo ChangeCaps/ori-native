@@ -1,8 +1,9 @@
 use ori::{Action, Message, Mut, View, ViewMarker};
 
 use crate::{
-    Align, Border, BorderStyle, Color, Context, Direction, Justify, Layout, LayoutStyle, Length,
-    Lifecycle, Overflow, Padding, Platform, Pod, Shadow, Sides, Size, WidgetViewSeq, native::Group,
+    Border, BorderStyle, Color, Context, Direction, FlexContainer, FlexStyle, Layout, LayoutStyle,
+    Length, Lifecycle, Overflow, Padding, Platform, Pod, Shadow, Sides, Size, WidgetViewSeq,
+    native::Group,
 };
 
 /// Container [`View`] with flexbox layout.
@@ -22,19 +23,16 @@ pub fn column<V>(contents: V) -> Flex<V> {
 
 /// [`View`] of a flex container.
 pub struct Flex<V> {
-    contents:        V,
-    layout:          LayoutStyle,
-    border:          BorderStyle,
-    padding:         Sides<Length>,
-    direction:       Direction,
-    justify_content: Option<Justify>,
-    align_items:     Option<Align>,
-    gap:             Length,
-    background:      Color,
-    corner_radii:    [f32; 4],
-    overflow:        Overflow,
-    shadow:          Shadow,
-    hardware_layer:  bool,
+    contents:       V,
+    layout:         LayoutStyle,
+    border:         BorderStyle,
+    padding:        Sides<Length>,
+    flex:           FlexStyle,
+    background:     Color,
+    corner_radii:   [f32; 4],
+    overflow:       Overflow,
+    shadow:         Shadow,
+    hardware_layer: bool,
 }
 
 impl<V> Flex<V> {
@@ -45,52 +43,13 @@ impl<V> Flex<V> {
             layout: LayoutStyle::default(),
             border: BorderStyle::default(),
             padding: Sides::all(Length::Length(0.0)),
-            direction: Direction::Row,
-            justify_content: None,
-            align_items: None,
-            gap: Length::Length(0.0),
+            flex: FlexStyle::default(),
             background: Color::TRANSPARENT,
             corner_radii: [0.0; 4],
             overflow: Overflow::Visible,
             shadow: Shadow::default(),
             hardware_layer: false,
         }
-    }
-
-    /// Set the flex direction.
-    pub fn direction(mut self, direction: Direction) -> Self {
-        self.direction = direction;
-        self
-    }
-
-    /// Reverse the direction.
-    pub fn reverse(mut self) -> Self {
-        self.direction = match self.direction {
-            Direction::Row => Direction::RowReverse,
-            Direction::Column => Direction::ColumnReverse,
-            Direction::RowReverse => Direction::Row,
-            Direction::ColumnReverse => Direction::Column,
-        };
-
-        self
-    }
-
-    /// Set how contents are justified within the container.
-    pub fn justify_content(mut self, justify: Justify) -> Self {
-        self.justify_content = Some(justify);
-        self
-    }
-
-    /// Set how items are aligned within the container.
-    pub fn align_items(mut self, align: Align) -> Self {
-        self.align_items = Some(align);
-        self
-    }
-
-    /// Set the gap between items within the container.
-    pub fn gap(mut self, gap: impl Into<Length>) -> Self {
-        self.gap = gap.into();
-        self
     }
 
     /// Set the background color.
@@ -208,6 +167,12 @@ impl<V> Padding for Flex<V> {
     }
 }
 
+impl<V> FlexContainer for Flex<V> {
+    fn get_flex_style_mut(&mut self) -> &mut FlexStyle {
+        &mut self.flex
+    }
+}
+
 impl<V> ViewMarker for Flex<V> {}
 impl<P, T, V> View<Context<P>, T> for Flex<V>
 where
@@ -223,13 +188,7 @@ where
         cx.layout.set_border(node, self.border);
         cx.layout.set_padding(node, self.padding);
         cx.layout.set_overflow(node, Size::all(self.overflow));
-        cx.layout.set_flex(
-            node,
-            self.direction,
-            self.justify_content,
-            self.align_items,
-            Size::all(self.gap),
-        );
+        cx.layout.set_flex(node, self.flex);
 
         let mut group = Group::new(cx);
         group.set_background(cx, self.background);
@@ -248,10 +207,7 @@ where
             border: self.border,
             padding: self.padding,
             overflow: self.overflow,
-            direction: self.direction,
-            justify_content: self.justify_content,
-            align_items: self.align_items,
-            gap: self.gap,
+            flex: self.flex,
             background: self.background,
             corner_radii: self.corner_radii,
             shadow: self.shadow,
@@ -283,22 +239,9 @@ where
             (cx.layout).set_overflow(*element.node, Size::all(self.overflow));
         }
 
-        if state.direction != self.direction
-            || state.justify_content != self.justify_content
-            || state.align_items != self.align_items
-            || state.gap != self.gap
-        {
-            state.direction = self.direction;
-            state.justify_content = self.justify_content;
-            state.align_items = self.align_items;
-            state.gap = self.gap;
-            (cx.layout).set_flex(
-                *element.node,
-                self.direction,
-                self.justify_content,
-                self.align_items,
-                Size::all(self.gap),
-            );
+        if state.flex != self.flex {
+            state.flex = self.flex;
+            (cx.layout).set_flex(*element.node, self.flex);
         }
 
         if state.border != self.border {
@@ -377,17 +320,14 @@ where
     P: Platform,
     V: WidgetViewSeq<P, T>,
 {
-    state:           V::State,
-    layout:          LayoutStyle,
-    border:          BorderStyle,
-    padding:         Sides<Length>,
-    overflow:        Overflow,
-    direction:       Direction,
-    justify_content: Option<Justify>,
-    align_items:     Option<Align>,
-    gap:             Length,
-    background:      Color,
-    corner_radii:    [f32; 4],
-    shadow:          Shadow,
-    hardware_layer:  bool,
+    state:          V::State,
+    layout:         LayoutStyle,
+    border:         BorderStyle,
+    flex:           FlexStyle,
+    padding:        Sides<Length>,
+    overflow:       Overflow,
+    background:     Color,
+    corner_radii:   [f32; 4],
+    shadow:         Shadow,
+    hardware_layer: bool,
 }

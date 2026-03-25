@@ -25,9 +25,9 @@ pub use lifecycle::{AnimateRequest, LayoutRequest, Lifecycle};
 pub use platform::{Platform, Unsupported};
 pub use safearea::SafeAreaInsets;
 pub use style::{
-    Affine, Align, AutoLength, Border, BorderStyle, Color, Corners, Direction, Fract, Justify,
-    Layout, LayoutStyle, Length, NavigationBar, Overflow, Padding, Position, Shadow, Sides, Size,
-    Sizing, StatusBar,
+    Affine, Align, AutoLength, Border, BorderStyle, Color, Corners, Direction, FlexContainer,
+    FlexStyle, Fract, Justify, Layout, LayoutStyle, Length, NavigationBar, Overflow, Padding,
+    Position, Shadow, Sides, Size, Sizing, StatusBar,
 };
 pub use text::{Font, Stretch, TextSpan, Weight, Wrap};
 
