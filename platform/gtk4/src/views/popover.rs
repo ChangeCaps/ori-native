@@ -5,8 +5,8 @@ use glib::{
 use gtk4::prelude::{PopoverExt, WidgetExt};
 use ori::{Action, Message, Mut, View, ViewMarker};
 use ori_native_core::{
-    AutoLength, AvailableSpace, Context, LayoutNode, LayoutStyle, Lifecycle, NativeParent,
-    NativeWidget, Pod, Size, WidgetView,
+    AvailableSpace, Context, LayoutNode, Lifecycle, NativeParent, NativeWidget, Pod, Size,
+    WidgetView,
 };
 
 use crate::Platform;
@@ -49,6 +49,14 @@ impl<T, V, P> Popover<T, V, P> {
 
     pub fn position(mut self, position: Position) -> Self {
         self.position = position;
+        self
+    }
+
+    pub fn on_close<A>(mut self, mut on_close: impl FnMut(&mut T) -> A + 'static) -> Self
+    where
+        A: Into<Action>,
+    {
+        self.on_close = Box::new(move |data| on_close(data).into());
         self
     }
 }

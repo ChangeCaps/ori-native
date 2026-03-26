@@ -224,6 +224,9 @@ pub struct LayoutStyle {
     /// The factor by which the view will grow.
     pub flex_grow: f32,
 
+    /// The default size before remaining space is distributed.
+    pub flex_basis: AutoLength,
+
     /// The margin around the view.
     pub margin: Sides<AutoLength>,
 
@@ -248,6 +251,7 @@ impl Default for LayoutStyle {
             align_self:   None,
             flex_shrink:  1.0,
             flex_grow:    0.0,
+            flex_basis:   AutoLength::Auto,
             margin:       Sides::all(AutoLength::Length(0.0)),
             inset:        Sides::all(AutoLength::Auto),
             size:         Size::all(AutoLength::Auto),
@@ -476,6 +480,12 @@ pub trait Layout: Sized {
     /// Set the flex shrinkage factor.
     fn flex_shrink(mut self, amount: f32) -> Self {
         self.get_layout_style_mut().flex_shrink = amount;
+        self
+    }
+
+    /// Set the flex basis.
+    fn flex_basis(mut self, basis: impl Into<AutoLength>) -> Self {
+        self.get_layout_style_mut().flex_basis = basis.into();
         self
     }
 }

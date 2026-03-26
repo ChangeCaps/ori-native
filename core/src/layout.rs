@@ -236,6 +236,7 @@ impl<P> LayoutTree<P> {
         layout.align_self = style.align_self.map(|align| align.into_taffy());
         layout.flex_shrink = style.flex_shrink;
         layout.flex_grow = style.flex_grow;
+        layout.flex_basis = style.flex_basis.into_taffy_dimension();
 
         layout.margin = taffy::Rect {
             top:    style.margin.top.into_taffy_length_auto(),
