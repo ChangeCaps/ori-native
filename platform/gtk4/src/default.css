@@ -21,9 +21,10 @@ window {
 }
 
 popover contents {
-
-    /*
+    padding: 0;
+    margin: 0;
     background: none;
     border: none;
-    */
+    border-radius: 0;
+    box-shadow: none;
 }

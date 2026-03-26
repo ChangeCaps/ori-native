@@ -44,7 +44,7 @@ pub mod prelude {
 
     #[allow(unused_imports)]
     #[cfg(target_os = "linux")]
-    pub use crate::platform::views::*;
+    pub use crate::platform::views as gtk4;
 
     pub use tracing::{debug, error, info, trace, warn};
 }
