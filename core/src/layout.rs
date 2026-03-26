@@ -74,10 +74,7 @@ pub struct LayoutTree<P> {
 
 impl<P> Default for LayoutTree<P> {
     fn default() -> Self {
-        Self {
-            request_layout: None,
-            tree:           taffy::TaffyTree::new(),
-        }
+        Self::new()
     }
 }
 

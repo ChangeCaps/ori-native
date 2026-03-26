@@ -2,7 +2,7 @@ use glib::{
     object::{Cast, IsA},
     subclass::types::ObjectSubclassIsExt,
 };
-use gtk4::prelude::{PopoverExt, WidgetExt};
+use gtk4::prelude::{FixedExt, PopoverExt, WidgetExt};
 use ori::{Action, Message, Mut, View, ViewMarker};
 use ori_native_core::{
     AvailableSpace, Context, LayoutNode, Lifecycle, NativeParent, NativeWidget, Pod, Size,
@@ -74,29 +74,11 @@ where
         let (contents_element, contents_state) = self.contents.build(cx, data);
         let (popover_element, popover_state) = self.popover.build(cx, data);
 
-        let popover = gtk4::Popover::new();
-        popover.set_autohide(false);
-        popover.set_has_arrow(false);
-        popover.set_child(Some(popover_element.widget.widget()));
-
-        if self.is_open {
-            popover.connect_realize(|popover| {
-                popover.popup();
-            });
-        }
-
-        let position = match self.position {
-            Position::Top => gtk4::PositionType::Top,
-            Position::Right => gtk4::PositionType::Right,
-            Position::Bottom => gtk4::PositionType::Bottom,
-            Position::Left => gtk4::PositionType::Left,
-        };
-
-        popover.set_position(position);
-
         let receiver = PopoverReceiver::new();
         receiver.set_child(Some(contents_element.widget.widget()));
-        receiver.set_popover(Some(&popover));
+        receiver.set_popover_child(Some(popover_element.widget.widget()));
+        receiver.set_position(self.position);
+        receiver.set_open(self.is_open);
 
         let popover_node = cx.layout.add_node(&[popover_element.node]);
 
@@ -107,7 +89,7 @@ where
             popover_element,
             popover_state,
             popover_node,
-            popover,
+            position: self.position,
         };
 
         (pod, state)
@@ -129,22 +111,11 @@ where
 
         (self.popover).rebuild(pod, &mut state.popover_state, cx, data);
 
-        if state.popover.is_visible() != self.is_open {
-            match self.is_open {
-                true => state.popover.popup(),
-                false => state.popover.popdown(),
-            }
-        }
+        element.widget.set_open(self.is_open);
 
-        let position = match self.position {
-            Position::Top => gtk4::PositionType::Top,
-            Position::Right => gtk4::PositionType::Right,
-            Position::Bottom => gtk4::PositionType::Bottom,
-            Position::Left => gtk4::PositionType::Left,
-        };
-
-        if state.popover.position() != position {
-            state.popover.set_position(position);
+        if state.position != self.position {
+            state.position = self.position;
+            element.widget.set_position(self.position);
         }
     }
 
@@ -170,13 +141,19 @@ where
             );
 
             if let Some(allocation) = cx.layout.get_allocation(state.popover_node) {
-                let width = allocation.size.width.round() as i32;
-                let height = allocation.size.height.round() as i32;
+                element.widget.set_popover_size(
+                    allocation.size.width,
+                    allocation.size.height,
+                );
+            }
 
-                state.popover.set_size_request(width, height);
-
-                let popover_contents = state.popover_element.widget.widget();
-                popover_contents.set_size_request(width, height);
+            if let Some(allocation) = cx.layout.get_allocation(state.popover_element.node) {
+                element.widget.set_content_layout(
+                    allocation.x,
+                    allocation.y,
+                    allocation.size.width,
+                    allocation.size.height,
+                );
             }
         }
 
@@ -231,7 +208,7 @@ where
     popover_element: P::Element,
     popover_state:   P::State,
     popover_node:    LayoutNode,
-    popover:         gtk4::Popover,
+    position:        Position,
 }
 
 impl NativeParent<Platform> for PopoverReceiver {
@@ -242,9 +219,7 @@ impl NativeParent<Platform> for PopoverReceiver {
             }
 
             1 => {
-                if let Some(ref popover) = *self.imp().popover.borrow() {
-                    popover.set_child(Some(child));
-                }
+                self.set_popover_child(Some(child));
             }
 
             _ => {}
@@ -260,30 +235,66 @@ impl NativeWidget<Platform> for PopoverReceiver {
 
 impl PopoverReceiver {
     pub fn new() -> Self {
-        glib::Object::new()
+        let this: Self = glib::Object::new();
+        this.imp().popover.set_parent(&this);
+        this
     }
 
     pub fn set_child(&self, child: Option<&impl IsA<gtk4::Widget>>) {
-        if let Some(ref child) = *self.imp().child.borrow() {
+        if let Some(ref child) = *self.imp().widget.borrow() {
             child.unparent();
         }
 
         if let Some(child) = child {
             child.set_parent(self);
-            self.imp().child.replace(Some(child.as_ref().clone()));
+            self.imp().widget.replace(Some(child.as_ref().clone()));
         }
     }
 
-    pub fn set_popover(&self, popover: Option<&impl IsA<gtk4::Popover>>) {
-        if let Some(ref popover) = *self.imp().popover.borrow() {
-            popover.unparent();
+    pub fn set_popover_child(&self, popover: Option<&impl IsA<gtk4::Widget>>) {
+        if let Some(child) = self.imp().fixed.first_child() {
+            self.imp().fixed.remove(&child);
         }
 
         if let Some(popover) = popover {
-            let popover = popover.as_ref();
-            popover.set_parent(self);
+            self.imp().fixed.put(popover, 0.0, 0.0);
+        }
+    }
 
-            self.imp().popover.replace(Some(popover.clone()));
+    pub fn set_open(&self, is_open: bool) {
+        if self.imp().popover.is_visible() != is_open {
+            match is_open {
+                true => self.imp().popover.popup(),
+                false => self.imp().popover.popdown(),
+            }
+        }
+    }
+
+    pub fn set_position(&self, position: Position) {
+        let position = match position {
+            Position::Top => gtk4::PositionType::Top,
+            Position::Right => gtk4::PositionType::Right,
+            Position::Bottom => gtk4::PositionType::Bottom,
+            Position::Left => gtk4::PositionType::Left,
+        };
+
+        self.imp().popover.set_position(position);
+    }
+
+    pub fn set_popover_size(&self, width: f32, height: f32) {
+        self.imp().popover.set_size_request(
+            width.round() as i32,
+            height.round() as i32,
+        );
+    }
+
+    pub fn set_content_layout(&self, x: f32, y: f32, width: f32, height: f32) {
+        if let Some(child) = self.imp().fixed.first_child() {
+            self.imp().fixed.move_(&child, x as f64, y as f64);
+            child.set_size_request(
+                width.round() as i32,
+                height.round() as i32,
+            );
         }
     }
 }
@@ -308,10 +319,26 @@ mod imp {
         subclass::widget::WidgetImpl,
     };
 
-    #[derive(Default)]
     pub struct PopoverReceiver {
-        pub(super) child:   RefCell<Option<gtk4::Widget>>,
-        pub(super) popover: RefCell<Option<gtk4::Popover>>,
+        pub(super) widget:  RefCell<Option<gtk4::Widget>>,
+        pub(super) popover: gtk4::Popover,
+        pub(super) fixed:   gtk4::Fixed,
+    }
+
+    impl Default for PopoverReceiver {
+        fn default() -> Self {
+            let fixed = gtk4::Fixed::new();
+            let popover = gtk4::Popover::new();
+            popover.set_autohide(false);
+            popover.set_has_arrow(false);
+            popover.set_child(Some(&fixed));
+
+            Self {
+                widget: Default::default(),
+                popover,
+                fixed,
+            }
+        }
     }
 
     #[glib::object_subclass]
@@ -323,33 +350,29 @@ mod imp {
 
     impl ObjectImpl for PopoverReceiver {
         fn dispose(&self) {
-            if let Some(ref child) = *self.child.borrow() {
+            if let Some(ref child) = *self.widget.borrow() {
                 child.unparent();
             }
 
-            if let Some(ref popover) = *self.popover.borrow() {
-                popover.unparent();
-            }
+            self.popover.unparent();
         }
     }
 
     impl WidgetImpl for PopoverReceiver {
         fn measure(&self, orientation: gtk4::Orientation, for_size: i32) -> (i32, i32, i32, i32) {
-            match *self.child.borrow() {
+            match *self.widget.borrow() {
                 Some(ref child) => child.measure(orientation, for_size),
                 None => (0, 0, -1, -1),
             }
         }
 
         fn size_allocate(&self, width: i32, height: i32, _baseline: i32) {
-            if let Some(ref child) = *self.child.borrow() {
+            if let Some(ref child) = *self.widget.borrow() {
                 let allocation = gtk4::Allocation::new(0, 0, width, height);
                 child.size_allocate(&allocation, -1);
             }
 
-            if let Some(ref popover) = *self.popover.borrow() {
-                popover.present();
-            }
+            self.popover.present();
         }
     }
 }
