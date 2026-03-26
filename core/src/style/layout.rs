@@ -651,7 +651,7 @@ pub trait FlexContainer: Sized {
         let gap = gap.into();
 
         self.get_flex_style_mut().gap.width = gap;
-        self.get_flex_style_mut().gap.width = gap;
+        self.get_flex_style_mut().gap.height = gap;
 
         self
     }
