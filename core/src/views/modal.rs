@@ -66,7 +66,7 @@ where
     ) {
         cx.with_modal(state.view_id, |cx, modal| {
             self.contents.rebuild(
-                state.element.as_mut(state.node, modal, 0),
+                state.element.as_mut(state.node, 0, modal, 0),
                 &mut state.state,
                 cx,
                 data,
@@ -121,7 +121,7 @@ where
             }
 
             V::message(
-                state.element.as_mut(state.node, modal, 0),
+                state.element.as_mut(state.node, 0, modal, 0),
                 &mut state.state,
                 cx,
                 data,

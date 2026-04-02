@@ -312,12 +312,8 @@ where
         attributes: WindowAttributes<T>,
     ) {
         cx.with_window(self.view_id, |cx| {
-            contents.rebuild(
-                (self.contents).as_mut(self.node, &mut self.window, 0),
-                &mut self.state,
-                cx,
-                data,
-            );
+            let pod = self.contents.as_mut(self.node, 0, &mut self.window, 0);
+            contents.rebuild(pod, &mut self.state, cx, data);
         });
 
         let (filter, handler) = attributes.input.split();
@@ -467,8 +463,9 @@ where
         }
 
         cx.with_window(self.view_id, |cx| {
+            let pod = self.contents.as_mut(self.node, 0, &mut self.window, 0);
             V::message(
-                self.contents.as_mut(self.node, &mut self.window, 0),
+                pod,
                 &mut self.state,
                 cx,
                 data,
@@ -545,8 +542,9 @@ where
                     let mut message = Message::new(Lifecycle::Animate(delta), None);
 
                     cx.with_window(self.view_id, |cx| {
+                        let pod = self.contents.as_mut(self.node, 0, &mut self.window, 0);
                         V::message(
-                            self.contents.as_mut(self.node, &mut self.window, 0),
+                            pod,
                             &mut self.state,
                             cx,
                             data,
@@ -574,13 +572,8 @@ where
         }
 
         cx.with_window(self.view_id, |cx| {
-            V::message(
-                self.contents.as_mut(self.node, &mut self.window, 0),
-                &mut self.state,
-                cx,
-                data,
-                message,
-            )
+            let pod = self.contents.as_mut(self.node, 0, &mut self.window, 0);
+            V::message(pod, &mut self.state, cx, data, message)
         })
     }
 

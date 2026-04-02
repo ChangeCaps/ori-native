@@ -132,12 +132,8 @@ where
             (element.widget).set_direction(&mut cx.platform, self.direction);
         }
 
-        self.contents.rebuild(
-            contents.as_mut(*element.node, element.widget, 0),
-            &mut state.state,
-            cx,
-            data,
-        );
+        let pod = contents.as_mut(*element.node, 0, element.widget, 0);
+        self.contents.rebuild(pod, &mut state.state, cx, data);
     }
 
     fn message(
@@ -173,13 +169,8 @@ where
             );
         }
 
-        V::message(
-            contents.as_mut(*element.node, element.widget, 0),
-            &mut state.state,
-            cx,
-            data,
-            message,
-        )
+        let pod = contents.as_mut(*element.node, 0, element.widget, 0);
+        V::message(pod, &mut state.state, cx, data, message)
     }
 
     fn teardown(element: Self::Element, (contents, state): Self::State, cx: &mut Context<P>) {

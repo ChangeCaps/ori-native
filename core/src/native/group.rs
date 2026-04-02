@@ -227,7 +227,9 @@ where
             parent_node:   self.node,
             parent_widget: self.group,
 
-            index:  self.index,
+            node_index:   self.index,
+            widget_index: self.index,
+
             node:   &mut child.element.node,
             widget: &mut child.element.widget,
         };

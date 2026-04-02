@@ -102,12 +102,12 @@ where
         cx: &mut Context<Platform>,
         data: &mut T,
     ) {
-        let pod = element.map_widget(&mut state.contents_widget);
+        let pod = element.map_widget(&mut state.contents_widget, 0);
         (self.contents).rebuild(pod, &mut state.contents_state, cx, data);
 
         let pod = state
             .popover_element
-            .as_mut(state.popover_node, element.widget, 1);
+            .as_mut(state.popover_node, 0, element.widget, 1);
 
         (self.popover).rebuild(pod, &mut state.popover_state, cx, data);
 
@@ -157,7 +157,7 @@ where
             }
         }
 
-        let pod = element.map_widget(&mut state.contents_widget);
+        let pod = element.map_widget(&mut state.contents_widget, 0);
         action |= V::message(
             pod,
             &mut state.contents_state,
@@ -168,7 +168,7 @@ where
 
         let pod = state
             .popover_element
-            .as_mut(state.popover_node, element.widget, 1);
+            .as_mut(state.popover_node, 0, element.widget, 1);
 
         action |= P::message(
             pod,

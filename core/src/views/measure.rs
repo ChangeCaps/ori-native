@@ -79,7 +79,7 @@ where
         cx: &mut Context<P>,
         data: &mut T,
     ) {
-        let pod = element.map_widget(&mut state.widget);
+        let pod = element.map_widget(&mut state.widget, 0);
         self.contents.rebuild(pod, &mut state.state, cx, data);
     }
 
@@ -117,7 +117,7 @@ where
             );
         }
 
-        let pod = element.map_widget(&mut state.widget);
+        let pod = element.map_widget(&mut state.widget, 0);
         action | V::message(pod, &mut state.state, cx, data, message)
     }
 

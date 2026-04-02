@@ -43,13 +43,15 @@ impl<P, T> Pod<P, T> {
     pub fn as_mut<'a>(
         &'a mut self,
         parent_node: LayoutNode,
+        node_index: usize,
         parent_widget: &'a mut dyn NativeParent<P>,
-        index: usize,
+        widget_index: usize,
     ) -> PodMut<'a, P, T> {
         PodMut {
             parent_node,
             parent_widget,
-            index,
+            node_index,
+            widget_index,
             node: &mut self.node,
             widget: &mut self.widget,
         }
@@ -64,8 +66,11 @@ pub struct PodMut<'a, P, T> {
     /// The native parent widget.
     pub parent_widget: &'a mut dyn NativeParent<P>,
 
-    /// The index of this in the parent.
-    pub index: usize,
+    /// The index of this in the parent layout node.
+    pub node_index: usize,
+
+    /// The index of this in the parent widget.
+    pub widget_index: usize,
 
     /// The layout node of this [`Element`].
     pub node: &'a mut LayoutNode,
@@ -80,7 +85,8 @@ impl<P, T> PodMut<'_, P, T> {
         PodMut {
             parent_node:   self.parent_node,
             parent_widget: self.parent_widget,
-            index:         self.index,
+            node_index:    self.node_index,
+            widget_index:  self.widget_index,
             node:          self.node,
             widget:        self.widget,
         }
@@ -88,7 +94,7 @@ impl<P, T> PodMut<'_, P, T> {
 
     /// Map the widget of `self` with another widget, settings the old `widget` as the new
     /// `parent`.
-    pub fn map_widget<'a, U>(&'a mut self, widget: &'a mut U) -> PodMut<'a, P, U>
+    pub fn map_widget<'a, U>(&'a mut self, widget: &'a mut U, index: usize) -> PodMut<'a, P, U>
     where
         P: Platform,
         T: NativeParent<P>,
@@ -96,7 +102,8 @@ impl<P, T> PodMut<'_, P, T> {
         PodMut {
             parent_node: self.parent_node,
             parent_widget: self.widget,
-            index: self.index,
+            node_index: self.node_index,
+            widget_index: index,
             node: self.node,
             widget,
         }
@@ -180,13 +187,13 @@ where
     fn replace(cx: &mut Context<P>, other: Mut<'_, BoxedWidget<P>>, this: Self) -> BoxedWidget<P> {
         cx.layout.replace_child(
             other.parent_node,
-            other.index,
+            other.node_index,
             this.node,
         );
 
         other.parent_widget.replace_child(
             &mut cx.platform,
-            other.index,
+            other.node_index,
             this.widget.widget(),
         );
 
@@ -234,7 +241,9 @@ where
                 parent_node:   this.parent_node,
                 parent_widget: this.parent_widget,
 
-                index:  this.index,
+                node_index:   this.node_index,
+                widget_index: this.widget_index,
+
                 node:   this.node,
                 widget: shadow,
             })

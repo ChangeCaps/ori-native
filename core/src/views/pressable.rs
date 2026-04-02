@@ -200,7 +200,7 @@ where
         let view = (self.build)(data, state.press);
 
         view.rebuild(
-            element.map_widget(&mut state.widget),
+            element.map_widget(&mut state.widget, 0),
             &mut state.state,
             cx,
             data,
@@ -275,7 +275,7 @@ where
 
             let view = (state.build)(data, state.press);
             view.rebuild(
-                element.map_widget(&mut state.widget),
+                element.map_widget(&mut state.widget, 0),
                 &mut state.state,
                 cx,
                 data,
@@ -284,7 +284,7 @@ where
             action
         } else {
             V::message(
-                element.map_widget(&mut state.widget),
+                element.map_widget(&mut state.widget, 0),
                 &mut state.state,
                 cx,
                 data,
