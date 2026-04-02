@@ -1,8 +1,8 @@
 use std::{convert::Infallible, mem};
 
 use crate::{
-    Align, AutoLength, BorderStyle, Direction, FlexStyle, Justify, LayoutStyle, Length, Overflow,
-    Position, Sides, Size,
+    Align, BorderStyle, Direction, FlexStyle, Justify, LayoutStyle, Length, Overflow, Position,
+    Sides, Size,
 };
 
 /// A leaf in the layout tree.
@@ -228,40 +228,40 @@ impl<P> LayoutTree<P> {
             return;
         };
 
-        layout.position = style.position.into_taffy();
-        layout.justify_self = style.justify_self.map(|align| align.into_taffy());
-        layout.align_self = style.align_self.map(|align| align.into_taffy());
+        layout.position = Self::into_position(style.position);
+        layout.justify_self = style.justify_self.map(Self::into_align);
+        layout.align_self = style.align_self.map(Self::into_align);
         layout.flex_shrink = style.flex_shrink;
         layout.flex_grow = style.flex_grow;
-        layout.flex_basis = style.flex_basis.into_taffy_dimension();
+        layout.flex_basis = Self::into_dimension(style.flex_basis);
 
         layout.margin = taffy::Rect {
-            top:    style.margin.top.into_taffy_length_auto(),
-            right:  style.margin.right.into_taffy_length_auto(),
-            bottom: style.margin.bottom.into_taffy_length_auto(),
-            left:   style.margin.left.into_taffy_length_auto(),
+            top:    Self::into_length_auto(style.margin.top),
+            right:  Self::into_length_auto(style.margin.right),
+            bottom: Self::into_length_auto(style.margin.bottom),
+            left:   Self::into_length_auto(style.margin.left),
         };
 
         layout.inset = taffy::Rect {
-            top:    style.inset.top.into_taffy_length_auto(),
-            right:  style.inset.right.into_taffy_length_auto(),
-            bottom: style.inset.bottom.into_taffy_length_auto(),
-            left:   style.inset.left.into_taffy_length_auto(),
+            top:    Self::into_length_auto(style.inset.top),
+            right:  Self::into_length_auto(style.inset.right),
+            bottom: Self::into_length_auto(style.inset.bottom),
+            left:   Self::into_length_auto(style.inset.left),
         };
 
         layout.size = taffy::Size {
-            width:  style.size.width.into_taffy_dimension(),
-            height: style.size.height.into_taffy_dimension(),
+            width:  Self::into_dimension(style.size.width),
+            height: Self::into_dimension(style.size.height),
         };
 
         layout.min_size = taffy::Size {
-            width:  style.min_size.width.into_taffy_dimension(),
-            height: style.min_size.height.into_taffy_dimension(),
+            width:  Self::into_dimension(style.min_size.width),
+            height: Self::into_dimension(style.min_size.height),
         };
 
         layout.max_size = taffy::Size {
-            width:  style.max_size.width.into_taffy_dimension(),
-            height: style.max_size.height.into_taffy_dimension(),
+            width:  Self::into_dimension(style.max_size.width),
+            height: Self::into_dimension(style.max_size.height),
         };
 
         self.request_layout();
@@ -275,10 +275,10 @@ impl<P> LayoutTree<P> {
         };
 
         layout.border = taffy::Rect {
-            top:    style.width.top.into_taffy(),
-            right:  style.width.right.into_taffy(),
-            bottom: style.width.bottom.into_taffy(),
-            left:   style.width.left.into_taffy(),
+            top:    Self::into_length(style.width.top),
+            right:  Self::into_length(style.width.right),
+            bottom: Self::into_length(style.width.bottom),
+            left:   Self::into_length(style.width.left),
         };
 
         self.request_layout();
@@ -292,10 +292,10 @@ impl<P> LayoutTree<P> {
         };
 
         layout.padding = taffy::Rect {
-            top:    padding.top.into_taffy(),
-            right:  padding.right.into_taffy(),
-            bottom: padding.bottom.into_taffy(),
-            left:   padding.left.into_taffy(),
+            top:    Self::into_length(padding.top),
+            right:  Self::into_length(padding.right),
+            bottom: Self::into_length(padding.bottom),
+            left:   Self::into_length(padding.left),
         };
 
         self.request_layout();
@@ -331,12 +331,12 @@ impl<P> LayoutTree<P> {
         };
 
         layout.gap = taffy::Size {
-            width:  flex.gap.width.into_taffy(),
-            height: flex.gap.height.into_taffy(),
+            width:  Self::into_length(flex.gap.width),
+            height: Self::into_length(flex.gap.height),
         };
 
-        layout.justify_content = flex.justify_content.map(Justify::into_taffy);
-        layout.align_items = flex.align_items.map(Align::into_taffy);
+        layout.justify_content = flex.justify_content.map(Self::into_justify);
+        layout.align_items = flex.align_items.map(Self::into_align);
 
         self.request_layout();
         let _ = self.tree.set_style(node.id, layout);
@@ -373,47 +373,39 @@ impl<P> LayoutTree<P> {
             taffy::AvailableSpace::MaxContent => AvailableSpace::MaxContent,
         }
     }
-}
 
-impl AutoLength {
-    fn into_taffy_dimension(self) -> taffy::Dimension {
-        match self {
-            AutoLength::Length(x) => taffy::Dimension::length(x),
-            AutoLength::Fract(x) => taffy::Dimension::percent(x),
-            AutoLength::Auto => taffy::Dimension::auto(),
-        }
-    }
-
-    fn into_taffy_length_auto(self) -> taffy::LengthPercentageAuto {
-        match self {
-            AutoLength::Length(x) => taffy::LengthPercentageAuto::length(x),
-            AutoLength::Fract(x) => taffy::LengthPercentageAuto::percent(x),
-            AutoLength::Auto => taffy::LengthPercentageAuto::auto(),
-        }
-    }
-}
-
-impl Length {
-    fn into_taffy(self) -> taffy::LengthPercentage {
-        match self {
+    fn into_length(length: Length) -> taffy::LengthPercentage {
+        match length {
             Length::Length(x) => taffy::LengthPercentage::length(x),
             Length::Fract(x) => taffy::LengthPercentage::percent(x),
         }
     }
-}
 
-impl Position {
-    fn into_taffy(self) -> taffy::Position {
-        match self {
+    fn into_dimension(length: Option<Length>) -> taffy::Dimension {
+        match length {
+            Some(Length::Length(x)) => taffy::Dimension::length(x),
+            Some(Length::Fract(x)) => taffy::Dimension::percent(x),
+            None => taffy::Dimension::auto(),
+        }
+    }
+
+    fn into_length_auto(length: Option<Length>) -> taffy::LengthPercentageAuto {
+        match length {
+            Some(Length::Length(x)) => taffy::LengthPercentageAuto::length(x),
+            Some(Length::Fract(x)) => taffy::LengthPercentageAuto::percent(x),
+            None => taffy::LengthPercentageAuto::auto(),
+        }
+    }
+
+    fn into_position(position: Position) -> taffy::Position {
+        match position {
             Position::Relative => taffy::Position::Relative,
             Position::Absolute => taffy::Position::Absolute,
         }
     }
-}
 
-impl Align {
-    fn into_taffy(self) -> taffy::AlignItems {
-        match self {
+    fn into_align(align: Align) -> taffy::AlignItems {
+        match align {
             Align::Start => taffy::AlignItems::Start,
             Align::Center => taffy::AlignItems::Center,
             Align::End => taffy::AlignItems::End,
@@ -421,11 +413,9 @@ impl Align {
             Align::Stretch => taffy::AlignItems::Stretch,
         }
     }
-}
 
-impl Justify {
-    fn into_taffy(self) -> taffy::AlignContent {
-        match self {
+    fn into_justify(justify: Justify) -> taffy::AlignContent {
+        match justify {
             Justify::Start => taffy::AlignContent::Start,
             Justify::Center => taffy::AlignContent::Center,
             Justify::End => taffy::AlignContent::End,

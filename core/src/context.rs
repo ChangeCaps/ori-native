@@ -219,6 +219,27 @@ where
     }
 }
 
+impl Resource {
+    fn is<T: Any>(&self) -> bool {
+        self.type_id == TypeId::of::<T>()
+    }
+
+    unsafe fn downcast_unchecked<T: Any>(self) -> Box<T> {
+        let ptr: *mut T = Box::into_raw(self.value).cast();
+        unsafe { Box::from_raw(ptr) }
+    }
+
+    unsafe fn downcast_ref_unchecked<T: Any>(&self) -> &T {
+        let ptr = self.value.as_ref() as *const _ as *const T;
+        unsafe { &*ptr }
+    }
+
+    unsafe fn downcast_mut_unchecked<T: Any>(&mut self) -> &mut T {
+        let ptr = self.value.as_mut() as *mut _ as *mut T;
+        unsafe { &mut *ptr }
+    }
+}
+
 impl<P> Provider for Context<P>
 where
     P: Platform,
@@ -232,39 +253,22 @@ where
     }
 
     fn pop<T: Any>(&mut self) -> Option<Box<T>> {
-        for (i, resource) in self.resources.iter().enumerate().rev() {
-            if resource.type_id != TypeId::of::<T>() {
-                continue;
-            }
+        let i = self.resources.iter().rposition(|r| r.is::<T>())?;
 
-            let resource = self.resources.remove(i);
-            return resource.value.downcast().ok();
-        }
-
-        None
+        let resource = self.resources.remove(i);
+        let resource = unsafe { resource.downcast_unchecked::<T>() };
+        Some(resource)
     }
 
     fn get<T: Any>(&self) -> Option<&T> {
-        for resource in self.resources.iter().rev() {
-            if resource.type_id != TypeId::of::<T>() {
-                continue;
-            }
-
-            return resource.value.downcast_ref();
-        }
-
-        None
+        let resource = self.resources.iter().rev().find(|r| r.is::<T>())?;
+        let resource = unsafe { resource.downcast_ref_unchecked::<T>() };
+        Some(resource)
     }
 
     fn get_mut<T: Any>(&mut self) -> Option<&mut T> {
-        for resource in self.resources.iter_mut().rev() {
-            if resource.type_id != TypeId::of::<T>() {
-                continue;
-            }
-
-            return resource.value.downcast_mut();
-        }
-
-        None
+        let resource = self.resources.iter_mut().rev().find(|r| r.is::<T>())?;
+        let resource = unsafe { resource.downcast_mut_unchecked::<T>() };
+        Some(resource)
     }
 }

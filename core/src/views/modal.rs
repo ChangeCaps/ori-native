@@ -1,8 +1,8 @@
 use ori::{Action, Message, Mut, Tracker, View, ViewId, ViewMarker};
 
 use crate::{
-    Allocation, AutoLength, AvailableSpace, Context, LayoutNode, LayoutStyle, Lifecycle,
-    NativeWidget, Platform, Size, WidgetView, native::NativeModal,
+    Allocation, AvailableSpace, Context, LayoutNode, LayoutStyle, Length, Lifecycle, NativeWidget,
+    Platform, Size, WidgetView, native::NativeModal,
 };
 
 /// [`Effect`](ori::Effect) that overlays a [`View`] over the window.
@@ -87,8 +87,8 @@ where
 
                 let style = LayoutStyle {
                     size: Size {
-                        width:  AutoLength::Length(width),
-                        height: AutoLength::Length(height),
+                        width:  Some(Length::Length(width)),
+                        height: Some(Length::Length(height)),
                     },
                     ..Default::default()
                 };

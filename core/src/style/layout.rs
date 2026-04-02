@@ -4,31 +4,6 @@ use crate::Color;
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 pub struct Fract(pub f32);
 
-/// Length with the option of `auto`.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum AutoLength {
-    /// Length in pixels.
-    Length(f32),
-
-    /// Length in fraction of parent size.
-    Fract(f32),
-
-    /// Automatic sizing length.
-    Auto,
-}
-
-impl From<f32> for AutoLength {
-    fn from(x: f32) -> Self {
-        AutoLength::Length(x)
-    }
-}
-
-impl From<Fract> for AutoLength {
-    fn from(Fract(x): Fract) -> Self {
-        AutoLength::Fract(x)
-    }
-}
-
 /// Length that cannot be `auto`.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Length {
@@ -225,22 +200,22 @@ pub struct LayoutStyle {
     pub flex_grow: f32,
 
     /// The default size before remaining space is distributed.
-    pub flex_basis: AutoLength,
+    pub flex_basis: Option<Length>,
 
     /// The margin around the view.
-    pub margin: Sides<AutoLength>,
+    pub margin: Sides<Option<Length>>,
 
     /// The insets from the parent.
-    pub inset: Sides<AutoLength>,
+    pub inset: Sides<Option<Length>>,
 
     /// The size of the view.
-    pub size: Size<AutoLength>,
+    pub size: Size<Option<Length>>,
 
     /// The minimum size of the view.
-    pub min_size: Size<AutoLength>,
+    pub min_size: Size<Option<Length>>,
 
     /// The maximum size of the view.
-    pub max_size: Size<AutoLength>,
+    pub max_size: Size<Option<Length>>,
 }
 
 impl Default for LayoutStyle {
@@ -251,12 +226,12 @@ impl Default for LayoutStyle {
             align_self:   None,
             flex_shrink:  1.0,
             flex_grow:    0.0,
-            flex_basis:   AutoLength::Auto,
-            margin:       Sides::all(AutoLength::Length(0.0)),
-            inset:        Sides::all(AutoLength::Auto),
-            size:         Size::all(AutoLength::Auto),
-            min_size:     Size::all(AutoLength::Auto),
-            max_size:     Size::all(AutoLength::Auto),
+            flex_basis:   None,
+            margin:       Sides::all(Some(Length::Length(0.0))),
+            inset:        Sides::all(None),
+            size:         Size::all(None),
+            min_size:     Size::all(None),
+            max_size:     Size::all(None),
         }
     }
 }
@@ -331,134 +306,134 @@ pub trait Layout: Sized {
     }
 
     /// Set the inset from all sides.
-    fn inset(self, inset: impl Into<AutoLength>) -> Self {
+    fn inset(self, inset: impl Into<Length>) -> Self {
         let inset = inset.into();
         self.inset_all(inset, inset, inset, inset)
     }
 
     /// Set the inset from the top.
-    fn top(mut self, inset: impl Into<AutoLength>) -> Self {
-        self.get_layout_style_mut().inset.top = inset.into();
+    fn top(mut self, inset: impl Into<Length>) -> Self {
+        self.get_layout_style_mut().inset.top = Some(inset.into());
         self
     }
 
     /// Set the inset from the right.
-    fn right(mut self, inset: impl Into<AutoLength>) -> Self {
-        self.get_layout_style_mut().inset.right = inset.into();
+    fn right(mut self, inset: impl Into<Length>) -> Self {
+        self.get_layout_style_mut().inset.right = Some(inset.into());
         self
     }
 
     /// Set the inset from the bottom.
-    fn bottom(mut self, inset: impl Into<AutoLength>) -> Self {
-        self.get_layout_style_mut().inset.bottom = inset.into();
+    fn bottom(mut self, inset: impl Into<Length>) -> Self {
+        self.get_layout_style_mut().inset.bottom = Some(inset.into());
         self
     }
 
     /// Set the inset from the left.
-    fn left(mut self, inset: impl Into<AutoLength>) -> Self {
-        self.get_layout_style_mut().inset.left = inset.into();
+    fn left(mut self, inset: impl Into<Length>) -> Self {
+        self.get_layout_style_mut().inset.left = Some(inset.into());
         self
     }
 
     /// Set the inset from all sides individually.
     fn inset_all(
         self,
-        top: impl Into<AutoLength>,
-        right: impl Into<AutoLength>,
-        bottom: impl Into<AutoLength>,
-        left: impl Into<AutoLength>,
+        top: impl Into<Length>,
+        right: impl Into<Length>,
+        bottom: impl Into<Length>,
+        left: impl Into<Length>,
     ) -> Self {
         self.top(top).right(right).bottom(bottom).left(left)
     }
 
     /// Set the `width` and `height`.
-    fn size(self, width: impl Into<AutoLength>, height: impl Into<AutoLength>) -> Self {
+    fn size(self, width: impl Into<Length>, height: impl Into<Length>) -> Self {
         self.width(width).height(height)
     }
 
     /// Set the `width`.
-    fn width(mut self, width: impl Into<AutoLength>) -> Self {
-        self.get_layout_style_mut().size.width = width.into();
+    fn width(mut self, width: impl Into<Length>) -> Self {
+        self.get_layout_style_mut().size.width = Some(width.into());
         self
     }
 
     /// Set the `height`.
-    fn height(mut self, height: impl Into<AutoLength>) -> Self {
-        self.get_layout_style_mut().size.height = height.into();
+    fn height(mut self, height: impl Into<Length>) -> Self {
+        self.get_layout_style_mut().size.height = Some(height.into());
         self
     }
 
     /// Set the minimum `width` and `height`.
-    fn min_size(self, min_width: impl Into<AutoLength>, min_height: impl Into<AutoLength>) -> Self {
+    fn min_size(self, min_width: impl Into<Length>, min_height: impl Into<Length>) -> Self {
         self.min_width(min_width).min_height(min_height)
     }
 
     /// Set the minimum `width`.
-    fn min_width(mut self, min_width: impl Into<AutoLength>) -> Self {
-        self.get_layout_style_mut().min_size.width = min_width.into();
+    fn min_width(mut self, min_width: impl Into<Length>) -> Self {
+        self.get_layout_style_mut().min_size.width = Some(min_width.into());
         self
     }
 
     /// Set the minimum `height`.
-    fn min_height(mut self, min_height: impl Into<AutoLength>) -> Self {
-        self.get_layout_style_mut().min_size.height = min_height.into();
+    fn min_height(mut self, min_height: impl Into<Length>) -> Self {
+        self.get_layout_style_mut().min_size.height = Some(min_height.into());
         self
     }
 
     /// Set the maximum `width` and `height`.
-    fn max_size(self, max_width: impl Into<AutoLength>, max_height: impl Into<AutoLength>) -> Self {
+    fn max_size(self, max_width: impl Into<Length>, max_height: impl Into<Length>) -> Self {
         self.max_width(max_width).max_height(max_height)
     }
 
     /// Set the maximum `width`.
-    fn max_width(mut self, max_width: impl Into<AutoLength>) -> Self {
-        self.get_layout_style_mut().max_size.width = max_width.into();
+    fn max_width(mut self, max_width: impl Into<Length>) -> Self {
+        self.get_layout_style_mut().max_size.width = Some(max_width.into());
         self
     }
 
     /// Set the maximum `height`.
-    fn max_height(mut self, max_height: impl Into<AutoLength>) -> Self {
-        self.get_layout_style_mut().max_size.height = max_height.into();
+    fn max_height(mut self, max_height: impl Into<Length>) -> Self {
+        self.get_layout_style_mut().max_size.height = Some(max_height.into());
         self
     }
 
     /// Set the margin on all sides.
-    fn margin(self, width: impl Into<AutoLength>) -> Self {
+    fn margin(self, width: impl Into<Length>) -> Self {
         let width = width.into();
         self.margin_all(width, width, width, width)
     }
 
     /// Set the margin on the top.
-    fn margin_top(mut self, width: impl Into<AutoLength>) -> Self {
-        self.get_layout_style_mut().margin.top = width.into();
+    fn margin_top(mut self, width: impl Into<Length>) -> Self {
+        self.get_layout_style_mut().margin.top = Some(width.into());
         self
     }
 
     /// Set the margin on the right.
-    fn margin_right(mut self, width: impl Into<AutoLength>) -> Self {
-        self.get_layout_style_mut().margin.right = width.into();
+    fn margin_right(mut self, width: impl Into<Length>) -> Self {
+        self.get_layout_style_mut().margin.right = Some(width.into());
         self
     }
 
     /// Set the margin on the bottom.
-    fn margin_bottom(mut self, width: impl Into<AutoLength>) -> Self {
-        self.get_layout_style_mut().margin.bottom = width.into();
+    fn margin_bottom(mut self, width: impl Into<Length>) -> Self {
+        self.get_layout_style_mut().margin.bottom = Some(width.into());
         self
     }
 
     /// Set the margin on the left.
-    fn margin_left(mut self, width: impl Into<AutoLength>) -> Self {
-        self.get_layout_style_mut().margin.left = width.into();
+    fn margin_left(mut self, width: impl Into<Length>) -> Self {
+        self.get_layout_style_mut().margin.left = Some(width.into());
         self
     }
 
     /// Set the margin on all sides individually.
     fn margin_all(
         self,
-        top: impl Into<AutoLength>,
-        right: impl Into<AutoLength>,
-        bottom: impl Into<AutoLength>,
-        left: impl Into<AutoLength>,
+        top: impl Into<Length>,
+        right: impl Into<Length>,
+        bottom: impl Into<Length>,
+        left: impl Into<Length>,
     ) -> Self {
         self.margin_top(top)
             .margin_right(right)
@@ -484,8 +459,8 @@ pub trait Layout: Sized {
     }
 
     /// Set the flex basis.
-    fn flex_basis(mut self, basis: impl Into<AutoLength>) -> Self {
-        self.get_layout_style_mut().flex_basis = basis.into();
+    fn flex_basis(mut self, basis: impl Into<Length>) -> Self {
+        self.get_layout_style_mut().flex_basis = Some(basis.into());
         self
     }
 }

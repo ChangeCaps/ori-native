@@ -4,8 +4,8 @@ use keyboard_types::Modifiers;
 use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarker};
 
 use crate::{
-    Allocation, AnimateRequest, AutoLength, AvailableSpace, Context, Input, InputHandler,
-    LayoutNode, LayoutRequest, LayoutStyle, Lifecycle, MatchKey, ModalRequest, NativeWidget,
+    Allocation, AnimateRequest, AvailableSpace, Context, Input, InputHandler, LayoutNode,
+    LayoutRequest, LayoutStyle, Length, Lifecycle, MatchKey, ModalRequest, NativeWidget,
     NavigationBar, Platform, Pod, Size, Sizing, StatusBar, WidgetView,
     native::{NativeModal, NativeWindow},
 };
@@ -396,27 +396,24 @@ where
         let style = match self.sizing {
             Sizing::User => LayoutStyle {
                 size: Size {
-                    width:  AutoLength::Length(width),
-                    height: AutoLength::Length(height),
+                    width:  Some(Length::Length(width)),
+                    height: Some(Length::Length(height)),
                 },
                 ..Default::default()
             },
 
             Sizing::Content => {
-                let mut size = Size {
-                    width:  AutoLength::Auto,
-                    height: AutoLength::Auto,
-                };
+                let mut size = Size::all(None);
 
                 let (preferred_width, preferred_height) =
                     self.window.get_preferred_size(&mut cx.platform);
 
                 if let Some(min_width) = preferred_width {
-                    size.width = AutoLength::Length(min_width);
+                    size.width = Some(Length::Length(min_width));
                 }
 
                 if let Some(min_height) = preferred_height {
-                    size.height = AutoLength::Length(min_height);
+                    size.height = Some(Length::Length(min_height));
                 }
 
                 LayoutStyle {
