@@ -131,6 +131,7 @@ impl Measurable<Platform> for TextLayout {
                 AvailableSpace::MinContent => layout.set_width(0),
                 AvailableSpace::MaxContent => layout.set_width(-1),
                 AvailableSpace::Definite(width) => {
+                    let width = known_size.width.unwrap_or(width);
                     layout.set_width((width * pango::SCALE as f32).round() as i32);
                 }
             }
@@ -138,8 +139,8 @@ impl Measurable<Platform> for TextLayout {
 
         let (width, height) = layout.pixel_size();
         let size = Size {
-            width:  known_size.width.unwrap_or(width as f32),
-            height: min_height.max(height as f32),
+            width:  width as f32 + 1.0,
+            height: known_size.height.unwrap_or(min_height.max(height as f32)),
         };
 
         self.cache.push(CachedSize {

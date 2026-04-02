@@ -220,8 +220,8 @@ mod imp {
                 graphene::Rect::new(
                     0.0,
                     0.0,
-                    self.obj().width_request() as f32,
-                    self.obj().height_request() as f32,
+                    self.obj().width() as f32,
+                    self.obj().height() as f32,
                 ),
                 graphene::Size::new(tl, tl),
                 graphene::Size::new(tr, tr),
