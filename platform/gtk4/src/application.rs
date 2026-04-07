@@ -212,10 +212,6 @@ where
                     action.rebuild = false;
                     self.context.send_action(action);
                 }
-
-                if !message.is_taken() && message.target().is_some() {
-                    println!("{:?}", message);
-                }
             }
         }
     }

@@ -1,7 +1,11 @@
-use jni::{jni_sig, jni_str};
+use jni::{EnvUnowned, jni_sig, jni_str, objects::JObject};
 use ori_native_core::{Direction, NativeParent, NativeWidget, native::NativeScroll};
 
-use crate::{Platform, platform::WidgetId};
+use crate::{
+    Platform,
+    application::{GlobalState, WidgetEvent},
+    platform::WidgetId,
+};
 
 pub struct Scroll {
     id: WidgetId,
@@ -56,7 +60,11 @@ impl NativeScroll<Platform> for Scroll {
         platform.remove_widget(self.id);
     }
 
-    fn set_on_scroll(&mut self, _platform: &mut Platform, _on_scroll: impl Fn(f32, f32) + 'static) {
+    fn set_on_scroll(&mut self, platform: &mut Platform, on_scroll: impl Fn(f32, f32) + 'static) {
+        platform.add_handler(self.id, move |event| match event {
+            WidgetEvent::Scroll(x, y) => on_scroll(*x, *y),
+            _ => unreachable!(),
+        });
     }
 
     fn set_content_size(&mut self, platform: &mut Platform, width: f32, height: f32) {
@@ -109,4 +117,18 @@ impl NativeScroll<Platform> for Scroll {
             .v()
         });
     }
+}
+
+#[unsafe(no_mangle)]
+extern "system" fn Java_ori_OriActivity_onScrolled<'local>(
+    _env: EnvUnowned<'local>,
+    _this: JObject<'local>,
+    id: i64,
+    x: f32,
+    y: f32,
+) {
+    GlobalState::event(
+        WidgetId::new(id as u64),
+        WidgetEvent::Scroll(x, y),
+    );
 }

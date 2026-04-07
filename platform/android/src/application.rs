@@ -151,6 +151,7 @@ pub enum WidgetEvent {
     Press(Press),
     Change(String),
     Submit(String),
+    Scroll(f32, f32),
 }
 
 struct State<'a, T, V, B>

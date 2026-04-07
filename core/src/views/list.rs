@@ -33,8 +33,8 @@ impl<F> List<F> {
             direction: Direction::Column,
             padding: Sides::all(Length::Length(0.0)),
             gap: 0.0,
-            min_views: 10,
-            buffer: 5,
+            min_views: 16,
+            buffer: 8,
             count,
             build,
         }
@@ -225,13 +225,10 @@ where
         state.count = self.count;
 
         state.sizes.resize(self.count, None);
-
-        if state.layout_changed(cx) {
-            state.update_average_size();
-            state.update_content_size(cx);
-        }
-
         state.update_active_views(cx, data);
+        state.update_average_size();
+        state.update_content_size(cx);
+
         state.rebuild_active_views(cx, data);
         state.layout_active_views(cx);
     }
@@ -265,8 +262,8 @@ where
                     &mut cx.platform,
                     allocation.x,
                     allocation.y,
-                    allocation.content_size.width,
-                    allocation.content_size.height,
+                    allocation.size.width,
+                    allocation.size.height,
                 );
 
                 state.update_active_views(cx, data);
@@ -534,10 +531,10 @@ where
         let mut offset = self.compute_active_view_offset();
         let remaining = self.count.saturating_sub(start);
 
-        for i in self.start..self.count {
+        for i in start..self.count {
             if offset >= self.scroll + self.window_size {
-                let size = (i - self.start).max(self.min_views);
-                return remaining.min(size + self.buffer * 2);
+                let size = (i - start).max(self.min_views + self.buffer);
+                return remaining.min(size + self.buffer);
             }
 
             offset += self.get_size_estimate(i) + self.gap;
