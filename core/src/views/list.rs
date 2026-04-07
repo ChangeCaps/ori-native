@@ -240,13 +240,6 @@ where
         message: &mut Message,
     ) -> Action {
         if let Some(Lifecycle::Layout) = message.get() {
-            if let Some(allocation) = cx.layout.get_allocation(*element.node) {
-                state.window_size = match state.direction {
-                    Direction::Row => allocation.size.width,
-                    Direction::Column => allocation.size.height,
-                };
-            }
-
             // check for layout changes
             if state.layout_changed(cx) {
                 state.update_average_size();
@@ -264,13 +257,16 @@ where
                     allocation.size.width,
                     allocation.size.height,
                 );
-
-                state.update_active_views(cx, data);
             }
 
             if let Some(allocation) = cx.layout.get_allocation(*element.node)
                 && state.scroll_allocation != Some(allocation)
             {
+                state.window_size = match state.direction {
+                    Direction::Row => allocation.size.width,
+                    Direction::Column => allocation.size.height,
+                };
+
                 element.widget.set_content_size(
                     &mut cx.platform,
                     allocation.content_size.width,
@@ -282,6 +278,7 @@ where
             state.content_allocation = cx.layout.get_allocation(state.node);
 
             // layout the active views
+            state.update_active_views(cx, data);
             state.layout_active_views(cx);
         }
 
@@ -290,11 +287,6 @@ where
                 Direction::Row => x,
                 Direction::Column => y,
             };
-
-            if state.layout_changed(cx) {
-                state.update_average_size();
-                state.update_content_size(cx);
-            }
 
             state.update_active_views(cx, data);
             state.layout_active_views(cx);
