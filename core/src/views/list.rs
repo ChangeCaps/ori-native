@@ -231,8 +231,8 @@ where
             state.update_content_size(cx);
         }
 
-        state.rebuild_active_views(cx, data);
         state.update_active_views(cx, data);
+        state.rebuild_active_views(cx, data);
         state.layout_active_views(cx);
     }
 
@@ -249,6 +249,12 @@ where
                     Direction::Row => allocation.size.width,
                     Direction::Column => allocation.size.height,
                 };
+            }
+
+            // check for layout changes
+            if state.layout_changed(cx) {
+                state.update_average_size();
+                state.update_content_size(cx);
             }
 
             // update layout of scroll contents
@@ -279,11 +285,7 @@ where
             state.scroll_allocation = cx.layout.get_allocation(*element.node);
             state.content_allocation = cx.layout.get_allocation(state.node);
 
-            if state.layout_changed(cx) {
-                state.update_average_size();
-                state.update_content_size(cx);
-            }
-
+            // layout the active views
             state.layout_active_views(cx);
         }
 
@@ -430,29 +432,42 @@ where
             return;
         }
 
-        self.truncate_active_views(cx, count);
+        // if the difference is too big, don't bother reusing views
+        if self.start.abs_diff(start) >= count {
+            self.start = start;
+            self.truncate_active_views(cx, count);
+            self.rebuild_active_views(cx, data);
+            self.build_active_views(cx, data, count);
+            return;
+        }
 
-        while start < self.start {
-            self.start -= 1;
+        while self.views.len() > count {
+            if self.start < start {
+                self.teardown_active_view(cx, 0);
+                self.start += 1;
+            } else {
+                self.teardown_active_view(cx, self.views.len() - 1);
+            }
+        }
 
-            if count > self.views.len() {
+        while self.views.len() < count {
+            if self.start > start {
+                self.start -= 1;
                 self.build_active_view(cx, data, 0);
             } else {
-                self.rotate_backward(cx, data);
+                self.build_active_view(cx, data, self.views.len());
             }
         }
 
-        while start > self.start {
-            if count < self.views.len() {
-                self.teardown_active_view(cx, 0);
-            } else {
-                self.rotate_forward(cx, data);
-            }
+        while self.start > start {
+            self.start -= 1;
+            self.rotate_backward(cx, data);
+        }
 
+        while self.start < start {
+            self.rotate_forward(cx, data);
             self.start += 1;
         }
-
-        self.build_active_views(cx, data, count);
     }
 
     fn rotate_backward(&mut self, cx: &mut Context<P>, data: &mut T) {
