@@ -226,7 +226,6 @@ where
 
         state.sizes.resize(self.count, None);
         state.update_active_views(cx, data);
-        state.update_average_size();
         state.update_content_size(cx);
 
         state.rebuild_active_views(cx, data);
