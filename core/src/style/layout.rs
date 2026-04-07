@@ -34,12 +34,6 @@ pub enum Direction {
 
     /// Vertical or column.
     Column,
-
-    /// Horizontal or row in reverse order.
-    RowReverse,
-
-    /// Vertical or column in reverse order.
-    ColumnReverse,
 }
 
 /// Alignment of contents.
@@ -261,6 +255,9 @@ pub struct FlexStyle {
     /// The direction children are layed out.
     pub direction: Direction,
 
+    /// Whether items should be layed out in reverse order.
+    pub reverse: bool,
+
     /// The justification strategy.
     pub justify_content: Option<Justify>,
 
@@ -275,6 +272,7 @@ impl Default for FlexStyle {
     fn default() -> Self {
         Self {
             direction:       Direction::Row,
+            reverse:         false,
             justify_content: None,
             align_items:     None,
             gap:             Size::all(Length::Length(0.0)),
@@ -608,14 +606,8 @@ pub trait FlexContainer: Sized {
     }
 
     /// Reverse the direction.
-    fn reverse(mut self) -> Self {
-        self.get_flex_style_mut().direction = match self.get_flex_style_mut().direction {
-            Direction::Row => Direction::RowReverse,
-            Direction::Column => Direction::ColumnReverse,
-            Direction::RowReverse => Direction::Row,
-            Direction::ColumnReverse => Direction::Column,
-        };
-
+    fn reverse(mut self, reverse: bool) -> Self {
+        self.get_flex_style_mut().reverse = reverse;
         self
     }
 

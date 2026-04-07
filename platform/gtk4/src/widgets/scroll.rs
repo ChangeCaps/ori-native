@@ -1,4 +1,6 @@
-use gtk4::prelude::{FixedExt, WidgetExt};
+use std::rc::Rc;
+
+use gtk4::prelude::{AdjustmentExt, FixedExt, WidgetExt};
 use ori_native_core::{Direction, NativeParent, NativeWidget, native::NativeScroll};
 
 use crate::Platform;
@@ -40,6 +42,20 @@ impl NativeScroll<Platform> for Scroll {
 
     fn teardown(self, _platform: &mut Platform) {}
 
+    fn set_on_scroll(&mut self, _platform: &mut Platform, on_scroll: impl Fn(f32, f32) + 'static) {
+        let on_scroll = Rc::new(on_scroll);
+
+        self.scroll.vadjustment().connect_value_changed({
+            let on_scroll = on_scroll.clone();
+            move |adjustment| on_scroll(0.0, adjustment.value() as f32)
+        });
+
+        self.scroll.hadjustment().connect_value_changed({
+            let on_scroll = on_scroll.clone();
+            move |adjustment| on_scroll(adjustment.value() as f32, 0.0)
+        });
+    }
+
     fn set_content_size(&mut self, _platform: &mut Platform, width: f32, height: f32) {
         self.fixed.set_size_request(
             width.round() as i32,
@@ -67,13 +83,13 @@ impl NativeScroll<Platform> for Scroll {
 
     fn set_direction(&mut self, _platform: &mut Platform, direction: Direction) {
         self.scroll.set_hscrollbar_policy(match direction {
-            Direction::Row | Direction::RowReverse => gtk4::PolicyType::Automatic,
-            Direction::Column | Direction::ColumnReverse => gtk4::PolicyType::Never,
+            Direction::Row => gtk4::PolicyType::Automatic,
+            Direction::Column => gtk4::PolicyType::Never,
         });
 
         self.scroll.set_vscrollbar_policy(match direction {
-            Direction::Row | Direction::RowReverse => gtk4::PolicyType::Never,
-            Direction::Column | Direction::ColumnReverse => gtk4::PolicyType::Automatic,
+            Direction::Row => gtk4::PolicyType::Never,
+            Direction::Column => gtk4::PolicyType::Automatic,
         });
     }
 }

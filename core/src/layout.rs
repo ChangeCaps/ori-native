@@ -55,6 +55,9 @@ pub struct Allocation {
     /// The size of the contents.
     pub content_size: Size<f32>,
 
+    /// The margin around the node.
+    pub margin: Sides<f32>,
+
     /// The border widths.
     pub border: Sides<f32>,
 }
@@ -118,6 +121,13 @@ impl<P> LayoutTree<P> {
             content_size: Size {
                 width:  layout.content_size.width,
                 height: layout.content_size.height,
+            },
+
+            margin: Sides {
+                top:    layout.margin.top,
+                right:  layout.margin.right,
+                bottom: layout.margin.bottom,
+                left:   layout.margin.left,
             },
 
             border: Sides {
@@ -324,10 +334,11 @@ impl<P> LayoutTree<P> {
         };
 
         layout.flex_direction = match flex.direction {
+            Direction::Row if flex.reverse => taffy::FlexDirection::RowReverse,
+            Direction::Column if flex.reverse => taffy::FlexDirection::ColumnReverse,
+
             Direction::Row => taffy::FlexDirection::Row,
             Direction::Column => taffy::FlexDirection::Column,
-            Direction::RowReverse => taffy::FlexDirection::RowReverse,
-            Direction::ColumnReverse => taffy::FlexDirection::ColumnReverse,
         };
 
         layout.gap = taffy::Size {

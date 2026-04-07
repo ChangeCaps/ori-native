@@ -81,17 +81,13 @@ fn add_todo(data: &mut Data, name: String) {
 }
 
 fn todos(data: &Data) -> impl View<Data> + use<> {
-    let todos = data
-        .todos
-        .iter()
-        .enumerate()
-        .map(|(i, x)| todo(i, x))
-        .collect::<Vec<_>>();
-
-    column(vscroll(column(todos)))
-        .max_height(400.0)
-        .border_top_width(1.0)
-        .border_color(theme::BORDER)
+    column(list(
+        data.todos.len(),
+        |data: &Data, i| todo(i, &data.todos[i]),
+    ))
+    .max_height(400.0)
+    .border_top_width(1.0)
+    .border_color(theme::BORDER)
 }
 
 fn todo(index: usize, _todo: &Todo) -> impl View<Data> + use<> {
@@ -123,8 +119,8 @@ fn todo(index: usize, _todo: &Todo) -> impl View<Data> + use<> {
     })
     .on_press(|todo: &mut Todo| todo.done = !todo.done);
 
-    map(view, move |data: &mut Data, f| {
-        f(&mut data.todos[index])
+    map(view, move |data: &mut Data, map| {
+        map(&mut data.todos[index])
     })
 }
 

@@ -193,7 +193,7 @@ where
 
         other.parent_widget.replace_child(
             &mut cx.platform,
-            other.node_index,
+            other.widget_index,
             this.widget.widget(),
         );
 

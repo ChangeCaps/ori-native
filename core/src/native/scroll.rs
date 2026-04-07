@@ -9,6 +9,8 @@ where
     fn build(platform: &mut P, contents: &P::Widget) -> Self;
     fn teardown(self, platform: &mut P);
 
+    fn set_on_scroll(&mut self, platform: &mut P, on_scroll: impl Fn(f32, f32) + 'static);
+
     fn set_content_size(&mut self, platform: &mut P, width: f32, height: f32);
     fn set_content_layout(&mut self, platform: &mut P, x: f32, y: f32, width: f32, height: f32);
 
@@ -24,6 +26,10 @@ where
     }
 
     fn teardown(self, _platform: &mut P) {
+        unreachable!()
+    }
+
+    fn set_on_scroll(&mut self, _platform: &mut P, _on_scroll: impl Fn(f32, f32) + 'static) {
         unreachable!()
     }
 

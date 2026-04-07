@@ -56,6 +56,9 @@ impl NativeScroll<Platform> for Scroll {
         platform.remove_widget(self.id);
     }
 
+    fn set_on_scroll(&mut self, _platform: &mut Platform, _on_scroll: impl Fn(f32, f32) + 'static) {
+    }
+
     fn set_content_size(&mut self, platform: &mut Platform, width: f32, height: f32) {
         let _ = platform.jni(|env, activity| {
             env.call_method(
@@ -94,10 +97,7 @@ impl NativeScroll<Platform> for Scroll {
     }
 
     fn set_direction(&mut self, platform: &mut Platform, direction: Direction) {
-        let is_vertical = matches!(
-            direction,
-            Direction::Column | Direction::ColumnReverse,
-        );
+        let is_vertical = matches!(direction, Direction::Column);
 
         let _ = platform.jni(|env, activity| {
             env.call_method(

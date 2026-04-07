@@ -33,7 +33,7 @@ where
     fn set_overflow(&mut self, platform: &mut P, overflow: Overflow);
     fn set_shadow(&mut self, platform: &mut P, shadow: Shadow);
 
-    /* backend specific */
+    /* platform specific */
 
     fn set_hardware_layer(&mut self, platform: &mut P, enabled: bool) {
         let _ = platform;

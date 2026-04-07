@@ -4,7 +4,7 @@ use std::{
 };
 
 use gtk4::prelude::ApplicationExt;
-use ori::{Effect, Message, Proxied, Tracker};
+use ori::{Effect, Message, Proxied};
 use ori_native_core::Context;
 use tracing_subscriber::layer::SubscriberExt;
 
@@ -178,7 +178,6 @@ where
             Event::Activate => {
                 let view = (self.build)(self.data);
 
-                self.context.tree().reset();
                 let (_, state) = view.build(&mut self.context, self.data);
                 self.state = Some(state);
             }
@@ -191,14 +190,12 @@ where
                 if let Some(ref mut state) = self.state {
                     let view = (self.build)(self.data);
 
-                    self.context.tree().reset();
                     view.rebuild((), state, &mut self.context, self.data);
                 }
             }
 
             Event::Message(mut message) => {
                 if let Some(ref mut state) = self.state {
-                    self.context.tree().reset();
                     let mut action = V::message(
                         (),
                         state,
@@ -209,13 +206,15 @@ where
 
                     if action.take_rebuild() {
                         let view = (self.build)(self.data);
-
-                        self.context.tree().reset();
                         view.rebuild((), state, &mut self.context, self.data);
                     }
 
                     action.rebuild = false;
                     self.context.send_action(action);
+                }
+
+                if !message.is_taken() && message.target().is_some() {
+                    println!("{:?}", message);
                 }
             }
         }
@@ -223,7 +222,6 @@ where
 
     fn teardown(mut self) {
         if let Some(state) = self.state {
-            self.context.tree().reset();
             V::teardown((), state, &mut self.context);
         }
     }

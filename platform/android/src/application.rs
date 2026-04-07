@@ -8,7 +8,7 @@ use std::{
 };
 
 use jni::{objects::JObject, refs::Global, vm::JavaVM};
-use ori::{Action, Effect, Message, Provider, Proxied, Tracker};
+use ori::{Action, Effect, Message, Provider, Proxied};
 use ori_native_core::{Context, SafeAreaInsets, native::Press};
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt};
 
@@ -66,7 +66,6 @@ impl Application {
 
         let view = build(data);
 
-        context.tree().reset();
         let (_, state) = view.build(&mut context, data);
 
         let mut state = State {
@@ -175,7 +174,6 @@ where
         match event {
             Event::Recreate => {
                 if let Some(state) = self.state.take() {
-                    self.context.tree().reset();
                     V::teardown((), state, &mut self.context);
                     let view = (self.build)(self.data);
 
@@ -183,7 +181,6 @@ where
                         self.context.platform.recreate(state);
                     }
 
-                    self.context.tree().reset();
                     let ((), state) = view.build(&mut self.context, self.data);
                     self.state = Some(state);
                 }
@@ -193,7 +190,6 @@ where
                 if let Some(ref mut state) = self.state {
                     let view = (self.build)(self.data);
 
-                    self.context.tree().reset();
                     view.rebuild((), state, &mut self.context, self.data);
                 }
             }
@@ -202,7 +198,6 @@ where
                 let t = std::time::Instant::now();
 
                 if let Some(ref mut state) = self.state {
-                    self.context.tree().reset();
                     let action = V::message(
                         (),
                         state,
