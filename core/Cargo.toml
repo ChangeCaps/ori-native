@@ -12,7 +12,6 @@ default = []
 ori = { workspace = true }
 
 taffy   = { workspace = true }
-tokio   = { workspace = true }
 seahash = { workspace = true }
 tracing = { workspace = true }
 

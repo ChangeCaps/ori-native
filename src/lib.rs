@@ -1,4 +1,12 @@
-#![warn(clippy::unwrap_used)]
+#![warn(missing_docs, unused_crate_dependencies, clippy::unwrap_used)]
+
+//! A declarative UI framework for building native applications.
+//!
+//! # Examples
+//!
+//! ```rust
+#![doc = include_str!("../examples/readme.rs")]
+//! ```
 
 mod app;
 mod view;
@@ -11,18 +19,28 @@ pub use ori_native_core::*;
 
 pub use ori_native_macro::main;
 
-#[cfg(target_os = "linux")]
+#[cfg(platform = "gtk4")]
 pub use ori_native_gtk4 as platform;
 
-#[cfg(target_os = "android")]
+#[cfg(platform = "android")]
 pub use ori_native_android as platform;
 
+/// The selected [`Platform`](ori_native_core::Platform).
 pub type Platform = platform::Platform;
+
+/// The [`Context`](ori_native_core::Context) of the selected [`Platform`].
 pub type Context = ori_native_core::Context<Platform>;
+
+/// The [`Element`](ori::Element) of the selected [`Platform`].
 pub type Element = <Context as ori::Base>::Element;
+
+/// The error type of the selected [`Platform`].
 pub type Error = platform::Error;
+
+#[allow(missing_docs)]
 pub type Result<T> = std::result::Result<T, Error>;
 
+/// All builtin [`View`]s.
 pub mod views {
     pub use ori::views::*;
     pub use ori_native_core::views::*;
@@ -34,6 +52,7 @@ pub mod views {
     pub use ori_native_gtk4::{SessionLock, session_lock};
 }
 
+/// Commonly used imports.
 pub mod prelude {
     pub use crate::{
         Action, Align, App, Border, BuildMarker, BuildView, Color, Context, Direction, Effect,
@@ -43,7 +62,7 @@ pub mod prelude {
     };
 
     #[allow(unused_imports)]
-    #[cfg(target_os = "linux")]
+    #[cfg(platform = "gtk4")]
     pub use crate::platform::views as gtk4;
 
     pub use tracing::{debug, error, info, trace, warn};

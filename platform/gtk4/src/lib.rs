@@ -1,4 +1,4 @@
-#![warn(clippy::unwrap_used)]
+#![warn(unused_crate_dependencies, clippy::unwrap_used)]
 
 mod application;
 mod key;
