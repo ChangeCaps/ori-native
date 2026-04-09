@@ -11,7 +11,7 @@ pub struct Text {
 }
 
 impl NativeWidget<Platform> for Text {
-    fn widget(&self) -> &gtk4::Widget {
+    fn widget_ref(&self) -> &gtk4::Widget {
         self.view.as_ref()
     }
 }

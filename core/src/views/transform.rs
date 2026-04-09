@@ -60,10 +60,10 @@ where
 
         let widget = P::Transform::build(
             &mut cx.platform,
-            contents.widget.widget(),
+            contents.widget.widget_ref(),
         );
 
-        let pod = Pod::new(contents.node, widget);
+        let pod = Pod::new(contents.layout, widget);
         let state = TransformState {
             widget: contents.widget,
             state,
@@ -85,7 +85,7 @@ where
         self.contents.rebuild(pod, &mut state.state, cx, data);
 
         if state.affine != self.affine
-            && let Some(allocation) = cx.layout.get_allocation(*element.node)
+            && let Some(allocation) = cx.layout.get_allocation(*element.layout)
         {
             state.affine = self.affine;
             state.allocation = Some(allocation);
@@ -106,7 +106,7 @@ where
         message: &mut Message,
     ) -> Action {
         if let Some(Lifecycle::Layout) = message.get()
-            && let Some(allocation) = cx.layout.get_allocation(*element.node)
+            && let Some(allocation) = cx.layout.get_allocation(*element.layout)
             && state.allocation != Some(allocation)
         {
             state.allocation = Some(allocation);
@@ -123,7 +123,7 @@ where
     }
 
     fn teardown(element: Self::Element, state: Self::State, cx: &mut Context<P>) {
-        let pod = Pod::new(element.node, state.widget);
+        let pod = Pod::new(element.layout, state.widget);
         V::teardown(pod, state.state, cx);
 
         element.widget.teardown(&mut cx.platform);

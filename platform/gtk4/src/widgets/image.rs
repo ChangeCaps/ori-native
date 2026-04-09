@@ -14,7 +14,7 @@ pub struct Image {
 }
 
 impl NativeWidget<Platform> for Image {
-    fn widget(&self) -> &gtk4::Widget {
+    fn widget_ref(&self) -> &gtk4::Widget {
         self.picture.as_ref()
     }
 }

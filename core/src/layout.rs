@@ -1,4 +1,4 @@
-use std::{convert::Infallible, mem};
+use std::{collections::HashSet, convert::Infallible, mem};
 
 use crate::{
     Align, BorderStyle, Direction, FlexStyle, Justify, LayoutStyle, Length, Overflow, Position,
@@ -73,6 +73,7 @@ pub struct LayoutNode {
 pub struct LayoutTree<P> {
     request_layout: Option<Box<dyn FnOnce()>>,
     tree:           taffy::TaffyTree<Box<dyn Measurable<P>>>,
+    nodes:          HashSet<LayoutNode>,
 }
 
 impl<P> Default for LayoutTree<P> {
@@ -87,6 +88,7 @@ impl<P> LayoutTree<P> {
         Self {
             request_layout: None,
             tree:           taffy::TaffyTree::new(),
+            nodes:          HashSet::new(),
         }
     }
 
@@ -107,6 +109,12 @@ impl<P> LayoutTree<P> {
 
     /// Get the computed layout of a layout node.
     pub fn get_allocation(&self, node: LayoutNode) -> Option<Allocation> {
+        // NOTE: this is here because results returned by taffy mean nothing,
+        //       and `layout` will panic if `node` has been removed.
+        if !self.nodes.contains(&node) {
+            return None;
+        }
+
         let layout = self.tree.layout(node.id).ok()?;
 
         Some(Allocation {
@@ -190,7 +198,11 @@ impl<P> LayoutTree<P> {
             let _ = self.tree.add_child(id, child.id);
         }
 
-        LayoutNode { id }
+        let node = LayoutNode { id };
+
+        self.nodes.insert(node);
+
+        node
     }
 
     /// Create a new layout leaf.
@@ -205,7 +217,11 @@ impl<P> LayoutTree<P> {
             )
             .expect("should never fail");
 
-        LayoutNode { id }
+        let node = LayoutNode { id };
+
+        self.nodes.insert(node);
+
+        node
     }
 
     /// Insert a child at `index` in a layout node.
@@ -220,16 +236,41 @@ impl<P> LayoutTree<P> {
         let _ = self.tree.replace_child_at_index(parent.id, index, child.id);
     }
 
+    /// Replace `node` with `other`.
+    pub fn replace_node(&mut self, node: LayoutNode, other: LayoutNode) {
+        self.request_layout();
+
+        if let Some(parent) = self.tree.parent(node.id) {
+            let children = self
+                .tree
+                .children(parent)
+                .expect("`parent` exists so its children should too");
+
+            let index = children
+                .iter()
+                .position(|child| *child == node.id)
+                .expect("`node` is a child of `parent`");
+
+            let _ = self.tree.replace_child_at_index(parent, index, other.id);
+        }
+    }
+
     /// Remove a layout node.
     pub fn remove_node(&mut self, node: LayoutNode) {
         self.request_layout();
         let _ = self.tree.remove(node.id);
+
+        self.nodes.remove(&node);
     }
 
     /// Remove the child at `index` from a layout node.
     pub fn remove_child(&mut self, node: LayoutNode, index: usize) {
         self.request_layout();
-        let _ = self.tree.remove_child_at_index(node.id, index);
+
+        if let Ok(id) = self.tree.remove_child_at_index(node.id, index) {
+            let node = LayoutNode { id };
+            self.nodes.remove(&node);
+        }
     }
 
     /// Set the layout style of a layout node.
@@ -339,6 +380,11 @@ impl<P> LayoutTree<P> {
 
             Direction::Row => taffy::FlexDirection::Row,
             Direction::Column => taffy::FlexDirection::Column,
+        };
+
+        layout.flex_wrap = match flex.wrap {
+            true => taffy::FlexWrap::Wrap,
+            false => taffy::FlexWrap::NoWrap,
         };
 
         layout.gap = taffy::Size {

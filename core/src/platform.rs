@@ -3,15 +3,15 @@ use ori::Proxied;
 use crate::{
     NativeParent, NativeWidget,
     native::{
-        NativeGroup, NativeImage, NativeMeasure, NativeModal, NativePressable, NativeScroll,
-        NativeText, NativeTextInput, NativeTransform, NativeWindow,
+        NativeGroup, NativeImage, NativeMeasure, NativePressable, NativeScroll, NativeText,
+        NativeTextInput, NativeTransform, NativeWindow,
     },
 };
 
 /// A native platform, e.g. windows or gtk4.
 pub trait Platform: Proxied + Sized + 'static {
     /// The base widget of this platform.
-    type Widget;
+    type WidgetRef: Clone;
 
     /// The native group widget of this platform.
     type Group: NativeGroup<Self>;
@@ -34,9 +34,6 @@ pub trait Platform: Proxied + Sized + 'static {
     /// The native transform widget of this platform.
     type Transform: NativeTransform<Self>;
 
-    /// The native modal widget of this platform.
-    type Modal: NativeModal<Self>;
-
     /// The native measure widget of this platform.
     type Measure: NativeMeasure<Self>;
 
@@ -54,7 +51,7 @@ impl<P> NativeWidget<P> for Unsupported
 where
     P: Platform,
 {
-    fn widget(&self) -> &P::Widget {
+    fn widget_ref(&self) -> &P::WidgetRef {
         unreachable!()
     }
 }
@@ -63,7 +60,7 @@ impl<P> NativeParent<P> for Unsupported
 where
     P: Platform,
 {
-    fn replace_child(&mut self, _platform: &mut P, _index: usize, _child: &P::Widget) {
+    fn replace_child(&mut self, _platform: &mut P, _index: usize, _child: &P::WidgetRef) {
         unreachable!()
     }
 }

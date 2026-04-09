@@ -94,7 +94,7 @@ where
         let group = P::Group::build(&mut cx.platform);
 
         // build the scroll widget
-        let mut scroll = P::Scroll::build(&mut cx.platform, group.widget());
+        let mut scroll = P::Scroll::build(&mut cx.platform, group.widget_ref());
         scroll.set_direction(&mut cx.platform, self.direction);
 
         // add the contents layout node
@@ -176,13 +176,13 @@ where
 
             // set layout direction of scroll
             cx.layout.set_flex(
-                *element.node,
+                *element.layout,
                 scroll_flex(state.direction),
             );
 
             // set layout overflow of scroll
             cx.layout.set_overflow(
-                *element.node,
+                *element.layout,
                 scroll_overflow(state.direction),
             );
 
@@ -210,12 +210,12 @@ where
 
         if state.layout != self.layout {
             state.layout = self.layout;
-            cx.layout.set_layout(*element.node, state.layout);
+            cx.layout.set_layout(*element.layout, state.layout);
         }
 
         if state.padding != self.padding {
             state.padding = self.padding;
-            cx.layout.set_padding(*element.node, state.padding);
+            cx.layout.set_padding(*element.layout, state.padding);
         }
 
         state.gap = self.gap;
@@ -259,7 +259,7 @@ where
                 );
             }
 
-            if let Some(allocation) = cx.layout.get_allocation(*element.node)
+            if let Some(allocation) = cx.layout.get_allocation(*element.layout)
                 && state.scroll_allocation != Some(allocation)
             {
                 state.window_size = match state.direction {
@@ -274,7 +274,7 @@ where
                 );
             }
 
-            state.scroll_allocation = cx.layout.get_allocation(*element.node);
+            state.scroll_allocation = cx.layout.get_allocation(*element.layout);
             state.content_allocation = cx.layout.get_allocation(state.node);
 
             // layout the active views
@@ -282,7 +282,7 @@ where
             state.layout_active_views(cx);
         }
 
-        if let Some(ListMessage(x, y)) = message.take_targeted(state.view_id) {
+        if let Some(ListMessage(x, y)) = message.take(state.view_id) {
             state.scroll = match state.direction {
                 Direction::Row => x,
                 Direction::Column => y,
@@ -311,7 +311,7 @@ where
 
         state.group.teardown(&mut cx.platform);
         element.widget.teardown(&mut cx.platform);
-        cx.layout.remove_node(element.node);
+        cx.layout.remove_node(element.layout);
         cx.unregister(state.view_id);
     }
 }
@@ -465,7 +465,7 @@ where
 
         child.allocation = None;
 
-        let widget = child.element.widget.widget();
+        let widget = child.element.widget.widget_ref();
         let index = self.views.len();
 
         self.group.remove_child(&mut cx.platform, index);
@@ -488,7 +488,7 @@ where
 
         child.allocation = None;
 
-        let widget = child.element.widget.widget();
+        let widget = child.element.widget.widget_ref();
         let index = self.views.len();
 
         self.group.remove_child(&mut cx.platform, 0);
@@ -550,7 +550,7 @@ where
         let mut changed = false;
 
         for (i, child) in self.views.iter_mut().enumerate() {
-            if let Some(allocation) = cx.layout.get_allocation(child.element.node) {
+            if let Some(allocation) = cx.layout.get_allocation(child.element.layout) {
                 let size = Self::allocation_size(self.direction, allocation);
 
                 if self.sizes[self.start + i] != Some(size) {
@@ -567,7 +567,7 @@ where
         let mut offset = self.compute_active_view_offset();
 
         for (i, child) in self.views.iter_mut().enumerate() {
-            if let Some(allocation) = cx.layout.get_allocation(child.element.node) {
+            if let Some(allocation) = cx.layout.get_allocation(child.element.layout) {
                 let size = Self::allocation_size(self.direction, allocation);
 
                 if child.allocation != Some(allocation) || child.offset != offset {
@@ -626,10 +626,10 @@ where
         self.group.insert_child(
             &mut cx.platform,
             index,
-            element.widget.widget(),
+            element.widget.widget_ref(),
         );
 
-        let node = cx.layout.add_node(&[element.node]);
+        let node = cx.layout.add_node(&[element.layout]);
         cx.layout.set_layout(node, child_layout(self.direction));
         cx.layout.set_flex(node, child_flex(self.direction));
 

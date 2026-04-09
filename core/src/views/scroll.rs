@@ -64,7 +64,7 @@ where
 
     fn build(self, cx: &mut Context<P>, data: &mut T) -> (Self::Element, Self::State) {
         let (contents, state) = self.contents.build(cx, data);
-        let node = cx.layout.add_node(&[contents.node]);
+        let node = cx.layout.add_node(&[contents.layout]);
         cx.layout.set_layout(node, self.layout);
 
         let overflow = match self.direction {
@@ -90,7 +90,7 @@ where
 
         let mut widget = P::Scroll::build(
             &mut cx.platform,
-            contents.widget.widget(),
+            contents.widget.widget_ref(),
         );
 
         widget.set_direction(&mut cx.platform, self.direction);
@@ -129,7 +129,7 @@ where
     ) {
         if state.layout != self.layout {
             state.layout = self.layout;
-            cx.layout.set_layout(*element.node, self.layout);
+            cx.layout.set_layout(*element.layout, self.layout);
         }
 
         if state.direction != self.direction {
@@ -147,9 +147,9 @@ where
                 },
             };
 
-            cx.layout.set_overflow(*element.node, overflow);
+            cx.layout.set_overflow(*element.layout, overflow);
             cx.layout.set_flex(
-                *element.node,
+                *element.layout,
                 FlexStyle {
                     direction: self.direction,
                     ..Default::default()
@@ -161,7 +161,7 @@ where
 
         state.on_scroll = self.on_scroll;
 
-        let pod = contents.as_mut(*element.node, 0, element.widget, 0);
+        let pod = contents.as_mut(*element.layout, 0, element.widget, 0);
         self.contents.rebuild(pod, &mut state.state, cx, data);
     }
 
@@ -173,7 +173,7 @@ where
         message: &mut Message,
     ) -> Action {
         if let Some(Lifecycle::Layout) = message.get() {
-            if let Some(allocation) = cx.layout.get_allocation(*element.node)
+            if let Some(allocation) = cx.layout.get_allocation(*element.layout)
                 && state.scroll_allocation != Some(allocation)
             {
                 state.scroll_allocation = Some(allocation);
@@ -184,7 +184,7 @@ where
                 );
             }
 
-            if let Some(allocation) = cx.layout.get_allocation(contents.node)
+            if let Some(allocation) = cx.layout.get_allocation(contents.layout)
                 && state.content_allocation != Some(allocation)
             {
                 state.content_allocation = Some(allocation);
@@ -198,7 +198,7 @@ where
             }
         }
 
-        if let Some(ScrollMessage(x, y)) = message.take_targeted(state.view_id) {
+        if let Some(ScrollMessage(x, y)) = message.take(state.view_id) {
             let scroll = match state.direction {
                 Direction::Row => x,
                 Direction::Column => y,
@@ -207,7 +207,7 @@ where
             return (state.on_scroll)(data, scroll);
         }
 
-        let pod = contents.as_mut(*element.node, 0, element.widget, 0);
+        let pod = contents.as_mut(*element.layout, 0, element.widget, 0);
         V::message(pod, &mut state.state, cx, data, message)
     }
 

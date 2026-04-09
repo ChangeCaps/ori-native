@@ -8,7 +8,7 @@ pub struct Transform {
 }
 
 impl NativeWidget<Platform> for Transform {
-    fn widget(&self) -> &WidgetId {
+    fn widget_ref(&self) -> &WidgetId {
         &self.id
     }
 }

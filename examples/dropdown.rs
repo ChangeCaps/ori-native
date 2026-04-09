@@ -8,23 +8,26 @@ fn main() {
 
 struct Data {}
 
+const MODAL: ViewId = ViewId::new("modal");
+
 fn ui(_data: &Data) -> impl Effect<Data> + use<> {
     window(
-        column(dropdown(
-            |_| {
-                column(text("Click to open dropdown"))
+        column((
+            dropdown(
+                |_| {
+                    column(text("Click to open dropdown"))
+                        .padding(8.0)
+                        .border(1.0, Color::BLACK.fade(0.2))
+                        .corner(8.0)
+                },
+                column((text("stuff"), text("things")))
                     .padding(8.0)
+                    .background(Color::hex("#f8f8f8"))
                     .border(1.0, Color::BLACK.fade(0.2))
                     .corner(8.0)
-            },
-            column((text("stuff"), text("things")))
-                .padding(8.0)
-                .background(Color::hex("#f8f8f8"))
-                .border(1.0, Color::BLACK.fade(0.2))
-                .corner(8.0)
-                .shadow_color(Color::BLACK.fade(0.4))
-                .shadow_radius(8.0)
-                .shadow_offset(4.0, 4.0),
+                    .shadow(4.0, 4.0, 8.0, Color::BLACK.fade(0.4)),
+            ),
+            portal(MODAL),
         ))
         .background(Color::WHITE)
         .justify_content(Justify::Center)
@@ -65,11 +68,13 @@ where
             .on_press(|(state, _): &mut (State, _)| state.is_open = !state.is_open);
 
             let body = state.is_open.then(|| {
-                modal(
+                teleport(
+                    MODAL,
                     column(map(
                         contents,
                         |(_, data): &mut (_, T), map| map(data),
                     ))
+                    .position(Position::Absolute)
                     .left(state.x)
                     .top(state.y + state.height + 4.0),
                 )

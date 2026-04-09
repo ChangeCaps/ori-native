@@ -16,4 +16,4 @@ pub use scroll::Scroll;
 pub use text::Text;
 pub use textinput::TextInput;
 pub use transform::Transform;
-pub use window::{Modal, Window};
+pub use window::Window;

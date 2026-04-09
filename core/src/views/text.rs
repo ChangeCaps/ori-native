@@ -131,7 +131,7 @@ where
         _data: &mut T,
     ) {
         if state.layout != self.layout {
-            cx.layout.set_layout(*element.node, self.layout);
+            cx.layout.set_layout(*element.layout, self.layout);
         }
 
         if state.font == self.font && state.text == self.text {
@@ -153,7 +153,7 @@ where
             self.wrap,
         );
 
-        cx.layout.set_measure(*element.node, layout);
+        cx.layout.set_measure(*element.layout, layout);
     }
 
     fn message(
@@ -168,7 +168,7 @@ where
 
     fn teardown(element: Self::Element, _state: Self::State, cx: &mut Context<P>) {
         element.widget.teardown(&mut cx.platform);
-        cx.layout.remove_node(element.node);
+        cx.layout.remove_node(element.layout);
     }
 }
 

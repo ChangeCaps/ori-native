@@ -17,7 +17,7 @@ impl NativeParent<Platform> for Measure {
 }
 
 impl NativeWidget<Platform> for Measure {
-    fn widget(&self) -> &gtk4::Widget {
+    fn widget_ref(&self) -> &gtk4::Widget {
         self.fixed.as_ref()
     }
 }

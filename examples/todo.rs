@@ -47,9 +47,12 @@ fn ui(data: &Data) -> impl Effect<Data> + use<> {
             .align_items(Align::Center)
             .background(theme::BACKGROUND),
         ),
-        receive(|data: &mut Data, Remove(index)| {
-            data.todos.remove(index);
-        }),
+        receive(
+            None,
+            |data: &mut Data, Remove(index)| {
+                data.todos.remove(index);
+            },
+        ),
     ))
 }
 

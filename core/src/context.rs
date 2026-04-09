@@ -1,14 +1,8 @@
-use std::{
-    any::{self, Any, TypeId},
-    collections::HashMap,
-};
+use std::any::{self, Any, TypeId};
 
 use ori::{Action, AnyView, Base, Message, Provider, Proxied, Proxy, Tracker, Tree, ViewId};
 
-use crate::{
-    AnimateRequest, BoxedWidget, LayoutRequest, LayoutTree, ModalRequest, Platform,
-    native::NativeModal,
-};
+use crate::{AnimateRequest, BoxedWidget, LayoutRequest, LayoutTree, Platform};
 
 /// The context of the [`View`](ori::View) tree.
 pub struct Context<P>
@@ -21,11 +15,7 @@ where
     /// The [`LayoutTree`].
     pub layout: LayoutTree<P>,
 
-    /// The modals in this context.
-    pub modals: HashMap<ViewId, P::Modal>,
-
-    animation_controller: Option<ViewId>,
-    modal_controller:     Option<ViewId>,
+    animation_receiver: Option<ViewId>,
 
     resources: Vec<Resource>,
 
@@ -48,9 +38,7 @@ where
         Self {
             platform,
             layout: LayoutTree::new(),
-            animation_controller: None,
-            modal_controller: None,
-            modals: HashMap::new(),
+            animation_receiver: None,
             resources: Vec::new(),
             view_id_tree: Tree::new(),
         }
@@ -58,7 +46,7 @@ where
 
     /// Request starting to animate.
     pub fn request_start_animating(&mut self) {
-        if let Some(animation_controller) = self.animation_controller {
+        if let Some(animation_controller) = self.animation_receiver {
             self.platform.proxy().message(Message::new(
                 AnimateRequest::Start,
                 animation_controller,
@@ -68,7 +56,7 @@ where
 
     /// Request stopping animating.
     pub fn request_stop_animating(&mut self) {
-        if let Some(animation_controller) = self.animation_controller {
+        if let Some(animation_controller) = self.animation_receiver {
             self.platform.proxy().message(Message::new(
                 AnimateRequest::Stop,
                 animation_controller,
@@ -76,54 +64,10 @@ where
         }
     }
 
-    /// Open a modal, this will fail if no modal controller is set.
-    pub fn open_modal(&mut self, id: ViewId, modal: P::Modal) -> bool {
-        let Some(controller) = self.modal_controller else {
-            modal.teardown(&mut self.platform);
-            return false;
-        };
-
-        let request = ModalRequest::Open { id };
-        let message = Message::new(request, Some(controller));
-        self.proxy().message(message);
-        self.modals.insert(id, modal);
-        true
-    }
-
-    /// Close a modal, this will fail if no modal controller is set.
-    pub fn close_modal(&mut self, id: ViewId) {
-        let Some(controller) = self.modal_controller else {
-            return;
-        };
-
-        let request = ModalRequest::Close { id };
-        let message = Message::new(request, Some(controller));
-        self.proxy().message(message);
-    }
-
-    /// Get a mutable reference to `self` and a modal at the same time.
-    ///
-    /// Returns `None` if the modal doesn't exist.
-    pub fn with_modal<T>(
-        &mut self,
-        id: ViewId,
-        f: impl FnOnce(&mut Self, &mut P::Modal) -> T,
-    ) -> Option<T> {
-        match self.modals.remove(&id) {
-            Some(mut modal) => {
-                let result = f(self, &mut modal);
-                self.modals.insert(id, modal);
-                Some(result)
-            }
-
-            None => None,
-        }
-    }
-
     /// Temporarily set the layout controller.
     ///
     /// This view will receive [`LayoutRequest`]s from its contents.
-    pub fn with_layout_controller<T>(
+    pub fn with_layout_receiver<T>(
         &mut self,
         view_id: ViewId,
         f: impl FnOnce(&mut Self) -> T,
@@ -145,31 +89,17 @@ where
         output
     }
 
-    /// Temporarily set the modal controller.
-    ///
-    /// This view will receive [`ModalRequest`]s from its contents.
-    pub fn with_modal_controller<T>(
-        &mut self,
-        view_id: ViewId,
-        f: impl FnOnce(&mut Self) -> T,
-    ) -> T {
-        let previous = self.modal_controller.replace(view_id);
-        let output = f(self);
-        self.modal_controller = previous;
-        output
-    }
-
     /// Temporarily set the animation controller.
     ///
     /// This view will receive [`AnimateRequest`]s from its contents.
-    pub fn with_animation_controller<T>(
+    pub fn with_animation_receiver<T>(
         &mut self,
         view_id: ViewId,
         f: impl FnOnce(&mut Self) -> T,
     ) -> T {
-        let previous = self.animation_controller.replace(view_id);
+        let previous = self.animation_receiver.replace(view_id);
         let output = f(self);
-        self.animation_controller = previous;
+        self.animation_receiver = previous;
         output
     }
 
@@ -177,10 +107,8 @@ where
     ///
     /// This is a shorthand for setting both the layout and animation controller.
     pub fn with_window<T>(&mut self, view_id: ViewId, f: impl FnOnce(&mut Self) -> T) -> T {
-        self.with_layout_controller(view_id, |this| {
-            this.with_modal_controller(view_id, |this| {
-                this.with_animation_controller(view_id, f)
-            })
+        self.with_layout_receiver(view_id, |this| {
+            this.with_animation_receiver(view_id, f)
         })
     }
 }

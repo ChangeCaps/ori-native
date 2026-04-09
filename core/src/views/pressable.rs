@@ -116,7 +116,7 @@ where
 
         let mut widget = P::Pressable::build(
             &mut cx.platform,
-            contents.widget.widget(),
+            contents.widget.widget_ref(),
         );
 
         let view_id = ViewId::next();
@@ -172,7 +172,7 @@ where
             }
         });
 
-        let pod = Pod::new(contents.node, widget);
+        let pod = Pod::new(contents.layout, widget);
 
         let state = PressableState {
             widget: contents.widget,
@@ -235,7 +235,7 @@ where
         message: &mut Message,
     ) -> Action {
         if let Some(Lifecycle::Layout) = message.get()
-            && let Some(allocation) = cx.layout.get_allocation(*element.node)
+            && let Some(allocation) = cx.layout.get_allocation(*element.layout)
             && state.allocation != Some(allocation)
         {
             state.allocation = Some(allocation);
@@ -246,11 +246,11 @@ where
             );
         }
 
-        if let Some(message) = message.take_targeted(state.view_id) {
+        if let Some(message) = message.take(state.view_id) {
             return state.handler.handle(data, message);
         }
 
-        if let Some(message) = message.take_targeted(state.view_id) {
+        if let Some(message) = message.take(state.view_id) {
             let mut action = Action::new();
 
             match message {
@@ -294,7 +294,7 @@ where
     }
 
     fn teardown(element: Self::Element, state: Self::State, cx: &mut Context<P>) {
-        let pod = Pod::new(element.node, state.widget);
+        let pod = Pod::new(element.layout, state.widget);
 
         V::teardown(pod, state.state, cx);
         element.widget.teardown(&mut cx.platform);

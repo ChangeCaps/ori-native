@@ -10,7 +10,7 @@ pub struct Image {
 }
 
 impl NativeWidget<Platform> for Image {
-    fn widget(&self) -> &WidgetId {
+    fn widget_ref(&self) -> &WidgetId {
         &self.id
     }
 }

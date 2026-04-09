@@ -5,9 +5,8 @@ use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarke
 
 use crate::{
     Allocation, AnimateRequest, AvailableSpace, Context, Input, InputHandler, LayoutNode,
-    LayoutRequest, LayoutStyle, Length, Lifecycle, MatchKey, ModalRequest, NativeWidget,
-    NavigationBar, Platform, Pod, Size, Sizing, StatusBar, WidgetView,
-    native::{NativeModal, NativeWindow},
+    LayoutRequest, LayoutStyle, Length, Lifecycle, MatchKey, NativeWidget, NavigationBar, Platform,
+    Pod, Size, Sizing, StatusBar, WidgetView, native::NativeWindow,
 };
 
 /// [`View`] of a window.
@@ -196,7 +195,7 @@ where
         data: &mut T,
         attributes: WindowAttributes<T>,
         contents: V,
-        build: impl FnOnce(&mut P, &P::Widget) -> P::Window,
+        build: impl FnOnce(&mut P, &P::WidgetRef) -> P::Window,
     ) -> Self {
         let view_id = ViewId::next();
 
@@ -204,7 +203,7 @@ where
 
         let mut window = build(
             &mut cx.platform,
-            contents.widget.widget(),
+            contents.widget.widget_ref(),
         );
 
         window.set_title(
@@ -275,7 +274,7 @@ where
 
         cx.register(view_id);
 
-        let node = cx.layout.add_node(&[contents.node]);
+        let node = cx.layout.add_node(&[contents.layout]);
 
         let (width, height) = window.get_size(&mut cx.platform);
 
@@ -376,11 +375,11 @@ where
 
             cx.layout.compute_layout(
                 &mut cx.platform,
-                self.contents.node,
+                self.contents.layout,
                 size,
             );
 
-            if let Some(layout) = cx.layout.get_allocation(self.contents.node) {
+            if let Some(layout) = cx.layout.get_allocation(self.contents.layout) {
                 self.window.set_min_size(
                     &mut cx.platform,
                     layout.content_size.width,
@@ -448,7 +447,7 @@ where
             }
         }
 
-        if let Some(allocation) = cx.layout.get_allocation(self.contents.node)
+        if let Some(allocation) = cx.layout.get_allocation(self.contents.layout)
             && self.content_allocation != Some(allocation)
         {
             self.content_allocation = Some(allocation);
@@ -461,6 +460,8 @@ where
                 allocation.size.height,
             );
         }
+
+        cx.proxy().message(Message::new(Lifecycle::Layout, None));
 
         cx.with_window(self.view_id, |cx| {
             let pod = self.contents.as_mut(self.node, 0, &mut self.window, 0);
@@ -476,17 +477,21 @@ where
 
     /// Handle a [`Message`].
     pub fn message(&mut self, cx: &mut Context<P>, data: &mut T, message: &mut Message) -> Action {
-        if let Some(message) = message.take_targeted(self.view_id) {
+        if let Some(Lifecycle::Layout) = message.get() {
+            return Action::new();
+        }
+
+        if let Some(message) = message.take(self.view_id) {
             return self.handler.handle(data, message);
         }
 
-        if let Some(message) = message.take_targeted(self.view_id) {
+        if let Some(message) = message.take(self.view_id) {
             return match message {
                 LayoutRequest::Layout => self.layout(cx, data),
             };
         }
 
-        if let Some(message) = message.take_targeted(self.view_id) {
+        if let Some(message) = message.take(self.view_id) {
             return match message {
                 AnimateRequest::Start => {
                     if self.animating == 0 {
@@ -510,29 +515,7 @@ where
             };
         }
 
-        if let Some(message) = message.take_targeted(self.view_id) {
-            return match message {
-                ModalRequest::Open { id } => {
-                    if let Some(modal) = cx.modals.get(&id) {
-                        self.window.open_modal(&mut cx.platform, modal);
-                        self.layout(cx, data)
-                    } else {
-                        Action::new()
-                    }
-                }
-
-                ModalRequest::Close { id } => {
-                    if let Some(modal) = cx.modals.remove(&id) {
-                        self.window.close_modal(&mut cx.platform, &modal);
-                        modal.teardown(&mut cx.platform);
-                    }
-
-                    Action::new()
-                }
-            };
-        }
-
-        if let Some(message) = message.take_targeted(self.view_id) {
+        if let Some(message) = message.take(self.view_id) {
             return match message {
                 WindowMessage::AnimationFrame(delta) => {
                     if self.animating == 0 {

@@ -6,7 +6,7 @@ pub trait NativePressable<P>: NativeWidget<P> + NativeParent<P>
 where
     P: Platform,
 {
-    fn build(platform: &mut P, contents: &P::Widget) -> Self;
+    fn build(platform: &mut P, contents: &P::WidgetRef) -> Self;
     fn teardown(self, platform: &mut P);
 
     fn set_content_size(&mut self, platform: &mut P, width: f32, height: f32);
@@ -32,7 +32,7 @@ impl<P> NativePressable<P> for Unsupported
 where
     P: Platform,
 {
-    fn build(_platform: &mut P, _contents: &P::Widget) -> Self {
+    fn build(_platform: &mut P, _contents: &P::WidgetRef) -> Self {
         unsupported!("pressable view")
     }
 

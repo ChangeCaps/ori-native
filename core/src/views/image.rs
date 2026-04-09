@@ -85,7 +85,7 @@ where
     ) {
         if state.layout != self.layout {
             state.layout = self.layout;
-            cx.layout.set_layout(*element.node, self.layout);
+            cx.layout.set_layout(*element.layout, self.layout);
         }
 
         let hash = seahash::hash(&self.data);
@@ -95,7 +95,7 @@ where
 
             match element.widget.load_data(&mut cx.platform, self.data) {
                 Ok(layout) => {
-                    cx.layout.set_measure(*element.node, layout);
+                    cx.layout.set_measure(*element.layout, layout);
                 }
 
                 Err(error) => tracing::error!(?error, "loading image failed"),

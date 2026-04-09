@@ -8,7 +8,7 @@ pub struct Group {
 }
 
 impl NativeWidget<Platform> for Group {
-    fn widget(&self) -> &WidgetId {
+    fn widget_ref(&self) -> &WidgetId {
         &self.id
     }
 }
@@ -177,7 +177,7 @@ impl NativeGroup<Platform> for Group {
         });
     }
 
-    fn set_corner_radii(&mut self, platform: &mut Platform, radii: [f32; 4]) {
+    fn set_corners(&mut self, platform: &mut Platform, radii: [f32; 4]) {
         let _ = platform.jni(|env, activity| {
             env.call_method(
                 activity,

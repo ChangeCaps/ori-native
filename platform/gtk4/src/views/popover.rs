@@ -75,14 +75,18 @@ where
         let (popover_element, popover_state) = self.popover.build(cx, data);
 
         let receiver = PopoverReceiver::new();
-        receiver.set_child(Some(contents_element.widget.widget()));
-        receiver.set_popover_child(Some(popover_element.widget.widget()));
+        receiver.set_child(Some(
+            contents_element.widget.widget_ref(),
+        ));
+        receiver.set_popover_child(Some(
+            popover_element.widget.widget_ref(),
+        ));
         receiver.set_position(self.position);
         receiver.set_open(self.is_open);
 
-        let popover_node = cx.layout.add_node(&[popover_element.node]);
+        let popover_node = cx.layout.add_node(&[popover_element.layout]);
 
-        let pod = Pod::new(contents_element.node, receiver);
+        let pod = Pod::new(contents_element.layout, receiver);
         let state = PopoverState {
             contents_widget: contents_element.widget,
             contents_state,
@@ -147,7 +151,7 @@ where
                 );
             }
 
-            if let Some(allocation) = cx.layout.get_allocation(state.popover_element.node) {
+            if let Some(allocation) = cx.layout.get_allocation(state.popover_element.layout) {
                 element.widget.set_content_layout(
                     allocation.x,
                     allocation.y,
@@ -183,7 +187,7 @@ where
 
     fn teardown(element: Self::Element, state: Self::State, cx: &mut Context<Platform>) {
         V::teardown(
-            Pod::new(element.node, state.contents_widget),
+            Pod::new(element.layout, state.contents_widget),
             state.contents_state,
             cx,
         );
@@ -228,7 +232,7 @@ impl NativeParent<Platform> for PopoverReceiver {
 }
 
 impl NativeWidget<Platform> for PopoverReceiver {
-    fn widget(&self) -> &gtk4::Widget {
+    fn widget_ref(&self) -> &gtk4::Widget {
         self.upcast_ref()
     }
 }

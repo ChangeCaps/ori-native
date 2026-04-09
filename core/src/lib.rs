@@ -10,6 +10,7 @@ mod lifecycle;
 mod platform;
 mod safearea;
 mod style;
+mod teleport;
 mod text;
 
 pub mod native;
@@ -21,7 +22,7 @@ pub use element::{
 };
 pub use input::{Input, InputFilter, InputHandler, InputMessage, MatchKey};
 pub use layout::{Allocation, AvailableSpace, LayoutNode, LayoutTree, Measurable};
-pub use lifecycle::{AnimateRequest, LayoutRequest, Lifecycle, ModalRequest};
+pub use lifecycle::{AnimateRequest, LayoutRequest, Lifecycle};
 pub use platform::{Platform, Unsupported};
 pub use safearea::SafeAreaInsets;
 pub use style::{

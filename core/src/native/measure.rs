@@ -4,7 +4,7 @@ pub trait NativeMeasure<P>: NativeParent<P> + NativeWidget<P>
 where
     P: Platform,
 {
-    fn build(platform: &mut P, contents: &P::Widget) -> Self;
+    fn build(platform: &mut P, contents: &P::WidgetRef) -> Self;
     fn teardown(self, platform: &mut P);
 
     fn set_content_size(&mut self, platform: &mut P, width: f32, height: f32);
@@ -16,7 +16,7 @@ impl<P> NativeMeasure<P> for Unsupported
 where
     P: Platform,
 {
-    fn build(_platform: &mut P, _contents: &P::Widget) -> Self {
+    fn build(_platform: &mut P, _contents: &P::WidgetRef) -> Self {
         unsupported!("on_measure view")
     }
 

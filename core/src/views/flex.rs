@@ -1,9 +1,9 @@
 use ori::{Action, Message, Mut, View, ViewMarker};
 
 use crate::{
-    Border, BorderStyle, Color, Context, Direction, FlexContainer, FlexStyle, Layout, LayoutStyle,
-    Length, Lifecycle, Overflow, Padding, Platform, Pod, Shadow, Sides, Size, WidgetViewSeq,
-    native::Group,
+    Border, BorderStyle, Color, Context, Corners, Direction, FlexContainer, FlexStyle, Layout,
+    LayoutStyle, Length, Lifecycle, Overflow, Padding, Platform, Pod, Shadow, Sides, Size,
+    WidgetViewSeq, native::Group,
 };
 
 /// Container [`View`] with flexbox layout.
@@ -29,7 +29,7 @@ pub struct Flex<V> {
     padding:        Sides<Length>,
     flex:           FlexStyle,
     background:     Color,
-    corner_radii:   [f32; 4],
+    corners:        Corners<f32>,
     overflow:       Overflow,
     shadow:         Shadow,
     hardware_layer: bool,
@@ -45,7 +45,7 @@ impl<V> Flex<V> {
             padding: Sides::all(Length::Length(0.0)),
             flex: FlexStyle::default(),
             background: Color::TRANSPARENT,
-            corner_radii: [0.0; 4],
+            corners: Corners::all(0.0),
             overflow: Overflow::Visible,
             shadow: Shadow::default(),
             hardware_layer: false,
@@ -64,10 +64,11 @@ impl<V> Flex<V> {
         self
     }
 
-    /// Set the shadow.
-    pub fn shadow(mut self, shadow: Shadow) -> Self {
-        self.shadow = shadow;
-        self
+    /// Set the shadow properties.
+    pub fn shadow(self, dx: f32, dy: f32, radius: f32, color: Color) -> Self {
+        self.shadow_offset(dx, dy)
+            .shadow_radius(radius)
+            .shadow_color(color)
     }
 
     /// Set the shadow color.
@@ -96,46 +97,33 @@ impl<V> Flex<V> {
     }
 
     /// Set the radius of all corners.
-    pub fn corner(self, radius: f32) -> Self {
-        self.corner_all(radius, radius, radius, radius)
+    pub fn corner(mut self, radii: impl Into<Corners<f32>>) -> Self {
+        self.corners = radii.into();
+        self
     }
 
     /// Set the radius of the top left corner.
     pub fn corner_top_left(mut self, radius: f32) -> Self {
-        self.corner_radii[0] = radius;
+        self.corners.top_left = radius;
         self
     }
 
     /// Set the radius of the top right corner.
     pub fn corner_top_right(mut self, radius: f32) -> Self {
-        self.corner_radii[1] = radius;
+        self.corners.top_right = radius;
         self
     }
 
     /// Set the radius of the bottom right corner.
     pub fn corner_bottom_right(mut self, radius: f32) -> Self {
-        self.corner_radii[2] = radius;
+        self.corners.bottom_right = radius;
         self
     }
 
     /// Set the radius of the bottom left corner.
     pub fn corner_bottom_left(mut self, radius: f32) -> Self {
-        self.corner_radii[3] = radius;
+        self.corners.bottom_left = radius;
         self
-    }
-
-    /// Set the radius of all corners individually.
-    pub fn corner_all(
-        self,
-        top_left: f32,
-        top_right: f32,
-        bottom_right: f32,
-        bottom_left: f32,
-    ) -> Self {
-        self.corner_top_left(top_left)
-            .corner_top_right(top_right)
-            .corner_bottom_right(bottom_right)
-            .corner_bottom_left(bottom_left)
     }
 
     /// Set whether to use a hardware layer.
@@ -193,7 +181,7 @@ where
         let mut group = Group::new(cx);
         group.set_background(cx, self.background);
         group.set_border_color(cx, self.border.color);
-        group.set_corner_radii(cx, self.corner_radii);
+        group.set_corners(cx, self.corners);
         group.set_overflow(cx, self.overflow);
         group.set_shadow(cx, self.shadow);
         group.set_hardware_layer(cx, self.hardware_layer);
@@ -209,7 +197,7 @@ where
             overflow: self.overflow,
             flex: self.flex,
             background: self.background,
-            corner_radii: self.corner_radii,
+            corners: self.corners,
             shadow: self.shadow,
             hardware_layer: self.hardware_layer,
         };
@@ -226,27 +214,30 @@ where
     ) {
         if state.layout != self.layout {
             state.layout = self.layout;
-            (cx.layout).set_layout(*element.node, self.layout);
+            (cx.layout).set_layout(*element.layout, self.layout);
         }
 
         if state.padding != self.padding {
             state.padding = self.padding;
-            (cx.layout).set_padding(*element.node, self.padding);
+            (cx.layout).set_padding(*element.layout, self.padding);
         }
 
         if state.overflow != self.overflow {
             state.overflow = self.overflow;
-            (cx.layout).set_overflow(*element.node, Size::all(self.overflow));
+            (cx.layout).set_overflow(
+                *element.layout,
+                Size::all(self.overflow),
+            );
         }
 
         if state.flex != self.flex {
             state.flex = self.flex;
-            (cx.layout).set_flex(*element.node, self.flex);
+            (cx.layout).set_flex(*element.layout, self.flex);
         }
 
         if state.border != self.border {
             state.border = self.border;
-            (cx.layout).set_border(*element.node, self.border);
+            (cx.layout).set_border(*element.layout, self.border);
             (element.widget).set_border_color(cx, self.border.color);
         }
 
@@ -255,9 +246,9 @@ where
             (element.widget).set_background(cx, self.background);
         }
 
-        if state.corner_radii != self.corner_radii {
-            state.corner_radii = self.corner_radii;
-            (element.widget).set_corner_radii(cx, self.corner_radii);
+        if state.corners != self.corners {
+            state.corners = self.corners;
+            (element.widget).set_corners(cx, self.corners);
         }
 
         if state.overflow != self.overflow {
@@ -276,7 +267,7 @@ where
         }
 
         self.contents.seq_rebuild(
-            &mut element.widget.elements(*element.node),
+            &mut element.widget.elements(*element.layout),
             &mut state.state,
             cx,
             data,
@@ -291,11 +282,11 @@ where
         message: &mut Message,
     ) -> Action {
         if let Some(Lifecycle::Layout) = message.get() {
-            element.widget.layout(cx, *element.node);
+            element.widget.layout(cx, *element.layout);
         }
 
         V::seq_message(
-            &mut element.widget.elements(*element.node),
+            &mut element.widget.elements(*element.layout),
             &mut state.state,
             cx,
             data,
@@ -305,13 +296,13 @@ where
 
     fn teardown(mut element: Self::Element, state: Self::State, cx: &mut Context<P>) {
         V::seq_teardown(
-            &mut element.widget.elements(element.node),
+            &mut element.widget.elements(element.layout),
             state.state,
             cx,
         );
 
         element.widget.teardown(cx);
-        cx.layout.remove_node(element.node);
+        cx.layout.remove_node(element.layout);
     }
 }
 
@@ -327,7 +318,7 @@ where
     padding:        Sides<Length>,
     overflow:       Overflow,
     background:     Color,
-    corner_radii:   [f32; 4],
+    corners:        Corners<f32>,
     shadow:         Shadow,
     hardware_layer: bool,
 }

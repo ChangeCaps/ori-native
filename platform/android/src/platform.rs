@@ -149,7 +149,7 @@ impl<'a> From<&WidgetId> for JValue<'a> {
 }
 
 impl ori_native_core::Platform for Platform {
-    type Widget = WidgetId;
+    type WidgetRef = WidgetId;
 
     type Group = widgets::Group;
     type Image = widgets::Image;
@@ -158,7 +158,6 @@ impl ori_native_core::Platform for Platform {
     type Text = widgets::Text;
     type TextInput = widgets::TextInput;
     type Transform = widgets::Transform;
-    type Modal = Unsupported;
     type Measure = Unsupported;
     type Window = widgets::Window;
 

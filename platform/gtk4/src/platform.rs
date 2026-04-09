@@ -88,7 +88,7 @@ impl Platform {
 }
 
 impl ori_native_core::Platform for Platform {
-    type Widget = gtk4::Widget;
+    type WidgetRef = gtk4::Widget;
 
     type Group = widgets::Group;
     type Image = widgets::Image;
@@ -97,7 +97,6 @@ impl ori_native_core::Platform for Platform {
     type Text = widgets::Text;
     type TextInput = widgets::TextInput;
     type Transform = widgets::Transform;
-    type Modal = widgets::Modal;
     type Measure = widgets::Measure;
     type Window = widgets::Window;
 

@@ -294,7 +294,7 @@ where
     ) {
         if state.layout != self.layout {
             state.layout = self.layout;
-            cx.layout.set_layout(*element.node, self.layout);
+            cx.layout.set_layout(*element.layout, self.layout);
         }
 
         let mut changed = false;
@@ -341,7 +341,7 @@ where
 
         if changed {
             let layout = element.widget.get_layout(&mut cx.platform);
-            cx.layout.set_measure(*element.node, layout);
+            cx.layout.set_measure(*element.layout, layout);
         }
 
         state.on_change = self.on_change;
@@ -355,7 +355,7 @@ where
         data: &mut T,
         message: &mut Message,
     ) -> Action {
-        if let Some(message) = message.take_targeted(state.view_id) {
+        if let Some(message) = message.take(state.view_id) {
             match message {
                 TextInputMessage::Change(text) => {
                     state.text = text.clone();
@@ -371,7 +371,7 @@ where
 
     fn teardown(element: Self::Element, state: Self::State, cx: &mut Context<P>) {
         element.widget.teardown(&mut cx.platform);
-        cx.layout.remove_node(element.node);
+        cx.layout.remove_node(element.layout);
         cx.unregister(state.view_id);
     }
 }

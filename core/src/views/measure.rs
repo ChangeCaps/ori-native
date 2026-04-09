@@ -54,13 +54,13 @@ where
 
         let widget = P::Measure::build(
             &mut cx.platform,
-            contents.widget.widget(),
+            contents.widget.widget_ref(),
         );
 
         let view_id = ViewId::next();
         cx.register(view_id);
 
-        let pod = Pod::new(contents.node, widget);
+        let pod = Pod::new(contents.layout, widget);
         let state = OnMeasureState {
             widget: contents.widget,
             state,
@@ -93,7 +93,7 @@ where
         let mut action = Action::new();
 
         if let Some(Lifecycle::Layout) = message.get()
-            && let Some(allocation) = cx.layout.get_allocation(*element.node)
+            && let Some(allocation) = cx.layout.get_allocation(*element.layout)
             && state.allocation != Some(allocation)
         {
             state.allocation = Some(allocation);
@@ -105,7 +105,7 @@ where
         }
 
         if let Some(Lifecycle::Layout) = message.get()
-            && let Some(allocation) = cx.layout.get_allocation(*element.node)
+            && let Some(allocation) = cx.layout.get_allocation(*element.layout)
         {
             let (x, y) = element.widget.measure(&mut cx.platform);
             action |= (state.on_measure)(
@@ -122,7 +122,7 @@ where
     }
 
     fn teardown(element: Self::Element, state: Self::State, cx: &mut Context<P>) {
-        let pod = Pod::new(element.node, state.widget);
+        let pod = Pod::new(element.layout, state.widget);
         V::teardown(pod, state.state, cx);
 
         element.widget.teardown(&mut cx.platform);

@@ -15,7 +15,7 @@ pub struct Pressable {
 }
 
 impl NativeWidget<Platform> for Pressable {
-    fn widget(&self) -> &WidgetId {
+    fn widget_ref(&self) -> &WidgetId {
         &self.id
     }
 }

@@ -11,7 +11,7 @@ use crate::{Context, LayoutNode, Platform};
 /// An [`Element`] in the [`View`] tree.
 pub struct Pod<P, T> {
     /// The layout node of the [`Element`].
-    pub node: LayoutNode,
+    pub layout: LayoutNode,
 
     /// The native widget of the [`Element`].
     pub widget: T,
@@ -21,9 +21,9 @@ pub struct Pod<P, T> {
 
 impl<P, T> Pod<P, T> {
     /// Create new [`Pod`].
-    pub fn new(node: LayoutNode, widget: T) -> Self {
+    pub fn new(layout: LayoutNode, widget: T) -> Self {
         Self {
-            node,
+            layout,
             widget,
             marker: PhantomData,
         }
@@ -32,48 +32,64 @@ impl<P, T> Pod<P, T> {
     /// Map the native widget keeping the `node`.
     pub fn map_widget<U>(self, widget: U) -> Pod<P, U> {
         Pod {
-            node: self.node,
+            layout: self.layout,
             widget,
 
             marker: PhantomData,
         }
     }
 
+    /// Get a [`Platform::WidgetRef`] to the this widget.
+    pub fn widget_ref(&self) -> &P::WidgetRef
+    where
+        P: Platform,
+        T: NativeWidget<P>,
+    {
+        self.widget.widget_ref()
+    }
+
     /// Borrow `self` as a [`PodMut`].
     pub fn as_mut<'a>(
         &'a mut self,
-        parent_node: LayoutNode,
-        node_index: usize,
+        parent_layout: LayoutNode,
+        layout_index: usize,
         parent_widget: &'a mut dyn NativeParent<P>,
         widget_index: usize,
     ) -> PodMut<'a, P, T> {
         PodMut {
-            parent_node,
+            parent_layout: Some(ParentLayout {
+                layout: parent_layout,
+                index:  layout_index,
+            }),
+
             parent_widget,
-            node_index,
             widget_index,
-            node: &mut self.node,
+
+            layout: &mut self.layout,
             widget: &mut self.widget,
         }
     }
 }
 
+#[derive(Clone, Copy)]
+pub struct ParentLayout {
+    pub layout: LayoutNode,
+    pub index:  usize,
+}
+
 /// A mutable [`Pod`] passed to [`View`]s.
 pub struct PodMut<'a, P, T> {
     /// The layout node of the parent.
-    pub parent_node: LayoutNode,
+    pub parent_layout: Option<ParentLayout>,
 
     /// The native parent widget.
     pub parent_widget: &'a mut dyn NativeParent<P>,
-
-    /// The index of this in the parent layout node.
-    pub node_index: usize,
 
     /// The index of this in the parent widget.
     pub widget_index: usize,
 
     /// The layout node of this [`Element`].
-    pub node: &'a mut LayoutNode,
+    pub layout: &'a mut LayoutNode,
 
     /// The native widget of this [`Element`].
     pub widget: &'a mut T,
@@ -83,12 +99,12 @@ impl<P, T> PodMut<'_, P, T> {
     /// Reborrow `self` as a new [`PodMut`], useful for when lifetimes get tricky.
     pub fn reborrow(&mut self) -> PodMut<'_, P, T> {
         PodMut {
-            parent_node:   self.parent_node,
+            parent_layout: self.parent_layout,
             parent_widget: self.parent_widget,
-            node_index:    self.node_index,
             widget_index:  self.widget_index,
-            node:          self.node,
-            widget:        self.widget,
+
+            layout: self.layout,
+            widget: self.widget,
         }
     }
 
@@ -100,11 +116,10 @@ impl<P, T> PodMut<'_, P, T> {
         T: NativeParent<P>,
     {
         PodMut {
-            parent_node: self.parent_node,
+            parent_layout: self.parent_layout,
             parent_widget: self.widget,
-            node_index: self.node_index,
             widget_index: index,
-            node: self.node,
+            layout: self.layout,
             widget,
         }
     }
@@ -158,7 +173,7 @@ where
     P: Platform,
 {
     /// Replace the child of `self` at `index`.
-    fn replace_child(&mut self, platform: &mut P, index: usize, child: &P::Widget);
+    fn replace_child(&mut self, platform: &mut P, index: usize, child: &P::WidgetRef);
 }
 
 /// A native widget.
@@ -167,15 +182,15 @@ where
     P: Platform,
 {
     /// Get a reference to the [`Platform`] base widget.
-    fn widget(&self) -> &P::Widget;
+    fn widget_ref(&self) -> &P::WidgetRef;
 }
 
 impl<P> NativeWidget<P> for Box<dyn NativeWidget<P>>
 where
     P: Platform,
 {
-    fn widget(&self) -> &P::Widget {
-        self.as_ref().widget()
+    fn widget_ref(&self) -> &P::WidgetRef {
+        self.as_ref().widget_ref()
     }
 }
 
@@ -185,31 +200,30 @@ where
     T: NativeWidget<P>,
 {
     fn replace(cx: &mut Context<P>, other: Mut<'_, BoxedWidget<P>>, this: Self) -> BoxedWidget<P> {
-        cx.layout.replace_child(
-            other.parent_node,
-            other.node_index,
-            this.node,
-        );
+        match other.parent_layout {
+            Some(layout) => (cx.layout).replace_child(layout.layout, layout.index, this.layout),
+            None => (cx.layout).replace_node(*other.layout, this.layout),
+        }
 
         other.parent_widget.replace_child(
             &mut cx.platform,
             other.widget_index,
-            this.widget.widget(),
+            this.widget.widget_ref(),
         );
 
         let widget = mem::replace(other.widget, Box::new(this.widget));
-        let node = mem::replace(other.node, this.node);
+        let node = mem::replace(other.layout, this.layout);
 
         Pod {
             widget,
-            node,
+            layout: node,
             marker: PhantomData,
         }
     }
 
     fn upcast(_cx: &mut Context<P>, this: Self) -> BoxedWidget<P> {
         Pod {
-            node:   this.node,
+            layout: this.layout,
             widget: Box::new(this.widget),
             marker: PhantomData,
         }
@@ -221,7 +235,7 @@ where
                 .expect("type should be correct, as it was just checked");
 
             Ok(Pod {
-                node:   this.node,
+                layout: this.layout,
                 widget: shadow,
                 marker: PhantomData,
             })
@@ -238,13 +252,11 @@ where
                 .expect("type should be correct, as it was just checked");
 
             Ok(PodMut {
-                parent_node:   this.parent_node,
+                parent_layout: this.parent_layout,
                 parent_widget: this.parent_widget,
+                widget_index:  this.widget_index,
 
-                node_index:   this.node_index,
-                widget_index: this.widget_index,
-
-                node:   this.node,
+                layout: this.layout,
                 widget: shadow,
             })
         } else {

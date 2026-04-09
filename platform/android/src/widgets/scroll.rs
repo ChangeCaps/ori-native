@@ -12,7 +12,7 @@ pub struct Scroll {
 }
 
 impl NativeWidget<Platform> for Scroll {
-    fn widget(&self) -> &WidgetId {
+    fn widget_ref(&self) -> &WidgetId {
         &self.id
     }
 }

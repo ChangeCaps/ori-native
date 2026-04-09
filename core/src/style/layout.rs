@@ -121,6 +121,30 @@ impl<T> Sides<T> {
     }
 }
 
+impl From<Option<Length>> for Sides<Option<Length>> {
+    fn from(value: Option<Length>) -> Self {
+        Self::all(value)
+    }
+}
+
+impl<T> From<T> for Sides<Option<Length>>
+where
+    T: Into<Length>,
+{
+    fn from(value: T) -> Self {
+        Self::all(Some(value.into()))
+    }
+}
+
+impl<T> From<T> for Sides<Length>
+where
+    T: Into<Length>,
+{
+    fn from(value: T) -> Self {
+        Self::all(value.into())
+    }
+}
+
 /// Values for each corner of a rectangle.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Corners<T> {
@@ -149,6 +173,12 @@ impl<T> Corners<T> {
             bottom_right: value,
             bottom_left:  value,
         }
+    }
+}
+
+impl From<f32> for Corners<f32> {
+    fn from(value: f32) -> Self {
+        Self::all(value)
     }
 }
 
@@ -258,6 +288,9 @@ pub struct FlexStyle {
     /// Whether items should be layed out in reverse order.
     pub reverse: bool,
 
+    /// Whether items should wrap when available space is exceeded.
+    pub wrap: bool,
+
     /// The justification strategy.
     pub justify_content: Option<Justify>,
 
@@ -273,6 +306,7 @@ impl Default for FlexStyle {
         Self {
             direction:       Direction::Row,
             reverse:         false,
+            wrap:            false,
             justify_content: None,
             align_items:     None,
             gap:             Size::all(Length::Length(0.0)),
@@ -304,9 +338,9 @@ pub trait Layout: Sized {
     }
 
     /// Set the inset from all sides.
-    fn inset(self, inset: impl Into<Length>) -> Self {
-        let inset = inset.into();
-        self.inset_all(inset, inset, inset, inset)
+    fn inset(mut self, inset: impl Into<Sides<Option<Length>>>) -> Self {
+        self.get_layout_style_mut().inset = inset.into();
+        self
     }
 
     /// Set the inset from the top.
@@ -331,17 +365,6 @@ pub trait Layout: Sized {
     fn left(mut self, inset: impl Into<Length>) -> Self {
         self.get_layout_style_mut().inset.left = Some(inset.into());
         self
-    }
-
-    /// Set the inset from all sides individually.
-    fn inset_all(
-        self,
-        top: impl Into<Length>,
-        right: impl Into<Length>,
-        bottom: impl Into<Length>,
-        left: impl Into<Length>,
-    ) -> Self {
-        self.top(top).right(right).bottom(bottom).left(left)
     }
 
     /// Set the `width` and `height`.
@@ -396,9 +419,9 @@ pub trait Layout: Sized {
     }
 
     /// Set the margin on all sides.
-    fn margin(self, width: impl Into<Length>) -> Self {
-        let width = width.into();
-        self.margin_all(width, width, width, width)
+    fn margin(mut self, margin: impl Into<Sides<Option<Length>>>) -> Self {
+        self.get_layout_style_mut().margin = margin.into();
+        self
     }
 
     /// Set the margin on the top.
@@ -423,20 +446,6 @@ pub trait Layout: Sized {
     fn margin_left(mut self, width: impl Into<Length>) -> Self {
         self.get_layout_style_mut().margin.left = Some(width.into());
         self
-    }
-
-    /// Set the margin on all sides individually.
-    fn margin_all(
-        self,
-        top: impl Into<Length>,
-        right: impl Into<Length>,
-        bottom: impl Into<Length>,
-        left: impl Into<Length>,
-    ) -> Self {
-        self.margin_top(top)
-            .margin_right(right)
-            .margin_bottom(bottom)
-            .margin_left(left)
     }
 
     /// Set the flex factor.
@@ -469,7 +478,7 @@ pub trait Border: Sized {
     fn get_border_style_mut(&mut self) -> &mut BorderStyle;
 
     /// Set the border width and color.
-    fn border(self, width: impl Into<Length>, color: Color) -> Self {
+    fn border(self, width: impl Into<Sides<Length>>, color: Color) -> Self {
         self.border_width(width).border_color(color)
     }
 
@@ -480,9 +489,9 @@ pub trait Border: Sized {
     }
 
     /// Set the border width on all sides.
-    fn border_width(self, width: impl Into<Length>) -> Self {
-        let width = width.into();
-        self.border_width_all(width, width, width, width)
+    fn border_width(mut self, width: impl Into<Sides<Length>>) -> Self {
+        self.get_border_style_mut().width = width.into();
+        self
     }
 
     /// Set the border width on the top, and color.
@@ -528,20 +537,6 @@ pub trait Border: Sized {
         self.get_border_style_mut().width.left = width.into();
         self
     }
-
-    /// Set the border width on all individually.
-    fn border_width_all(
-        self,
-        top: impl Into<Length>,
-        right: impl Into<Length>,
-        bottom: impl Into<Length>,
-        left: impl Into<Length>,
-    ) -> Self {
-        self.border_top_width(top)
-            .border_right_width(right)
-            .border_bottom_width(bottom)
-            .border_left_width(left)
-    }
 }
 
 /// A trait for container views.
@@ -550,9 +545,9 @@ pub trait Padding: Sized {
     fn get_padding_mut(&mut self) -> &mut Sides<Length>;
 
     /// Set the padding on all sides.
-    fn padding(self, width: impl Into<Length>) -> Self {
-        let width = width.into();
-        self.padding_all(width, width, width, width)
+    fn padding(mut self, padding: impl Into<Sides<Length>>) -> Self {
+        *self.get_padding_mut() = padding.into();
+        self
     }
 
     /// Set the padding on the top.
@@ -578,20 +573,6 @@ pub trait Padding: Sized {
         self.get_padding_mut().left = width.into();
         self
     }
-
-    /// Set the padding on all individually.
-    fn padding_all(
-        self,
-        top: impl Into<Length>,
-        right: impl Into<Length>,
-        bottom: impl Into<Length>,
-        left: impl Into<Length>,
-    ) -> Self {
-        self.padding_top(top)
-            .padding_right(right)
-            .padding_bottom(bottom)
-            .padding_left(left)
-    }
 }
 
 /// A trait for flex containers.
@@ -608,6 +589,12 @@ pub trait FlexContainer: Sized {
     /// Reverse the direction.
     fn reverse(mut self, reverse: bool) -> Self {
         self.get_flex_style_mut().reverse = reverse;
+        self
+    }
+
+    /// Set whether wrapping is enabled.
+    fn wrap(mut self, wrap: bool) -> Self {
+        self.get_flex_style_mut().wrap = wrap;
         self
     }
 

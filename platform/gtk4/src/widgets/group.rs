@@ -5,7 +5,7 @@ use ori_native_core::{Color, NativeParent, NativeWidget, Overflow, Shadow, nativ
 use crate::Platform;
 
 impl NativeWidget<Platform> for Group {
-    fn widget(&self) -> &gtk4::Widget {
+    fn widget_ref(&self) -> &gtk4::Widget {
         self.as_ref()
     }
 }
@@ -119,7 +119,7 @@ impl NativeGroup<Platform> for Group {
         self.queue_draw();
     }
 
-    fn set_corner_radii(&mut self, _platform: &mut Platform, radii: [f32; 4]) {
+    fn set_corners(&mut self, _platform: &mut Platform, radii: [f32; 4]) {
         self.imp().corner_radii.set(radii);
         self.queue_draw();
     }

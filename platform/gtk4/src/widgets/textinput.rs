@@ -22,7 +22,7 @@ pub struct TextInput {
 }
 
 impl NativeWidget<Platform> for TextInput {
-    fn widget(&self) -> &gtk4::Widget {
+    fn widget_ref(&self) -> &gtk4::Widget {
         self.overlay.as_ref()
     }
 }

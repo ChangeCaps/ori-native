@@ -1,7 +1,7 @@
 use ori::{Elements, Mut};
 
 use crate::{
-    Allocation, BoxedWidget, Color, Context, LayoutNode, NativeWidget, Overflow, Platform, PodMut,
+    Allocation, BoxedWidget, Color, Context, Corners, LayoutNode, NativeWidget, Overflow, Platform,
     Shadow, Unsupported, element::NativeParent, platform::unsupported,
 };
 
@@ -12,7 +12,7 @@ where
     fn build(platform: &mut P) -> Self;
     fn teardown(self, platform: &mut P);
 
-    fn insert_child(&mut self, platform: &mut P, index: usize, child: &P::Widget);
+    fn insert_child(&mut self, platform: &mut P, index: usize, child: &P::WidgetRef);
     fn remove_child(&mut self, platform: &mut P, index: usize);
     fn swap_children(&mut self, platform: &mut P, index_a: usize, index_b: usize);
 
@@ -29,7 +29,7 @@ where
     fn set_background_color(&mut self, platform: &mut P, color: Color);
     fn set_border_color(&mut self, platform: &mut P, color: Color);
     fn set_border_width(&mut self, platform: &mut P, width: [f32; 4]);
-    fn set_corner_radii(&mut self, platform: &mut P, radii: [f32; 4]);
+    fn set_corners(&mut self, platform: &mut P, radii: [f32; 4]);
     fn set_overflow(&mut self, platform: &mut P, overflow: Overflow);
     fn set_shadow(&mut self, platform: &mut P, shadow: Shadow);
 
@@ -53,7 +53,7 @@ where
         unreachable!()
     }
 
-    fn insert_child(&mut self, _platform: &mut P, _index: usize, _child: &P::Widget) {
+    fn insert_child(&mut self, _platform: &mut P, _index: usize, _child: &P::WidgetRef) {
         unreachable!()
     }
 
@@ -89,7 +89,7 @@ where
         unreachable!()
     }
 
-    fn set_corner_radii(&mut self, _platform: &mut P, _radii: [f32; 4]) {
+    fn set_corners(&mut self, _platform: &mut P, _radii: [f32; 4]) {
         unreachable!()
     }
 
@@ -134,9 +134,9 @@ where
 
     pub fn elements(&mut self, node: LayoutNode) -> impl Elements<Context<P>, BoxedWidget<P>> {
         GroupElements {
-            node,
-            index: 0,
-            group: &mut self.group,
+            layout:   node,
+            index:    0,
+            group:    &mut self.group,
             children: &mut self.children,
         }
     }
@@ -149,8 +149,15 @@ where
         self.group.set_border_color(&mut cx.platform, color);
     }
 
-    pub fn set_corner_radii(&mut self, cx: &mut Context<P>, radii: [f32; 4]) {
-        self.group.set_corner_radii(&mut cx.platform, radii);
+    pub fn set_corners(&mut self, cx: &mut Context<P>, radii: Corners<f32>) {
+        let radii = [
+            radii.top_left,
+            radii.top_right,
+            radii.bottom_right,
+            radii.bottom_left,
+        ];
+
+        self.group.set_corners(&mut cx.platform, radii);
     }
 
     pub fn set_overflow(&mut self, cx: &mut Context<P>, overflow: Overflow) {
@@ -181,7 +188,7 @@ where
         }
 
         for (index, child) in self.children.iter_mut().enumerate() {
-            if let Some(allocation) = cx.layout.get_allocation(child.element.node)
+            if let Some(allocation) = cx.layout.get_allocation(child.element.layout)
                 && child.allocation != Some(allocation)
             {
                 child.allocation = Some(allocation);
@@ -202,8 +209,8 @@ impl<P> NativeWidget<P> for Group<P>
 where
     P: Platform,
 {
-    fn widget(&self) -> &P::Widget {
-        self.group.widget()
+    fn widget_ref(&self) -> &P::WidgetRef {
+        self.group.widget_ref()
     }
 }
 
@@ -211,7 +218,7 @@ struct GroupElements<'a, P>
 where
     P: Platform,
 {
-    node:     LayoutNode,
+    layout:   LayoutNode,
     index:    usize,
     group:    &'a mut P::Group,
     children: &'a mut Vec<Child<P>>,
@@ -223,28 +230,25 @@ where
 {
     fn next(&mut self, _cx: &mut Context<P>) -> Option<Mut<'_, BoxedWidget<P>>> {
         let child = self.children.get_mut(self.index)?;
-        let pod = PodMut {
-            parent_node:   self.node,
-            parent_widget: self.group,
-
-            node_index:   self.index,
-            widget_index: self.index,
-
-            node:   &mut child.element.node,
-            widget: &mut child.element.widget,
-        };
+        let pod = child.element.as_mut(
+            self.layout,
+            self.index,
+            self.group,
+            self.index,
+        );
 
         self.index += 1;
         Some(pod)
     }
 
     fn insert(&mut self, cx: &mut Context<P>, element: BoxedWidget<P>) {
-        cx.layout.insert_child(self.node, self.index, element.node);
+        cx.layout
+            .insert_child(self.layout, self.index, element.layout);
 
         self.group.insert_child(
             &mut cx.platform,
             self.index,
-            element.widget.widget(),
+            element.widget.widget_ref(),
         );
 
         self.children.insert(
@@ -261,22 +265,22 @@ where
     fn remove(&mut self, cx: &mut Context<P>) -> Option<BoxedWidget<P>> {
         self.group.remove_child(&mut cx.platform, self.index);
         let child = self.children.remove(self.index);
-        cx.layout.remove_child(self.node, self.index);
+        cx.layout.remove_child(self.layout, self.index);
 
         Some(child.element)
     }
 
     fn swap(&mut self, cx: &mut Context<P>, offset: usize) {
         cx.layout.replace_child(
-            self.node,
+            self.layout,
             self.index,
-            self.children[self.index + offset].element.node,
+            self.children[self.index + offset].element.layout,
         );
 
         cx.layout.replace_child(
-            self.node,
+            self.layout,
             self.index + offset,
-            self.children[self.index].element.node,
+            self.children[self.index].element.layout,
         );
 
         self.group.swap_children(

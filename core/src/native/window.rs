@@ -10,7 +10,7 @@ pub trait NativeWindow<P>: NativeParent<P>
 where
     P: Platform,
 {
-    fn build(platform: &mut P, contents: &P::Widget) -> Self;
+    fn build(platform: &mut P, contents: &P::WidgetRef) -> Self;
 
     fn teardown(self, platform: &mut P);
 
@@ -25,9 +25,6 @@ where
         platform: &mut P,
         on_key: impl Fn(Key, Modifiers, bool) -> bool + 'static,
     );
-
-    fn open_modal(&mut self, platform: &mut P, modal: &P::Modal);
-    fn close_modal(&mut self, platform: &mut P, modal: &P::Modal);
 
     fn start_animating(&mut self, platform: &mut P);
     fn stop_animating(&mut self, platform: &mut P);
@@ -47,7 +44,7 @@ impl<P> NativeWindow<P> for Unsupported
 where
     P: Platform,
 {
-    fn build(_platform: &mut P, _contents: &P::Widget) -> Self {
+    fn build(_platform: &mut P, _contents: &P::WidgetRef) -> Self {
         unsupported!("window view")
     }
 
@@ -88,14 +85,6 @@ where
         _platform: &mut P,
         _on_key: impl Fn(Key, Modifiers, bool) -> bool + 'static,
     ) {
-        unreachable!()
-    }
-
-    fn open_modal(&mut self, _platform: &mut P, _modal: &P::Modal) {
-        unreachable!()
-    }
-
-    fn close_modal(&mut self, _platform: &mut P, _modal: &P::Modal) {
         unreachable!()
     }
 

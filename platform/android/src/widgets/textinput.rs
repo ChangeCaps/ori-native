@@ -17,7 +17,7 @@ pub struct TextInput {
 }
 
 impl NativeWidget<Platform> for TextInput {
-    fn widget(&self) -> &WidgetId {
+    fn widget_ref(&self) -> &WidgetId {
         &self.id
     }
 }

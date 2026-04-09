@@ -10,7 +10,7 @@ pub struct Text {
 }
 
 impl NativeWidget<Platform> for Text {
-    fn widget(&self) -> &WidgetId {
+    fn widget_ref(&self) -> &WidgetId {
         &self.id
     }
 }
