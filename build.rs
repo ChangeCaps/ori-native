@@ -1,9 +1,20 @@
+use std::env;
+
 fn main() {
-    println!("cargo::rustc-check-cfg=cfg(platform, values(\"gtk4\", \"android\"))");
+    let platforms = ["\"gtk4\"", "\"android\""];
 
-    #[cfg(target_os = "linux")]
-    println!("cargo::rustc-cfg=platform=\"gtk4\"");
+    println!(
+        "cargo::rustc-check-cfg=cfg(platform, values({platforms}))",
+        platforms = platforms.join(", "),
+    );
 
-    #[cfg(target_os = "android")]
-    println!("cargo::rustc-cfg=platform=\"android\"")
+    let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
+
+    let platform = match target_os.as_str() {
+        "linux" => "gtk4",
+        "android" => "android",
+        _ => panic!("unsupported OS `{target_os}`"),
+    };
+
+    println!("cargo::rustc-cfg=platform=\"{platform}\"");
 }
