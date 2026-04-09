@@ -32,7 +32,11 @@ impl NativeParent<Platform> for Scroll {
 }
 
 impl NativeScroll<Platform> for Scroll {
-    fn build(platform: &mut Platform, contents: &WidgetId) -> Self {
+    fn build(
+        platform: &mut Platform,
+        contents: &WidgetId,
+        on_scroll: impl Fn(f32, f32) + 'static,
+    ) -> Self {
         let id = platform.next_id();
 
         let _ = platform.jni(|env, activity| {
@@ -53,18 +57,16 @@ impl NativeScroll<Platform> for Scroll {
             .v()
         });
 
+        platform.add_handler(id, move |event| match event {
+            WidgetEvent::Scroll(x, y) => on_scroll(*x, *y),
+            _ => unreachable!(),
+        });
+
         Self { id }
     }
 
     fn teardown(self, platform: &mut Platform) {
         platform.remove_widget(self.id);
-    }
-
-    fn set_on_scroll(&mut self, platform: &mut Platform, on_scroll: impl Fn(f32, f32) + 'static) {
-        platform.add_handler(self.id, move |event| match event {
-            WidgetEvent::Scroll(x, y) => on_scroll(*x, *y),
-            _ => unreachable!(),
-        });
     }
 
     fn set_content_size(&mut self, platform: &mut Platform, width: f32, height: f32) {

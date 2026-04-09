@@ -1,28 +1,28 @@
-use ori::{Action, Message, Mut, Tracker, View, ViewId, ViewMarker};
+use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarker};
 
 use crate::{
     Allocation, Context, Lifecycle, NativeWidget, Platform, Pod, WidgetView, native::NativeMeasure,
 };
 
 /// [`View`] that measures the position and size of its contents.
-pub fn on_measure<T, V, A>(
+pub fn measure<T, V, A>(
     contents: V,
     on_measure: impl FnMut(&mut T, f32, f32, f32, f32) -> A + 'static,
-) -> OnMeasure<T, V>
+) -> Measure<T, V>
 where
     A: Into<Action>,
 {
-    OnMeasure::new(contents, on_measure)
+    Measure::new(contents, on_measure)
 }
 
 /// [`View`] that measures the position and size of its contents.
 #[allow(clippy::type_complexity)]
-pub struct OnMeasure<T, V> {
+pub struct Measure<T, V> {
     contents:   V,
     on_measure: Box<dyn FnMut(&mut T, f32, f32, f32, f32) -> Action>,
 }
 
-impl<T, V> OnMeasure<T, V> {
+impl<T, V> Measure<T, V> {
     /// Create new [`OnMeasure`].
     pub fn new<A>(
         contents: V,
@@ -40,28 +40,44 @@ impl<T, V> OnMeasure<T, V> {
     }
 }
 
-impl<T, V> ViewMarker for OnMeasure<T, V> {}
-impl<P, T, V> View<Context<P>, T> for OnMeasure<T, V>
+enum MeasureMessage {
+    PositionChanged(f32, f32),
+}
+
+impl<T, V> ViewMarker for Measure<T, V> {}
+impl<P, T, V> View<Context<P>, T> for Measure<T, V>
 where
     P: Platform,
     V: WidgetView<P, T>,
 {
     type Element = Pod<P, P::Measure>;
-    type State = OnMeasureState<P, T, V>;
+    type State = MeasureState<P, T, V>;
 
     fn build(self, cx: &mut Context<P>, data: &mut T) -> (Self::Element, Self::State) {
         let (contents, state) = self.contents.build(cx, data);
 
-        let widget = P::Measure::build(
-            &mut cx.platform,
-            contents.widget.widget_ref(),
-        );
-
         let view_id = ViewId::next();
         cx.register(view_id);
 
+        let on_position_changed = {
+            let proxy = cx.proxy();
+
+            move |x, y| {
+                proxy.message(Message::new(
+                    MeasureMessage::PositionChanged(x, y),
+                    Some(view_id),
+                ));
+            }
+        };
+
+        let widget = P::Measure::build(
+            &mut cx.platform,
+            contents.widget.widget_ref(),
+            on_position_changed,
+        );
+
         let pod = Pod::new(contents.layout, widget);
-        let state = OnMeasureState {
+        let state = MeasureState {
             widget: contents.widget,
             state,
             view_id,
@@ -104,10 +120,9 @@ where
             );
         }
 
-        if let Some(Lifecycle::Layout) = message.get()
+        if let Some(MeasureMessage::PositionChanged(x, y)) = message.take(state.view_id)
             && let Some(allocation) = cx.layout.get_allocation(*element.layout)
         {
-            let (x, y) = element.widget.measure(&mut cx.platform);
             action |= (state.on_measure)(
                 data,
                 x,
@@ -131,14 +146,14 @@ where
 }
 
 #[allow(clippy::type_complexity)]
-pub struct OnMeasureState<P, T, V>
+pub struct MeasureState<P, T, V>
 where
     P: Platform,
     V: WidgetView<P, T>,
 {
+    view_id:    ViewId,
     widget:     V::Widget,
     state:      V::State,
-    view_id:    ViewId,
     allocation: Option<Allocation>,
     on_measure: Box<dyn FnMut(&mut T, f32, f32, f32, f32) -> Action>,
 }

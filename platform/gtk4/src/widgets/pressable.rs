@@ -11,9 +11,6 @@ use crate::{Platform, key};
 
 pub struct Pressable {
     fixed: gtk4::Fixed,
-    press: Option<gtk4::GestureClick>,
-    hover: Option<gtk4::EventControllerMotion>,
-    focus: Option<gtk4::EventControllerFocus>,
     key:   Option<gtk4::EventControllerKey>,
 }
 
@@ -36,37 +33,18 @@ impl NativeParent<Platform> for Pressable {
 }
 
 impl NativePressable<Platform> for Pressable {
-    fn build(_platform: &mut Platform, contents: &gtk4::Widget) -> Self {
+    fn build(
+        _platform: &mut Platform,
+        contents: &gtk4::Widget,
+        on_press: impl Fn(Press) + 'static,
+        on_hover: impl Fn(bool) + 'static,
+        on_focus: impl Fn(bool) + 'static,
+    ) -> Self {
         let fixed = gtk4::Fixed::new();
         fixed.put(contents, 0.0, 0.0);
         fixed.set_focusable(true);
         fixed.set_accessible_role(gtk4::AccessibleRole::Button);
         fixed.set_overflow(gtk4::Overflow::Visible);
-
-        Self {
-            fixed,
-            press: None,
-            hover: None,
-            focus: None,
-            key: None,
-        }
-    }
-
-    fn teardown(self, _platform: &mut Platform) {}
-
-    fn set_content_size(&mut self, _platform: &mut Platform, width: f32, height: f32) {
-        if let Some(child) = self.fixed.first_child() {
-            child.set_size_request(
-                width.round() as i32,
-                height.round() as i32,
-            );
-        }
-    }
-
-    fn set_on_press(&mut self, _platform: &mut Platform, on_press: impl Fn(Press) + 'static) {
-        if let Some(press) = self.press.take() {
-            self.fixed.remove_controller(&press);
-        }
 
         let on_press = Rc::new(on_press);
 
@@ -89,21 +67,14 @@ impl NativePressable<Platform> for Pressable {
             move |_, _, _, _, _| on_press(Press::Cancelled)
         });
 
-        self.press = Some(controller.clone());
-        self.fixed.add_controller(controller);
-    }
-
-    fn set_on_hover(&mut self, _platform: &mut Platform, on_hover: impl Fn(bool) + 'static) {
-        if let Some(hover) = self.hover.take() {
-            self.fixed.remove_controller(&hover);
-        }
+        fixed.add_controller(controller);
 
         let on_hover = Rc::new(on_hover);
         let hovered = Rc::new(Cell::new(false));
 
         let controller = gtk4::EventControllerMotion::new();
         controller.connect_motion({
-            let fixed = self.fixed.downgrade();
+            let fixed = fixed.downgrade();
             let on_hover = on_hover.clone();
             let hovered = hovered.clone();
 
@@ -129,17 +100,9 @@ impl NativePressable<Platform> for Pressable {
             }
         });
 
-        self.hover = Some(controller.clone());
-        self.fixed.add_controller(controller);
-    }
-
-    fn set_on_focus(&mut self, _platform: &mut Platform, on_focus: impl Fn(bool) + 'static) {
-        if let Some(focus) = self.focus.take() {
-            self.fixed.remove_controller(&focus);
-        }
+        fixed.add_controller(controller);
 
         let on_focus = Rc::new(on_focus);
-
         let controller = gtk4::EventControllerFocus::new();
         controller.connect_enter({
             let on_focus = on_focus.clone();
@@ -151,8 +114,20 @@ impl NativePressable<Platform> for Pressable {
             move |_| on_focus(false)
         });
 
-        self.focus = Some(controller.clone());
-        self.fixed.add_controller(controller);
+        fixed.add_controller(controller);
+
+        Self { fixed, key: None }
+    }
+
+    fn teardown(self, _platform: &mut Platform) {}
+
+    fn set_content_size(&mut self, _platform: &mut Platform, width: f32, height: f32) {
+        if let Some(child) = self.fixed.first_child() {
+            child.set_size_request(
+                width.round() as i32,
+                height.round() as i32,
+            );
+        }
     }
 
     fn set_on_key(

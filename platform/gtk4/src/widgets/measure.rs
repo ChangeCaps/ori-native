@@ -1,3 +1,4 @@
+use glib::object::Cast;
 use gtk4::prelude::{FixedExt, WidgetExt};
 use ori_native_core::{NativeParent, NativeWidget, native::NativeMeasure};
 
@@ -23,9 +24,38 @@ impl NativeWidget<Platform> for Measure {
 }
 
 impl NativeMeasure<Platform> for Measure {
-    fn build(_platform: &mut Platform, contents: &gtk4::Widget) -> Self {
+    fn build(
+        platform: &mut Platform,
+        contents: &gtk4::Widget,
+        on_position_changed: impl Fn(f32, f32) + 'static,
+    ) -> Self {
         let fixed = gtk4::Fixed::new();
         fixed.put(contents, 0.0, 0.0);
+
+        let on_draw = {
+            let fixed = fixed.clone();
+            let mut x = 0.0;
+            let mut y = 0.0;
+
+            move || {
+                let origin = graphene::Point::zero();
+
+                if let Some(root) = fixed.root()
+                    && let Some(point) = fixed.compute_point(&root, &origin)
+                    && (x != point.x() || y != point.y())
+                {
+                    x = point.x();
+                    y = point.y();
+
+                    on_position_changed(x, y);
+                }
+            }
+        };
+
+        platform.on_snapshot.borrow_mut().insert(
+            fixed.clone().upcast(),
+            Box::new(on_draw),
+        );
 
         Self {
             contents: contents.clone(),
@@ -33,24 +63,15 @@ impl NativeMeasure<Platform> for Measure {
         }
     }
 
-    fn teardown(self, _platform: &mut Platform) {}
+    fn teardown(self, platform: &mut Platform) {
+        let widget: &gtk4::Widget = self.fixed.as_ref();
+        platform.on_snapshot.borrow_mut().remove(widget);
+    }
 
     fn set_content_size(&mut self, _platform: &mut Platform, width: f32, height: f32) {
         self.contents.set_size_request(
             width.round() as i32,
             height.round() as i32,
         );
-    }
-
-    fn measure(&mut self, _platform: &mut Platform) -> (f32, f32) {
-        let origin = graphene::Point::zero();
-
-        if let Some(root) = self.fixed.root()
-            && let Some(point) = self.fixed.compute_point(&root, &origin)
-        {
-            (point.x(), point.y())
-        } else {
-            (0.0, 0.0)
-        }
     }
 }

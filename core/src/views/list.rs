@@ -93,8 +93,25 @@ where
         // build the content group widget
         let group = P::Group::build(&mut cx.platform);
 
+        // register on scroll callback
+        let view_id = ViewId::next();
+        cx.register(view_id);
+
+        let on_scroll = {
+            let proxy = cx.proxy();
+
+            move |x, y| {
+                proxy.message(Message::new(ListMessage(x, y), view_id));
+            }
+        };
+
         // build the scroll widget
-        let mut scroll = P::Scroll::build(&mut cx.platform, group.widget_ref());
+        let mut scroll = P::Scroll::build(
+            &mut cx.platform,
+            group.widget_ref(),
+            on_scroll,
+        );
+
         scroll.set_direction(&mut cx.platform, self.direction);
 
         // add the contents layout node
@@ -114,15 +131,6 @@ where
             scroll_node,
             scroll_overflow(self.direction),
         );
-
-        // register on scroll callback
-        let view_id = ViewId::next();
-        cx.register(view_id);
-
-        let proxy = cx.proxy();
-        scroll.set_on_scroll(&mut cx.platform, move |x, y| {
-            proxy.message(Message::new(ListMessage(x, y), view_id));
-        });
 
         let pod = Pod::new(scroll_node, scroll);
 

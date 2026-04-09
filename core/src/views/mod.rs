@@ -20,7 +20,7 @@ pub use flex::{Flex, column, flex, row};
 pub use image::{Image, image};
 pub use layout::{OnLayout, on_layout};
 pub use list::{List, list};
-pub use measure::{OnMeasure, on_measure};
+pub use measure::{Measure, measure};
 pub use pressable::{PressState, Pressable, pressable};
 pub use safearea::{SafeArea, safe_area};
 pub use scroll::{Scroll, hscroll, vscroll};

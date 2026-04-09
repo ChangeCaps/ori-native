@@ -114,18 +114,11 @@ where
         let view = (self.build)(data, press);
         let (contents, state) = view.build(cx, data);
 
-        let mut widget = P::Pressable::build(
-            &mut cx.platform,
-            contents.widget.widget_ref(),
-        );
-
         let view_id = ViewId::next();
         cx.register(view_id);
 
-        let proxy = cx.proxy();
-
-        widget.set_on_press(&mut cx.platform, {
-            let proxy = proxy.cloned();
+        let on_press = {
+            let proxy = cx.proxy();
 
             move |pressed| {
                 proxy.message(Message::new(
@@ -133,10 +126,10 @@ where
                     view_id,
                 ));
             }
-        });
+        };
 
-        widget.set_on_hover(&mut cx.platform, {
-            let proxy = proxy.cloned();
+        let on_hover = {
+            let proxy = cx.proxy();
 
             move |hovered| {
                 proxy.message(Message::new(
@@ -144,10 +137,10 @@ where
                     view_id,
                 ));
             }
-        });
+        };
 
-        widget.set_on_focus(&mut cx.platform, {
-            let proxy = proxy.cloned();
+        let on_focus = {
+            let proxy = cx.proxy();
 
             move |focused| {
                 proxy.message(Message::new(
@@ -155,13 +148,20 @@ where
                     view_id,
                 ));
             }
-        });
+        };
+
+        let mut widget = P::Pressable::build(
+            &mut cx.platform,
+            contents.widget.widget_ref(),
+            on_press,
+            on_hover,
+            on_focus,
+        );
 
         let (filter, handler) = self.input.split();
 
+        let proxy = cx.proxy();
         widget.set_on_key(&mut cx.platform, {
-            let proxy = proxy.cloned();
-
             move |key, modifiers, pressed| {
                 if let Some(message) = filter.filter_key(key, modifiers, pressed) {
                     proxy.message(Message::new(message, view_id));

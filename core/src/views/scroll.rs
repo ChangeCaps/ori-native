@@ -88,23 +88,27 @@ where
             },
         );
 
-        let mut widget = P::Scroll::build(
-            &mut cx.platform,
-            contents.widget.widget_ref(),
-        );
-
-        widget.set_direction(&mut cx.platform, self.direction);
-
         let view_id = ViewId::next();
         cx.register(view_id);
 
-        let proxy = cx.proxy();
-        widget.set_on_scroll(&mut cx.platform, move |x, y| {
-            proxy.message(Message::new(
-                ScrollMessage(x, y),
-                view_id,
-            ));
-        });
+        let on_scroll = {
+            let proxy = cx.proxy();
+
+            move |x, y| {
+                proxy.message(Message::new(
+                    ScrollMessage(x, y),
+                    view_id,
+                ));
+            }
+        };
+
+        let mut widget = P::Scroll::build(
+            &mut cx.platform,
+            contents.widget.widget_ref(),
+            on_scroll,
+        );
+
+        widget.set_direction(&mut cx.platform, self.direction);
 
         let pod = Pod::new(node, widget);
         let state = ScrollState {

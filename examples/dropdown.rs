@@ -81,7 +81,7 @@ where
             });
 
             effect(
-                on_measure(
+                measure(
                     header,
                     |(state, _): &mut (State, _), x, y, _, height| {
                         state.x = x;

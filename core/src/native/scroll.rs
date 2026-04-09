@@ -6,10 +6,13 @@ pub trait NativeScroll<P>: NativeWidget<P> + NativeParent<P>
 where
     P: Platform,
 {
-    fn build(platform: &mut P, contents: &P::WidgetRef) -> Self;
-    fn teardown(self, platform: &mut P);
+    fn build(
+        platform: &mut P,
+        contents: &P::WidgetRef,
+        on_scroll: impl Fn(f32, f32) + 'static,
+    ) -> Self;
 
-    fn set_on_scroll(&mut self, platform: &mut P, on_scroll: impl Fn(f32, f32) + 'static);
+    fn teardown(self, platform: &mut P);
 
     fn set_content_size(&mut self, platform: &mut P, width: f32, height: f32);
     fn set_content_layout(&mut self, platform: &mut P, x: f32, y: f32, width: f32, height: f32);
@@ -21,15 +24,15 @@ impl<P> NativeScroll<P> for Unsupported
 where
     P: Platform,
 {
-    fn build(_platform: &mut P, _contents: &P::WidgetRef) -> Self {
+    fn build(
+        _platform: &mut P,
+        _contents: &P::WidgetRef,
+        _on_scroll: impl Fn(f32, f32) + 'static,
+    ) -> Self {
         unsupported!("scroll view")
     }
 
     fn teardown(self, _platform: &mut P) {
-        unreachable!()
-    }
-
-    fn set_on_scroll(&mut self, _platform: &mut P, _on_scroll: impl Fn(f32, f32) + 'static) {
         unreachable!()
     }
 

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io, pin::Pin, sync::Arc};
+use std::{cell::RefCell, collections::HashMap, io, pin::Pin, rc::Rc, sync::Arc};
 
 use ori::{Message, Proxied, Proxy};
 use tokio::sync::mpsc::UnboundedSender;
@@ -14,10 +14,13 @@ impl StyleNode {
     }
 }
 
+type OnSnapshotCallbacks = HashMap<gtk4::Widget, Box<dyn FnMut()>>;
+
 pub struct Platform {
     pub(crate) proxy:         Gtk4Proxy,
     pub(crate) display:       gdk4::Display,
     pub(crate) application:   gtk4::Application,
+    pub(crate) on_snapshot:   Rc<RefCell<OnSnapshotCallbacks>>,
     pub(crate) css_providers: HashMap<StyleNode, gtk4::CssProvider>,
     pub(crate) next_css_node: u64,
 }
@@ -45,6 +48,7 @@ impl Platform {
             application,
             css_providers: HashMap::new(),
             next_css_node: 0,
+            on_snapshot: Default::default(),
         })
     }
 

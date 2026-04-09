@@ -11,7 +11,6 @@ where
     P: Platform,
 {
     fn build(platform: &mut P, contents: &P::WidgetRef) -> Self;
-
     fn teardown(self, platform: &mut P);
 
     fn get_size(&self, platform: &mut P) -> (f32, f32);

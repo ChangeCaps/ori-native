@@ -221,8 +221,32 @@ where
     type State = TextInputState<T>;
 
     fn build(self, cx: &mut Context<P>, _data: &mut T) -> (Self::Element, Self::State) {
-        let mut widget = P::TextInput::build(&mut cx.platform);
+        let view_id = ViewId::next();
+        cx.register(view_id);
 
+        let on_change = {
+            let proxy = cx.proxy();
+
+            move |text| {
+                proxy.message(Message::new(
+                    TextInputMessage::Change(text),
+                    view_id,
+                ));
+            }
+        };
+
+        let on_submit = {
+            let proxy = cx.proxy();
+
+            move |text| {
+                proxy.message(Message::new(
+                    TextInputMessage::Submit(text),
+                    view_id,
+                ));
+            }
+        };
+
+        let mut widget = P::TextInput::build(&mut cx.platform, on_change, on_submit);
         widget.set_font(&mut cx.platform, self.font.clone());
 
         if let Some(text) = self.text.clone() {
@@ -244,25 +268,6 @@ where
         let layout = widget.get_layout(&mut cx.platform);
         let node = cx.layout.add_leaf(layout);
         cx.layout.set_layout(node, self.layout);
-
-        let view_id = ViewId::next();
-        cx.register(view_id);
-
-        let proxy = cx.proxy();
-        widget.set_on_change(&mut cx.platform, move |text| {
-            proxy.message(Message::new(
-                TextInputMessage::Change(text),
-                view_id,
-            ));
-        });
-
-        let proxy = cx.proxy();
-        widget.set_on_submit(&mut cx.platform, move |text| {
-            proxy.message(Message::new(
-                TextInputMessage::Submit(text),
-                view_id,
-            ));
-        });
 
         let pod = Pod::new(node, widget);
         let state = TextInputState {

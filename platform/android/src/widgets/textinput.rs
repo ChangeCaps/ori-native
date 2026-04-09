@@ -23,7 +23,11 @@ impl NativeWidget<Platform> for TextInput {
 }
 
 impl NativeTextInput<Platform> for TextInput {
-    fn build(platform: &mut Platform) -> Self {
+    fn build(
+        platform: &mut Platform,
+        on_change: impl Fn(String) + 'static,
+        on_submit: impl Fn(String) + 'static,
+    ) -> Self {
         let id = platform.next_id();
 
         let _ = platform.jni(|env, activity| {
@@ -36,27 +40,23 @@ impl NativeTextInput<Platform> for TextInput {
             .v()
         });
 
+        platform.add_handler(id, move |event| match event {
+            WidgetEvent::Change(text) => on_change(text.clone()),
+            WidgetEvent::Submit(_) => {}
+            _ => unreachable!(),
+        });
+
+        platform.add_handler(id, move |event| match event {
+            WidgetEvent::Submit(text) => on_submit(text.clone()),
+            WidgetEvent::Change(_) => {}
+            _ => unreachable!(),
+        });
+
         Self { id }
     }
 
     fn teardown(self, platform: &mut Platform) {
         platform.remove_widget(self.id);
-    }
-
-    fn set_on_change(&mut self, platform: &mut Platform, on_change: impl Fn(String) + 'static) {
-        platform.add_handler(self.id, move |event| match event {
-            WidgetEvent::Change(text) => on_change(text.clone()),
-            WidgetEvent::Submit(_) => {}
-            _ => unreachable!(),
-        });
-    }
-
-    fn set_on_submit(&mut self, platform: &mut Platform, on_submit: impl Fn(String) + 'static) {
-        platform.add_handler(self.id, move |event| match event {
-            WidgetEvent::Submit(text) => on_submit(text.clone()),
-            WidgetEvent::Change(_) => {}
-            _ => unreachable!(),
-        });
     }
 
     fn set_newline(&mut self, platform: &mut Platform, newline: Newline) {

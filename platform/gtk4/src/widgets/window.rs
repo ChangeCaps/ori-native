@@ -25,6 +25,17 @@ impl NativeWindow<Platform> for Window {
         window.set_child(contents, 0.0, 0.0);
         window.show();
 
+        // call on_snapshot callbacks on window snapshot
+        window.set_on_snapshot({
+            let on_snapshot = platform.on_snapshot.clone();
+
+            move || {
+                for on_snapshot in on_snapshot.borrow_mut().values_mut() {
+                    on_snapshot();
+                }
+            }
+        });
+
         window
     }
 
@@ -252,6 +263,10 @@ impl Window {
             .replace(Box::new(on_size_allocate));
     }
 
+    pub fn set_on_snapshot(&self, on_snapshot: impl Fn() + 'static) {
+        let _ = self.imp().on_snapshot.replace(Box::new(on_snapshot));
+    }
+
     pub fn set_child(&self, child: &impl IsA<gtk4::Widget>, x: f32, y: f32) {
         if let Some(child) = self.imp().fixed.first_child() {
             self.imp().fixed.remove(&child);
@@ -281,6 +296,7 @@ mod imp {
         pub fixed:            gtk4::Fixed,
         pub modals:           RefCell<Vec<gtk4::Widget>>,
         pub on_size_allocate: RefCell<Box<dyn Fn()>>,
+        pub on_snapshot:      RefCell<Box<dyn Fn()>>,
         pub previous_frame:   Rc<Cell<Option<i64>>>,
     }
 
@@ -290,6 +306,7 @@ mod imp {
                 fixed:            gtk4::Fixed::new(),
                 modals:           RefCell::new(Vec::new()),
                 on_size_allocate: RefCell::new(Box::new(|| {})),
+                on_snapshot:      RefCell::new(Box::new(|| {})),
                 previous_frame:   Rc::new(Cell::new(None)),
             }
         }
@@ -331,6 +348,13 @@ mod imp {
             }
 
             (0, 0, -1, -1)
+        }
+
+        fn snapshot(&self, snapshot: &gtk4::Snapshot) {
+            self.parent_snapshot(snapshot);
+
+            let on_snapshot = self.on_snapshot.borrow();
+            on_snapshot();
         }
     }
 

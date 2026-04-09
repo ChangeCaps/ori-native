@@ -28,7 +28,11 @@ impl NativeWidget<Platform> for TextInput {
 }
 
 impl NativeTextInput<Platform> for TextInput {
-    fn build(platform: &mut Platform) -> Self {
+    fn build(
+        platform: &mut Platform,
+        on_change: impl Fn(String) + 'static,
+        on_submit: impl Fn(String) + 'static,
+    ) -> Self {
         let overlay = gtk4::Overlay::new();
         let view = gtk4::TextView::new();
         let placeholder = gtk4::TextView::new();
@@ -67,25 +71,7 @@ impl NativeTextInput<Platform> for TextInput {
 
         view.add_controller(controller);
 
-        Self {
-            overlay,
-            view,
-            placeholder,
-
-            view_style,
-
-            font: Default::default(),
-            placeholder_font: Default::default(),
-            newline,
-        }
-    }
-
-    fn teardown(self, platform: &mut Platform) {
-        platform.remove_style(self.view_style);
-    }
-
-    fn set_on_change(&mut self, _platform: &mut Platform, on_changed: impl Fn(String) + 'static) {
-        self.view.buffer().connect_text_notify({
+        view.buffer().connect_text_notify({
             move |buffer| {
                 let text = buffer.text(
                     &buffer.start_iter(),
@@ -93,17 +79,15 @@ impl NativeTextInput<Platform> for TextInput {
                     true,
                 );
 
-                on_changed(text.into());
+                on_change(text.into());
             }
         });
-    }
 
-    fn set_on_submit(&mut self, _platform: &mut Platform, on_submit: impl Fn(String) + 'static) {
         let controller = gtk4::EventControllerKey::new();
 
         controller.connect_key_pressed({
-            let enter = self.newline.clone();
-            let buffer = self.view.buffer();
+            let enter = newline.clone();
+            let buffer = view.buffer();
 
             move |_, key, _, state| {
                 let shift = state.contains(gdk4::ModifierType::SHIFT_MASK);
@@ -130,7 +114,23 @@ impl NativeTextInput<Platform> for TextInput {
             }
         });
 
-        self.view.add_controller(controller);
+        view.add_controller(controller);
+
+        Self {
+            overlay,
+            view,
+            placeholder,
+
+            view_style,
+
+            font: Default::default(),
+            placeholder_font: Default::default(),
+            newline,
+        }
+    }
+
+    fn teardown(self, platform: &mut Platform) {
+        platform.remove_style(self.view_style);
     }
 
     fn set_newline(&mut self, _platform: &mut Platform, newline: Newline) {

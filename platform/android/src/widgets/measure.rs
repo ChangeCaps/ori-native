@@ -1,8 +1,5 @@
 use jni::{EnvUnowned, jni_sig, jni_str, objects::JObject};
-use ori_native_core::{
-    Key, Modifiers, NativeParent, NativeWidget,
-    native::{NativePressable, Press},
-};
+use ori_native_core::{NativeParent, NativeWidget, native::NativeMeasure};
 
 use crate::{
     Platform,
@@ -10,22 +7,22 @@ use crate::{
     platform::WidgetId,
 };
 
-pub struct Pressable {
+pub struct Measure {
     id: WidgetId,
 }
 
-impl NativeWidget<Platform> for Pressable {
+impl NativeWidget<Platform> for Measure {
     fn widget_ref(&self) -> &WidgetId {
         &self.id
     }
 }
 
-impl NativeParent<Platform> for Pressable {
+impl NativeParent<Platform> for Measure {
     fn replace_child(&mut self, platform: &mut Platform, _index: usize, child: &WidgetId) {
         let _ = platform.jni(|env, activity| {
             env.call_method(
                 activity,
-                jni_str!("pressableSetContents"),
+                jni_str!("measureSetContents"),
                 jni_sig!((long, long)),
                 &[self.id.into(), child.into()],
             )?
@@ -34,20 +31,18 @@ impl NativeParent<Platform> for Pressable {
     }
 }
 
-impl NativePressable<Platform> for Pressable {
+impl NativeMeasure<Platform> for Measure {
     fn build(
         platform: &mut Platform,
         contents: &WidgetId,
-        on_press: impl Fn(Press) + 'static,
-        _on_hover: impl Fn(bool) + 'static,
-        _on_focus: impl Fn(bool) + 'static,
+        on_position_changed: impl Fn(f32, f32) + 'static,
     ) -> Self {
         let id = platform.next_id();
 
         let _ = platform.jni(|env, activity| {
             env.call_method(
                 activity,
-                jni_str!("createPressable"),
+                jni_str!("createMeasure"),
                 jni_sig!((long)),
                 &[id.into()],
             )?
@@ -55,7 +50,7 @@ impl NativePressable<Platform> for Pressable {
 
             env.call_method(
                 activity,
-                jni_str!("pressableSetContents"),
+                jni_str!("measureSetContents"),
                 jni_sig!((long, long)),
                 &[id.into(), contents.into()],
             )?
@@ -63,7 +58,7 @@ impl NativePressable<Platform> for Pressable {
         });
 
         platform.add_handler(id, move |event| match event {
-            WidgetEvent::Press(press) => on_press(*press),
+            WidgetEvent::Position(x, y) => on_position_changed(*x, *y),
             _ => unreachable!(),
         });
 
@@ -78,40 +73,25 @@ impl NativePressable<Platform> for Pressable {
         let _ = platform.jni(|env, activity| {
             env.call_method(
                 activity,
-                jni_str!("pressableSetContentSize"),
+                jni_str!("measureSetContentSize"),
                 jni_sig!((long, float, float)),
                 &[self.id.into(), width.into(), height.into()],
             )?
             .v()
         });
     }
-
-    fn set_on_key(
-        &mut self,
-        _platform: &mut Platform,
-        _on_key: impl Fn(Key, Modifiers, bool) -> bool + 'static,
-    ) {
-    }
 }
 
 #[unsafe(no_mangle)]
-extern "system" fn Java_ori_OriPressable_onPress<'local>(
+extern "system" fn Java_ori_OriActivity_measurePositionChanged<'local>(
     _env: EnvUnowned<'local>,
     _this: JObject<'local>,
     id: i64,
-    state: i32,
-) -> bool {
-    let state = match state {
-        0 => Press::Pressed,
-        1 => Press::Released,
-        2 => Press::Cancelled,
-        _ => return false,
-    };
-
+    x: f32,
+    y: f32,
+) {
     GlobalState::event(
         WidgetId::new(id as u64),
-        WidgetEvent::Press(state),
+        WidgetEvent::Position(x, y),
     );
-
-    true
 }

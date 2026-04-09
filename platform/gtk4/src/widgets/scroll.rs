@@ -29,7 +29,11 @@ impl NativeParent<Platform> for Scroll {
 }
 
 impl NativeScroll<Platform> for Scroll {
-    fn build(_platform: &mut Platform, contents: &gtk4::Widget) -> Self {
+    fn build(
+        _platform: &mut Platform,
+        contents: &gtk4::Widget,
+        on_scroll: impl Fn(f32, f32) + 'static,
+    ) -> Self {
         let fixed = gtk4::Fixed::new();
         fixed.put(contents, 0.0, 0.0);
         fixed.set_overflow(gtk4::Overflow::Visible);
@@ -37,24 +41,22 @@ impl NativeScroll<Platform> for Scroll {
         let scroll = gtk4::ScrolledWindow::new();
         scroll.set_child(Some(&fixed));
 
-        Self { scroll, fixed }
-    }
-
-    fn teardown(self, _platform: &mut Platform) {}
-
-    fn set_on_scroll(&mut self, _platform: &mut Platform, on_scroll: impl Fn(f32, f32) + 'static) {
         let on_scroll = Rc::new(on_scroll);
 
-        self.scroll.vadjustment().connect_value_changed({
+        scroll.vadjustment().connect_value_changed({
             let on_scroll = on_scroll.clone();
             move |adjustment| on_scroll(0.0, adjustment.value() as f32)
         });
 
-        self.scroll.hadjustment().connect_value_changed({
+        scroll.hadjustment().connect_value_changed({
             let on_scroll = on_scroll.clone();
             move |adjustment| on_scroll(adjustment.value() as f32, 0.0)
         });
+
+        Self { scroll, fixed }
     }
+
+    fn teardown(self, _platform: &mut Platform) {}
 
     fn set_content_size(&mut self, _platform: &mut Platform, width: f32, height: f32) {
         self.fixed.set_size_request(
