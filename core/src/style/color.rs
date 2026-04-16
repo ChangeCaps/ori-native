@@ -1,4 +1,5 @@
 use std::{
+    fmt,
     hash::{Hash, Hasher},
     ops::{Add, AddAssign, Mul},
 };
@@ -142,6 +143,20 @@ impl Color {
         }
 
         Some(color)
+    }
+
+    /// Format `self` as a hex string, e.g. `#11ff88aa`.
+    pub fn to_hex(&self) -> String {
+        let r = (self.r * 255.0).round() as u8;
+        let g = (self.g * 255.0).round() as u8;
+        let b = (self.b * 255.0).round() as u8;
+        let a = (self.a * 255.0).round() as u8;
+
+        if a == u8::MAX {
+            format!("#{r:2x}{g:2x}{b:2x}")
+        } else {
+            format!("#{r:2x}{g:2x}{b:2x}{a:2x}")
+        }
     }
 
     fn linear_srgb_to_oklab(r: f32, g: f32, b: f32) -> (f32, f32, f32) {
