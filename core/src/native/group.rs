@@ -2,20 +2,32 @@ use ori::{Elements, Mut};
 
 use crate::{
     Allocation, BoxedWidget, Color, Context, Corners, LayoutNode, NativeWidget, Overflow, Platform,
-    Shadow, Unsupported, element::NativeParent, platform::unsupported,
+    Shadow, Sides, Unsupported, element::NativeParent, platform::unsupported,
 };
 
+/// A native group widget.
+///
+/// A group is a widget with multiple children, a background, border and a shadow.
 pub trait NativeGroup<P>: NativeWidget<P> + NativeParent<P>
 where
     P: Platform,
 {
+    /// Build the widget.
     fn build(platform: &mut P) -> Self;
+
+    /// Teardown the widget.
     fn teardown(self, platform: &mut P);
 
+    /// Insert a `child` at `index`.
     fn insert_child(&mut self, platform: &mut P, index: usize, child: &P::WidgetRef);
+
+    /// Remove the child at `index`.
     fn remove_child(&mut self, platform: &mut P, index: usize);
+
+    /// Swap the order of children at `index_a` and `index_b`.
     fn swap_children(&mut self, platform: &mut P, index_a: usize, index_b: usize);
 
+    /// Set the layout rect of the child at `index`.
     fn set_child_layout(
         &mut self,
         platform: &mut P,
@@ -26,15 +38,27 @@ where
         height: f32,
     );
 
+    /// Set the fill `color` of the background.
     fn set_background_color(&mut self, platform: &mut P, color: Color);
+
+    /// Set the stroke `color` of the border.
     fn set_border_color(&mut self, platform: &mut P, color: Color);
-    fn set_border_width(&mut self, platform: &mut P, width: [f32; 4]);
-    fn set_corners(&mut self, platform: &mut P, radii: [f32; 4]);
+
+    /// Set the sidewise `widths` of the border.
+    fn set_border_width(&mut self, platform: &mut P, widths: Sides<f32>);
+
+    /// Set the radii of each corner.
+    fn set_corners(&mut self, platform: &mut P, corners: Corners<f32>);
+
+    /// Set the `overflow` mode.
     fn set_overflow(&mut self, platform: &mut P, overflow: Overflow);
+
+    /// Set the `shadow` drawn behind the background.
     fn set_shadow(&mut self, platform: &mut P, shadow: Shadow);
 
     /* platform specific */
 
+    /// Set whether to use a hardware layer on `android`.
     fn set_hardware_layer(&mut self, platform: &mut P, enabled: bool) {
         let _ = platform;
         let _ = enabled;
@@ -85,11 +109,11 @@ where
         unreachable!()
     }
 
-    fn set_border_width(&mut self, _platform: &mut P, _width: [f32; 4]) {
+    fn set_border_width(&mut self, _platform: &mut P, _width: Sides<f32>) {
         unreachable!()
     }
 
-    fn set_corners(&mut self, _platform: &mut P, _radii: [f32; 4]) {
+    fn set_corners(&mut self, _platform: &mut P, _radii: Corners<f32>) {
         unreachable!()
     }
 
@@ -102,13 +126,14 @@ where
     }
 }
 
+/// A utility wrapper for a [`NativeGroup`], maintaining an [`Elements`].
 pub struct Group<P>
 where
     P: Platform,
 {
     group:        P::Group,
     children:     Vec<Child<P>>,
-    border_width: [f32; 4],
+    border_width: Sides<f32>,
 }
 
 struct Child<P> {
@@ -120,18 +145,21 @@ impl<P> Group<P>
 where
     P: Platform,
 {
+    /// Create new [`Group`].
     pub fn new(cx: &mut Context<P>) -> Self {
         Self {
             group:        P::Group::build(&mut cx.platform),
             children:     Vec::new(),
-            border_width: [0.0; 4],
+            border_width: Sides::all(0.0),
         }
     }
 
+    /// Teardown the wrapped [`NativeGroup`].
     pub fn teardown(self, cx: &mut Context<P>) {
         self.group.teardown(&mut cx.platform);
     }
 
+    /// Get the [`Elements`].
     pub fn elements(&mut self, node: LayoutNode) -> impl Elements<Context<P>, BoxedWidget<P>> {
         GroupElements {
             layout:   node,
@@ -141,50 +169,43 @@ where
         }
     }
 
+    /// Set the background `color`.
     pub fn set_background(&mut self, cx: &mut Context<P>, color: Color) {
         self.group.set_background_color(&mut cx.platform, color);
     }
 
+    /// Set the border `color`.
     pub fn set_border_color(&mut self, cx: &mut Context<P>, color: Color) {
         self.group.set_border_color(&mut cx.platform, color);
     }
 
-    pub fn set_corners(&mut self, cx: &mut Context<P>, radii: Corners<f32>) {
-        let radii = [
-            radii.top_left,
-            radii.top_right,
-            radii.bottom_right,
-            radii.bottom_left,
-        ];
-
-        self.group.set_corners(&mut cx.platform, radii);
+    /// Set the corner radii.
+    pub fn set_corners(&mut self, cx: &mut Context<P>, corners: Corners<f32>) {
+        self.group.set_corners(&mut cx.platform, corners);
     }
 
+    /// Set the `overflow` mode.
     pub fn set_overflow(&mut self, cx: &mut Context<P>, overflow: Overflow) {
         self.group.set_overflow(&mut cx.platform, overflow);
     }
 
+    /// Set the `shadow`.
     pub fn set_shadow(&mut self, cx: &mut Context<P>, shadow: Shadow) {
         self.group.set_shadow(&mut cx.platform, shadow);
     }
 
+    /// Set whether hardware layer is enabled.
     pub fn set_hardware_layer(&mut self, cx: &mut Context<P>, enabled: bool) {
         self.group.set_hardware_layer(&mut cx.platform, enabled);
     }
 
+    /// Perform layout on the group.
     pub fn layout(&mut self, cx: &mut Context<P>, node: LayoutNode) {
-        if let Some(allocation) = cx.layout.get_allocation(node) {
-            let border_width = [
-                allocation.border.top,
-                allocation.border.right,
-                allocation.border.bottom,
-                allocation.border.left,
-            ];
-
-            if self.border_width != border_width {
-                self.border_width = border_width;
-                self.group.set_border_width(&mut cx.platform, border_width);
-            }
+        if let Some(allocation) = cx.layout.get_allocation(node)
+            && self.border_width != allocation.border
+        {
+            self.border_width = allocation.border;
+            (self.group).set_border_width(&mut cx.platform, allocation.border);
         }
 
         for (index, child) in self.children.iter_mut().enumerate() {
@@ -242,8 +263,7 @@ where
     }
 
     fn insert(&mut self, cx: &mut Context<P>, element: BoxedWidget<P>) {
-        cx.layout
-            .insert_child(self.layout, self.index, element.layout);
+        (cx.layout).insert_child(self.layout, self.index, element.layout);
 
         self.group.insert_child(
             &mut cx.platform,
@@ -263,8 +283,9 @@ where
     }
 
     fn remove(&mut self, cx: &mut Context<P>) -> Option<BoxedWidget<P>> {
-        self.group.remove_child(&mut cx.platform, self.index);
         let child = self.children.remove(self.index);
+
+        self.group.remove_child(&mut cx.platform, self.index);
         cx.layout.remove_child(self.layout, self.index);
 
         Some(child.element)

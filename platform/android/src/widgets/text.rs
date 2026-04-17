@@ -16,8 +16,6 @@ impl NativeWidget<Platform> for Text {
 }
 
 impl NativeText<Platform> for Text {
-    type Layout = TextLayout;
-
     fn build(platform: &mut Platform) -> Self {
         let id = platform.next_id();
 
@@ -44,7 +42,7 @@ impl NativeText<Platform> for Text {
         spans: Box<[TextSpan]>,
         text: String,
         wrap: Wrap,
-    ) -> Self::Layout {
+    ) -> impl Measurable<Platform> {
         let _ = platform.jni(|env, activity| {
             let jstring = env.new_string(&text)?;
 

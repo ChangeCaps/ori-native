@@ -42,6 +42,8 @@ where
     #[allow(refining_impl_trait)]
     fn build(self) -> impl WidgetView<P, T> + 'static {
         using_or_default(move |_, insets: &SafeAreaInsets| {
+            let SafeAreaInsets(insets) = insets;
+
             let padding = Sides {
                 top:    Length::Length(insets.top),
                 right:  Length::Length(insets.right),

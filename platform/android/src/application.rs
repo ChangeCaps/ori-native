@@ -9,7 +9,7 @@ use std::{
 
 use jni::{objects::JObject, refs::Global, vm::JavaVM};
 use ori::{Action, Effect, Message, Provider, Proxied};
-use ori_native_core::{Context, SafeAreaInsets, native::Press};
+use ori_native_core::{Context, SafeAreaInsets, Sides, native::Press};
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt};
 
 use crate::{Platform, log::MakeAndroidWriter, platform::WidgetId};
@@ -138,12 +138,7 @@ pub enum Event {
     Message(Message),
     Frame(Duration),
     Widget(WidgetId, WidgetEvent),
-    Insets {
-        top:    f32,
-        right:  f32,
-        bottom: f32,
-        left:   f32,
-    },
+    Insets(Sides<f32>),
 }
 
 #[derive(Debug)]
@@ -226,18 +221,8 @@ where
                 self.context.platform.handle_event(id, event);
             }
 
-            Event::Insets {
-                top,
-                right,
-                bottom,
-                left,
-            } => {
-                let insets = SafeAreaInsets {
-                    top,
-                    right,
-                    bottom,
-                    left,
-                };
+            Event::Insets(insets) => {
+                let insets = SafeAreaInsets(insets);
 
                 match self.context.get_mut() {
                     Some(current) => {

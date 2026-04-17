@@ -1,4 +1,4 @@
-#![allow(missing_docs)]
+//! Traits for native widgets.
 
 mod group;
 mod image;

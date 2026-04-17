@@ -4,26 +4,41 @@ use crate::{
     Font, Measurable, NativeWidget, Platform, Unsupported, platform::unsupported, views::Newline,
 };
 
+/// A native text input widget.
 pub trait NativeTextInput<P>: NativeWidget<P>
 where
     P: Platform,
 {
+    /// Build a text input widget.
     fn build(
         platform: &mut P,
         on_change: impl Fn(String) + 'static,
         on_submit: impl Fn(String) + 'static,
     ) -> Self;
+
+    /// Teardown the widget.
     fn teardown(self, platform: &mut P);
 
+    /// Set the `newline` behaviour.
     fn set_newline(&mut self, platform: &mut P, newline: Newline);
+
+    /// Set whether text input accepts and inserts tabs.
     fn set_accept_tab(&mut self, platform: &mut P, accept_tab: bool);
 
+    /// Set the `font` of the text.
     fn set_font(&mut self, platform: &mut P, font: Font);
+
+    /// Set the `text`.
     fn set_text(&mut self, platform: &mut P, text: String);
+
+    /// Set the `font` of the placeholder text.
     fn set_placeholder_font(&mut self, platform: &mut P, font: Font);
+
+    /// Set the placeholder `text`.
     fn set_placeholder_text(&mut self, platform: &mut P, text: String);
 
-    fn get_layout(&mut self, platform: &mut P) -> impl Measurable<P>;
+    /// Get the [`Measurable`] that measures the minimum size of the input.
+    fn get_measureable(&mut self, platform: &mut P) -> impl Measurable<P>;
 }
 
 impl<P> NativeTextInput<P> for Unsupported
@@ -67,7 +82,7 @@ where
     }
 
     #[allow(refining_impl_trait)]
-    fn get_layout(&mut self, _platform: &mut P) -> Infallible {
+    fn get_measureable(&mut self, _platform: &mut P) -> Infallible {
         unreachable!()
     }
 }

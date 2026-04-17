@@ -23,7 +23,7 @@ pub struct Measure<T, V> {
 }
 
 impl<T, V> Measure<T, V> {
-    /// Create new [`OnMeasure`].
+    /// Create new [`Measure`].
     pub fn new<A>(
         contents: V,
         mut on_measure: impl FnMut(&mut T, f32, f32, f32, f32) -> A + 'static,

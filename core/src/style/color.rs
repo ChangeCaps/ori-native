@@ -1,5 +1,4 @@
 use std::{
-    fmt,
     hash::{Hash, Hasher},
     ops::{Add, AddAssign, Mul},
 };

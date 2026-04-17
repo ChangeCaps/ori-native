@@ -189,7 +189,7 @@ impl NativeTextInput<Platform> for TextInput {
         });
     }
 
-    fn get_layout(&mut self, _platform: &mut Platform) -> impl Measurable<Platform> {
+    fn get_measureable(&mut self, _platform: &mut Platform) -> impl Measurable<Platform> {
         TextInputLayout {
             id:     self.id,
             height: None,

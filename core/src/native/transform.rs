@@ -1,12 +1,17 @@
 use crate::{Affine, NativeParent, NativeWidget, Platform, Unsupported, platform::unsupported};
 
+/// A native view that transforms its contents.
 pub trait NativeTransform<P>: NativeWidget<P> + NativeParent<P>
 where
     P: Platform,
 {
+    /// Build a transform widget.
     fn build(platform: &mut P, contents: &P::WidgetRef) -> Self;
+
+    /// Teardown the widget.
     fn teardown(self, platform: &mut P);
 
+    /// Set the size and transform of the contents.
     fn set_content_transform(&mut self, platform: &mut P, width: f32, height: f32, affine: Affine);
 }
 

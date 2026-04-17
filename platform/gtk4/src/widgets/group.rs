@@ -1,6 +1,8 @@
 use glib::subclass::types::ObjectSubclassIsExt;
 use gtk4::prelude::{AccessibleExt, WidgetExt};
-use ori_native_core::{Color, NativeParent, NativeWidget, Overflow, Shadow, native::NativeGroup};
+use ori_native_core::{
+    Color, Corners, NativeParent, NativeWidget, Overflow, Shadow, Sides, native::NativeGroup,
+};
 
 use crate::Platform;
 
@@ -114,13 +116,13 @@ impl NativeGroup<Platform> for Group {
         self.queue_draw();
     }
 
-    fn set_border_width(&mut self, _platform: &mut Platform, width: [f32; 4]) {
-        self.imp().border_width.set(width);
+    fn set_border_width(&mut self, _platform: &mut Platform, width: Sides<f32>) {
+        self.imp().border_width.set(width.into());
         self.queue_draw();
     }
 
-    fn set_corners(&mut self, _platform: &mut Platform, radii: [f32; 4]) {
-        self.imp().corner_radii.set(radii);
+    fn set_corners(&mut self, _platform: &mut Platform, corners: Corners<f32>) {
+        self.imp().corner_radii.set(corners.into());
         self.queue_draw();
     }
 

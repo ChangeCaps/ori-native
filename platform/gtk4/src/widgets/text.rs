@@ -17,8 +17,6 @@ impl NativeWidget<Platform> for Text {
 }
 
 impl NativeText<Platform> for Text {
-    type Layout = TextLayout;
-
     fn build(_platform: &mut Platform) -> Self {
         let view = gtk4::TextView::new();
         view.set_editable(false);
@@ -36,7 +34,7 @@ impl NativeText<Platform> for Text {
         spans: Box<[TextSpan]>,
         text: String,
         wrap: Wrap,
-    ) -> Self::Layout {
+    ) -> impl Measurable<Platform> {
         match wrap {
             Wrap::Word => self.view.set_wrap_mode(gtk4::WrapMode::Word),
             Wrap::Char => self.view.set_wrap_mode(gtk4::WrapMode::Char),

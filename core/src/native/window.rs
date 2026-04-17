@@ -6,36 +6,66 @@ use crate::{
     NavigationBar, Platform, StatusBar, Unsupported, element::NativeParent, platform::unsupported,
 };
 
+/// A native window.
 pub trait NativeWindow<P>: NativeParent<P>
 where
     P: Platform,
 {
+    /// Build a window.
     fn build(platform: &mut P, contents: &P::WidgetRef) -> Self;
+
+    /// Teardown the window.
     fn teardown(self, platform: &mut P);
 
+    /// Get the current size of the window.
     fn get_size(&self, platform: &mut P) -> (f32, f32);
+
+    /// Get the preferred size of the window.
+    ///
+    /// Imagine a phone app where the window size is fixed.
     fn get_preferred_size(&self, platform: &mut P) -> (Option<f32>, Option<f32>);
 
+    /// Set the `on_frame` callback.
     fn set_on_animation_frame(&mut self, platform: &mut P, on_frame: impl Fn(Duration) + 'static);
+
+    /// Set the `on_resize` callback.
     fn set_on_resize(&mut self, platform: &mut P, on_resize: impl Fn() + 'static);
+
+    /// Set the `on_close_requested` callback.
     fn set_on_close_requested(&mut self, platform: &mut P, on_close_requested: impl Fn() + 'static);
+
+    /// Set the `on_key` callback.
     fn set_on_key(
         &mut self,
         platform: &mut P,
         on_key: impl Fn(Key, Modifiers, bool) -> bool + 'static,
     );
 
+    /// Start requesting animation frames.
     fn start_animating(&mut self, platform: &mut P);
+
+    /// Stop requesting animation frames.
     fn stop_animating(&mut self, platform: &mut P);
 
+    /// Set the layout rectangle for the contents.
     fn set_content_layout(&mut self, platform: &mut P, x: f32, y: f32, width: f32, height: f32);
 
+    /// Set the `title`.
     fn set_title(&mut self, platform: &mut P, title: String);
+
+    /// Set the minimum size.
     fn set_min_size(&mut self, platform: &mut P, width: f32, height: f32);
+
+    /// Set the size.
     fn set_size(&mut self, platform: &mut P, width: f32, height: f32);
+
+    /// Set whether the window is resizable.
     fn set_resizable(&mut self, platform: &mut P, resizable: bool);
 
+    /// Set the status bar configuration.
     fn set_status_bar(&mut self, platform: &mut P, bar: StatusBar);
+
+    /// Set the navigation bar configuration.
     fn set_navigation_bar(&mut self, platform: &mut P, bar: NavigationBar);
 }
 

@@ -1,5 +1,7 @@
 use jni::{jni_sig, jni_str};
-use ori_native_core::{Color, NativeParent, NativeWidget, Overflow, Shadow, native::NativeGroup};
+use ori_native_core::{
+    Color, Corners, NativeParent, NativeWidget, Overflow, Shadow, Sides, native::NativeGroup,
+};
 
 use crate::{Platform, platform::WidgetId};
 
@@ -159,7 +161,7 @@ impl NativeGroup<Platform> for Group {
         });
     }
 
-    fn set_border_width(&mut self, platform: &mut Platform, width: [f32; 4]) {
+    fn set_border_width(&mut self, platform: &mut Platform, width: Sides<f32>) {
         let _ = platform.jni(|env, activity| {
             env.call_method(
                 activity,
@@ -167,17 +169,17 @@ impl NativeGroup<Platform> for Group {
                 jni_sig!((long, float, float, float, float)),
                 &[
                     self.id.into(),
-                    width[0].into(),
-                    width[1].into(),
-                    width[2].into(),
-                    width[3].into(),
+                    width.top.into(),
+                    width.right.into(),
+                    width.bottom.into(),
+                    width.left.into(),
                 ],
             )?
             .v()
         });
     }
 
-    fn set_corners(&mut self, platform: &mut Platform, radii: [f32; 4]) {
+    fn set_corners(&mut self, platform: &mut Platform, corners: Corners<f32>) {
         let _ = platform.jni(|env, activity| {
             env.call_method(
                 activity,
@@ -185,10 +187,10 @@ impl NativeGroup<Platform> for Group {
                 jni_sig!((long, float, float, float, float)),
                 &[
                     self.id.into(),
-                    radii[0].into(),
-                    radii[1].into(),
-                    radii[2].into(),
-                    radii[3].into(),
+                    corners.top_left.into(),
+                    corners.top_right.into(),
+                    corners.bottom_right.into(),
+                    corners.bottom_left.into(),
                 ],
             )?
             .v()

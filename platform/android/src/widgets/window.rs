@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use jni::{EnvUnowned, jni_sig, jni_str, objects::JObject};
 use ori_native_core::{
-    Key, Modifiers, NativeParent, NavigationBar, StatusBar, native::NativeWindow,
+    Key, Modifiers, NativeParent, NavigationBar, Sides, StatusBar, native::NativeWindow,
 };
 
 use crate::{
@@ -221,11 +221,13 @@ extern "system" fn Java_ori_OriActivity_onInsetsChanged<'local>(
     left: f32,
 ) {
     if let Some(activity) = GLOBAL_STATE.get() {
-        let _ = activity.sender.send(Event::Insets {
+        let insets = Sides {
             top,
             right,
             bottom,
             left,
-        });
+        };
+
+        let _ = activity.sender.send(Event::Insets(insets));
     }
 }

@@ -91,7 +91,7 @@ pub enum Position {
 }
 
 /// Values for each size of a rectangle.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Sides<T> {
     /// The top side.
     pub top: T,
@@ -145,8 +145,14 @@ where
     }
 }
 
+impl<T> From<Sides<T>> for [T; 4] {
+    fn from(sides: Sides<T>) -> Self {
+        [sides.top, sides.right, sides.bottom, sides.left]
+    }
+}
+
 /// Values for each corner of a rectangle.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Corners<T> {
     /// The top left corner.
     pub top_left: T,
@@ -182,8 +188,19 @@ impl From<f32> for Corners<f32> {
     }
 }
 
+impl<T> From<Corners<T>> for [T; 4] {
+    fn from(corners: Corners<T>) -> Self {
+        [
+            corners.top_left,
+            corners.top_right,
+            corners.bottom_right,
+            corners.bottom_left,
+        ]
+    }
+}
+
 /// Values the width and height of a size.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Size<T> {
     /// The width value.
     pub width: T,

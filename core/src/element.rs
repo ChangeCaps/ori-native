@@ -231,12 +231,12 @@ where
 
     fn downcast(this: BoxedWidget<P>) -> Result<Self, BoxedWidget<P>> {
         if this.widget.as_ref().type_id() == TypeId::of::<T>() {
-            let shadow = *Box::<dyn Any>::downcast(this.widget)
+            let this_widget = *Box::<dyn Any>::downcast(this.widget)
                 .expect("type should be correct, as it was just checked");
 
             Ok(Pod {
                 layout: this.layout,
-                widget: shadow,
+                widget: this_widget,
                 marker: PhantomData,
             })
         } else {
@@ -248,7 +248,7 @@ where
         this: Mut<'_, BoxedWidget<P>>,
     ) -> Result<Self::Mut<'_>, Mut<'_, BoxedWidget<P>>> {
         if this.widget.as_ref().type_id() == TypeId::of::<T>() {
-            let shadow = <dyn Any>::downcast_mut(this.widget.as_mut())
+            let any_widget = <dyn Any>::downcast_mut(this.widget.as_mut())
                 .expect("type should be correct, as it was just checked");
 
             Ok(PodMut {
@@ -257,7 +257,7 @@ where
                 widget_index:  this.widget_index,
 
                 layout: this.layout,
-                widget: shadow,
+                widget: any_widget,
             })
         } else {
             Err(this)

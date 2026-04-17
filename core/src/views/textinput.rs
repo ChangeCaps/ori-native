@@ -265,7 +265,7 @@ where
         widget.set_newline(&mut cx.platform, self.newline);
         widget.set_accept_tab(&mut cx.platform, self.accept_tab);
 
-        let layout = widget.get_layout(&mut cx.platform);
+        let layout = widget.get_measureable(&mut cx.platform);
         let node = cx.layout.add_leaf(layout);
         cx.layout.set_layout(node, self.layout);
 
@@ -345,7 +345,7 @@ where
         }
 
         if changed {
-            let layout = element.widget.get_layout(&mut cx.platform);
+            let layout = element.widget.get_measureable(&mut cx.platform);
             cx.layout.set_measure(*element.layout, layout);
         }
 

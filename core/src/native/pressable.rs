@@ -2,10 +2,12 @@ use keyboard_types::{Key, Modifiers};
 
 use crate::{NativeParent, NativeWidget, Platform, Unsupported, platform::unsupported};
 
+/// A native widget that receives pointer input and focus.
 pub trait NativePressable<P>: NativeWidget<P> + NativeParent<P>
 where
     P: Platform,
 {
+    /// Build a pressable.
     fn build(
         platform: &mut P,
         contents: &P::WidgetRef,
@@ -13,10 +15,14 @@ where
         on_hover: impl Fn(bool) + 'static,
         on_focus: impl Fn(bool) + 'static,
     ) -> Self;
+
+    /// Teardown the widget.
     fn teardown(self, platform: &mut P);
 
+    /// Set the size of the contents.
     fn set_content_size(&mut self, platform: &mut P, width: f32, height: f32);
 
+    /// Set the `on_key` callback.
     fn set_on_key(
         &mut self,
         platform: &mut P,
@@ -24,10 +30,16 @@ where
     );
 }
 
+/// The state of a press.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Press {
+    /// The pointer was depressed.
     Pressed,
+
+    /// The pointer was released.
     Released,
+
+    /// The press has been cancelled.
     Cancelled,
 }
 
