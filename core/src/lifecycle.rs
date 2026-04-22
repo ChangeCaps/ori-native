@@ -1,15 +1,3 @@
-use std::time::Duration;
-
-/// An event in the lifecycle of an application.
-#[derive(Clone, Debug)]
-pub enum Lifecycle {
-    /// A frame has been drawn.
-    Animate(Duration),
-
-    /// Layout has been (re)computed.
-    Layout,
-}
-
 /// A request regarding layout.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum LayoutRequest {

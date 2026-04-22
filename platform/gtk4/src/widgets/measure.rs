@@ -1,6 +1,6 @@
 use glib::object::Cast;
 use gtk4::prelude::{FixedExt, WidgetExt};
-use ori_native_core::{NativeParent, NativeWidget, native::NativeMeasure};
+use ori_native_core::{NativeWidget, native::NativeMeasure};
 
 use crate::Platform;
 
@@ -9,28 +9,20 @@ pub struct Measure {
     fixed:    gtk4::Fixed,
 }
 
-impl NativeParent<Platform> for Measure {
-    fn replace_child(&mut self, _platform: &mut Platform, _index: usize, child: &gtk4::Widget) {
-        self.fixed.remove(&self.contents);
-        self.fixed.put(child, 0.0, 0.0);
-        self.contents = child.clone();
-    }
-}
-
 impl NativeWidget<Platform> for Measure {
-    fn widget_ref(&self) -> &gtk4::Widget {
-        self.fixed.as_ref()
+    fn widget_ref(&self) -> gtk4::Widget {
+        self.fixed.clone().upcast()
     }
 }
 
 impl NativeMeasure<Platform> for Measure {
     fn build(
         platform: &mut Platform,
-        contents: &gtk4::Widget,
+        contents: gtk4::Widget,
         on_position_changed: impl Fn(f32, f32) + 'static,
     ) -> Self {
         let fixed = gtk4::Fixed::new();
-        fixed.put(contents, 0.0, 0.0);
+        fixed.put(&contents, 0.0, 0.0);
 
         let on_draw = {
             let fixed = fixed.clone();
@@ -66,6 +58,12 @@ impl NativeMeasure<Platform> for Measure {
     fn teardown(self, platform: &mut Platform) {
         let widget: &gtk4::Widget = self.fixed.as_ref();
         platform.on_snapshot.borrow_mut().remove(widget);
+    }
+
+    fn replace_contents(&mut self, _platform: &mut Platform, child: gtk4::Widget) {
+        self.fixed.remove(&self.contents);
+        self.fixed.put(&child, 0.0, 0.0);
+        self.contents = child.clone();
     }
 
     fn set_content_size(&mut self, _platform: &mut Platform, width: f32, height: f32) {

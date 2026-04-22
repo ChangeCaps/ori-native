@@ -1,5 +1,6 @@
+use glib::object::Cast;
 use gtk4::prelude::{FixedExt, WidgetExt};
-use ori_native_core::{Affine, NativeParent, NativeWidget, native::NativeTransform};
+use ori_native_core::{Affine, NativeWidget, native::NativeTransform};
 
 use crate::Platform;
 
@@ -8,33 +9,29 @@ pub struct Transform {
 }
 
 impl NativeWidget<Platform> for Transform {
-    fn widget_ref(&self) -> &gtk4::Widget {
-        self.fixed.as_ref()
-    }
-}
-
-impl NativeParent<Platform> for Transform {
-    fn replace_child(&mut self, _platform: &mut Platform, index: usize, child: &gtk4::Widget) {
-        assert_eq!(index, 0);
-
-        if let Some(child) = self.fixed.first_child() {
-            self.fixed.remove(&child);
-        }
-
-        self.fixed.put(child, 0.0, 0.0);
+    fn widget_ref(&self) -> gtk4::Widget {
+        self.fixed.clone().upcast()
     }
 }
 
 impl NativeTransform<Platform> for Transform {
-    fn build(_platform: &mut Platform, contents: &gtk4::Widget) -> Self {
+    fn build(_platform: &mut Platform, contents: gtk4::Widget) -> Self {
         let fixed = gtk4::Fixed::new();
         fixed.set_overflow(gtk4::Overflow::Visible);
-        fixed.put(contents, 0.0, 0.0);
+        fixed.put(&contents, 0.0, 0.0);
 
         Self { fixed }
     }
 
     fn teardown(self, _platform: &mut Platform) {}
+
+    fn replace_contents(&mut self, _platform: &mut Platform, child: gtk4::Widget) {
+        if let Some(child) = self.fixed.first_child() {
+            self.fixed.remove(&child);
+        }
+
+        self.fixed.put(&child, 0.0, 0.0);
+    }
 
     fn set_content_transform(
         &mut self,

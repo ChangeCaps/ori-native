@@ -1,5 +1,5 @@
 use jni::{EnvUnowned, jni_sig, jni_str, objects::JObject};
-use ori_native_core::{Direction, NativeParent, NativeWidget, native::NativeScroll};
+use ori_native_core::{Direction, NativeWidget, native::NativeScroll};
 
 use crate::{
     Platform,
@@ -12,29 +12,15 @@ pub struct Scroll {
 }
 
 impl NativeWidget<Platform> for Scroll {
-    fn widget_ref(&self) -> &WidgetId {
-        &self.id
-    }
-}
-
-impl NativeParent<Platform> for Scroll {
-    fn replace_child(&mut self, platform: &mut Platform, _index: usize, child: &WidgetId) {
-        let _ = platform.jni(|env, activity| {
-            env.call_method(
-                activity,
-                jni_str!("scrollSetContents"),
-                jni_sig!((long, long)),
-                &[self.id.into(), child.into()],
-            )?
-            .v()
-        });
+    fn widget_ref(&self) -> WidgetId {
+        self.id
     }
 }
 
 impl NativeScroll<Platform> for Scroll {
     fn build(
         platform: &mut Platform,
-        contents: &WidgetId,
+        contents: WidgetId,
         on_scroll: impl Fn(f32, f32) + 'static,
     ) -> Self {
         let id = platform.next_id();
@@ -67,6 +53,18 @@ impl NativeScroll<Platform> for Scroll {
 
     fn teardown(self, platform: &mut Platform) {
         platform.remove_widget(self.id);
+    }
+
+    fn replace_contents(&mut self, platform: &mut Platform, contents: WidgetId) {
+        let _ = platform.jni(|env, activity| {
+            env.call_method(
+                activity,
+                jni_str!("scrollSetContents"),
+                jni_sig!((long, long)),
+                &[self.id.into(), contents.into()],
+            )?
+            .v()
+        });
     }
 
     fn set_content_size(&mut self, platform: &mut Platform, width: f32, height: f32) {

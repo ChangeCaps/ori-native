@@ -18,14 +18,14 @@ mod window;
 pub use animate::{Animate, Animation, animate};
 pub use flex::{Flex, column, flex, row};
 pub use image::{Image, image};
-pub use layout::{OnLayout, on_layout};
+pub use layout::{Layout, on_layout};
 pub use list::{List, list};
 pub use measure::{Measure, measure};
 pub use pressable::{PressState, Pressable, pressable};
 pub use safearea::{SafeArea, safe_area};
 pub use scroll::{Scroll, hscroll, vscroll};
 pub use text::{Text, text};
-pub use textinput::{Newline, TextInput, textinput};
+pub use textinput::{TextInput, textinput};
 pub use transform::{Transform, transform};
 pub use transition::{
     Back, BackIn, BackInOut, Ease, Elastic, ElasticIn, Lerp, Linear, Transition, transition,

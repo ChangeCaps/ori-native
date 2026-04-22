@@ -1,10 +1,9 @@
 use std::{cell::Cell, rc::Rc};
 
-use glib::object::ObjectExt;
+use glib::object::{Cast, ObjectExt};
 use gtk4::prelude::{TextBufferExt, TextViewExt, WidgetExt};
 use ori_native_core::{
-    AvailableSpace, Font, Measurable, NativeWidget, Size, Stretch, native::NativeTextInput,
-    views::Newline,
+    AvailableSpace, Font, Measurable, NativeWidget, Newline, Size, Stretch, native::NativeTextInput,
 };
 
 use crate::{Platform, platform::StyleNode};
@@ -22,8 +21,8 @@ pub struct TextInput {
 }
 
 impl NativeWidget<Platform> for TextInput {
-    fn widget_ref(&self) -> &gtk4::Widget {
-        self.overlay.as_ref()
+    fn widget_ref(&self) -> gtk4::Widget {
+        self.overlay.clone().upcast()
     }
 }
 

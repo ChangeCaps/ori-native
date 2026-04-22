@@ -10,7 +10,7 @@ mod textinput;
 mod transform;
 mod window;
 
-pub use group::{Group, NativeGroup};
+pub use group::NativeGroup;
 pub use image::NativeImage;
 pub use measure::NativeMeasure;
 pub use pressable::{NativePressable, Press};

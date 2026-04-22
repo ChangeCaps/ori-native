@@ -1,22 +1,22 @@
-use ori::{Action, Message, Mut, Proxied, View, ViewMarker};
+use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarker};
 
-use crate::{Allocation, Context, Lifecycle, Platform, WidgetView};
+use crate::{Context, Platform, Size, WidgetView, widgets::LayoutWidget};
 
 /// [`View`] with a callback when layout changes.
 pub fn on_layout<T, V, A>(
     contents: V,
     on_layout: impl FnMut(&mut T, f32, f32) -> A,
-) -> OnLayout<V, impl FnMut(&mut T, f32, f32) -> A> {
-    OnLayout::new(contents, on_layout)
+) -> Layout<V, impl FnMut(&mut T, f32, f32) -> A> {
+    Layout::new(contents, on_layout)
 }
 
 /// [`View`] with a callback when layout changes.
-pub struct OnLayout<V, F> {
+pub struct Layout<V, F> {
     contents:  V,
     on_layout: F,
 }
 
-impl<V, F> OnLayout<V, F> {
+impl<V, F> Layout<V, F> {
     /// Create new [`OnLayout`].
     pub fn new(contents: V, on_layout: F) -> Self {
         Self {
@@ -26,64 +26,88 @@ impl<V, F> OnLayout<V, F> {
     }
 }
 
-impl<V, F> ViewMarker for OnLayout<V, F> {}
-impl<P, T, V, F, A> View<Context<P>, T> for OnLayout<V, F>
+struct LayoutMessage(Size<f32>);
+
+impl<V, F> ViewMarker for Layout<V, F> {}
+impl<P, T, V, F, A> View<Context<P>, T> for Layout<V, F>
 where
     P: Platform,
     V: WidgetView<P, T>,
     F: FnMut(&mut T, f32, f32) -> A + 'static,
     A: Into<Action>,
 {
-    type Element = V::Element;
-    type State = (V::State, F, Option<Allocation>);
+    type Element = LayoutWidget<P, V::Element>;
+    type State = LayoutState<P, T, V, F>;
 
     fn build(self, cx: &mut Context<P>, data: &mut T) -> (Self::Element, Self::State) {
-        let (element, state) = self.contents.build(cx, data);
+        let (contents, state) = self.contents.build(cx, data);
 
-        (element, (state, self.on_layout, None))
+        let view_id = ViewId::next();
+        cx.register(view_id);
+
+        let widget = LayoutWidget::new(contents, {
+            let proxy = cx.proxy();
+            move |size| {
+                proxy.message(Message::new(
+                    LayoutMessage(size),
+                    view_id,
+                ));
+            }
+        });
+
+        let state = LayoutState {
+            view_id,
+            state,
+            on_layout: self.on_layout,
+        };
+
+        (widget, state)
     }
 
     fn rebuild(
         self,
         element: Mut<'_, Self::Element>,
-        (state, on_layout, _current_layout): &mut Self::State,
+        state: &mut Self::State,
         cx: &mut Context<P>,
         data: &mut T,
     ) {
-        self.contents.rebuild(element, state, cx, data);
-        *on_layout = self.on_layout;
+        self.contents.rebuild(element, &mut state.state, cx, data);
+        state.on_layout = self.on_layout;
     }
 
     fn message(
         element: Mut<'_, Self::Element>,
-        (state, on_layout, current_allocation): &mut Self::State,
+        state: &mut Self::State,
         cx: &mut Context<P>,
         data: &mut T,
         message: &mut Message,
     ) -> Action {
-        if let Some(Lifecycle::Layout) = message.get()
-            && let Some(allocation) = cx.layout.get_allocation(*element.layout)
-            && *current_allocation != Some(allocation)
-        {
-            *current_allocation = Some(allocation);
-
-            let action = on_layout(
-                data,
-                allocation.size.width,
-                allocation.size.height,
-            );
-
-            cx.send_action(action.into());
+        if let Some(LayoutMessage(size)) = message.take(state.view_id) {
+            return (state.on_layout)(data, size.width, size.height).into();
         }
 
-        V::message(element, state, cx, data, message)
+        V::message(
+            element,
+            &mut state.state,
+            cx,
+            data,
+            message,
+        )
     }
 
-    fn teardown(
-        element: Self::Element,
-        (state, _on_layout, _current_layout): Self::State,
-        cx: &mut Context<P>,
-    ) {
-        V::teardown(element, state, cx);
+    fn teardown(element: Self::Element, state: Self::State, cx: &mut Context<P>) {
+        let contents = element.teardown();
+        V::teardown(contents, state.state, cx);
+        cx.unregister(state.view_id);
     }
+}
+
+pub struct LayoutState<P, T, V, F>
+where
+    P: Platform,
+    V: WidgetView<P, T>,
+{
+    view_id:   ViewId,
+    state:     V::State,
+    on_layout: F,
 }

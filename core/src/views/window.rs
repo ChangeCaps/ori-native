@@ -5,8 +5,8 @@ use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarke
 
 use crate::{
     Allocation, AnimateRequest, AvailableSpace, Context, Input, InputHandler, LayoutNode,
-    LayoutRequest, LayoutStyle, Length, Lifecycle, MatchKey, NativeWidget, NavigationBar, Platform,
-    Pod, Size, Sizing, StatusBar, WidgetView, native::NativeWindow,
+    LayoutRequest, LayoutStyle, Length, MatchKey, NavigationBar, Parent, Platform, Size, Sizing,
+    StatusBar, Widget, WidgetView, native::NativeWindow, widget::WidgetMut,
 };
 
 /// [`View`] of a window.
@@ -164,7 +164,7 @@ where
     /// The id of the view.
     pub view_id: ViewId,
 
-    node:               LayoutNode,
+    layout:             LayoutNode,
     allocation:         Option<Allocation>,
     content_allocation: Option<Allocation>,
 
@@ -180,7 +180,7 @@ where
 
     animating: u32,
 
-    contents: Pod<P, V::Widget>,
+    contents: V::Element,
     state:    V::State,
 }
 
@@ -195,16 +195,13 @@ where
         data: &mut T,
         attributes: WindowAttributes<T>,
         contents: V,
-        build: impl FnOnce(&mut P, &P::WidgetRef) -> P::Window,
+        build: impl FnOnce(&mut P, P::WidgetRef) -> P::Window,
     ) -> Self {
         let view_id = ViewId::next();
 
         let (contents, state) = cx.with_window(view_id, |cx| contents.build(cx, data));
 
-        let mut window = build(
-            &mut cx.platform,
-            contents.widget.widget_ref(),
-        );
+        let mut window = build(&mut cx.platform, contents.widget_ref());
 
         window.set_title(
             &mut cx.platform,
@@ -274,14 +271,14 @@ where
 
         cx.register(view_id);
 
-        let node = cx.layout.add_node(&[contents.layout]);
+        let node = cx.layout.add_node(&[contents.layout_node()]);
 
         let (width, height) = window.get_size(&mut cx.platform);
 
         let mut state = Self {
             window,
             view_id,
-            node,
+            layout: node,
             allocation: None,
             content_allocation: None,
             title: attributes.title,
@@ -296,9 +293,7 @@ where
             state,
         };
 
-        let action = state.layout(cx, data);
-        cx.send_action(action);
-
+        state.layout(cx);
         state
     }
 
@@ -311,8 +306,13 @@ where
         attributes: WindowAttributes<T>,
     ) {
         cx.with_window(self.view_id, |cx| {
-            let pod = self.contents.as_mut(self.node, 0, &mut self.window, 0);
-            contents.rebuild(pod, &mut self.state, cx, data);
+            let mut parent = WindowParent {
+                native: &mut self.window,
+                layout: self.layout,
+            };
+
+            let widget = WidgetMut::new(&mut parent, &mut self.contents);
+            contents.rebuild(widget, &mut self.state, cx, data);
         });
 
         let (filter, handler) = attributes.input.split();
@@ -361,7 +361,7 @@ where
     }
 
     /// Compute layout and potentially resize the window.
-    pub fn layout(&mut self, cx: &mut Context<P>, data: &mut T) -> Action {
+    pub fn layout(&mut self, cx: &mut Context<P>) {
         let (width, height) = self.window.get_size(&mut cx.platform);
 
         self.width = width;
@@ -375,11 +375,11 @@ where
 
             cx.layout.compute_layout(
                 &mut cx.platform,
-                self.contents.layout,
+                self.contents.layout_node(),
                 size,
             );
 
-            if let Some(layout) = cx.layout.get_allocation(self.contents.layout) {
+            if let Some(layout) = cx.layout.get_allocation(self.contents.layout_node()) {
                 self.window.set_min_size(
                     &mut cx.platform,
                     layout.content_size.width,
@@ -430,10 +430,10 @@ where
             },
         };
 
-        cx.layout.set_layout(self.node, style);
-        cx.layout.compute_layout(&mut cx.platform, self.node, size);
+        cx.layout.set_layout(self.layout, style);
+        (cx.layout).compute_layout(&mut cx.platform, self.layout, size);
 
-        if let Some(allocation) = cx.layout.get_allocation(self.node)
+        if let Some(allocation) = cx.layout.get_allocation(self.layout)
             && self.allocation != Some(allocation)
         {
             self.allocation = Some(allocation);
@@ -447,7 +447,7 @@ where
             }
         }
 
-        if let Some(allocation) = cx.layout.get_allocation(self.contents.layout)
+        if let Some(allocation) = cx.layout.get_allocation(self.contents.layout_node())
             && self.content_allocation != Some(allocation)
         {
             self.content_allocation = Some(allocation);
@@ -461,33 +461,24 @@ where
             );
         }
 
-        cx.proxy().message(Message::new(Lifecycle::Layout, None));
-
         cx.with_window(self.view_id, |cx| {
-            let pod = self.contents.as_mut(self.node, 0, &mut self.window, 0);
-            V::message(
-                pod,
-                &mut self.state,
-                cx,
-                data,
-                &mut Message::new(Lifecycle::Layout, None),
-            )
-        })
+            self.contents.layout(cx);
+        });
     }
 
     /// Handle a [`Message`].
     pub fn message(&mut self, cx: &mut Context<P>, data: &mut T, message: &mut Message) -> Action {
-        if let Some(Lifecycle::Layout) = message.get() {
-            return Action::new();
-        }
-
         if let Some(message) = message.take(self.view_id) {
             return self.handler.handle(data, message);
         }
 
         if let Some(message) = message.take(self.view_id) {
             return match message {
-                LayoutRequest::Layout => self.layout(cx, data),
+                LayoutRequest::Layout => {
+                    self.layout(cx);
+
+                    Action::new()
+                }
             };
         }
 
@@ -522,18 +513,11 @@ where
                         return Action::new();
                     }
 
-                    let mut message = Message::new(Lifecycle::Animate(delta), None);
-
                     cx.with_window(self.view_id, |cx| {
-                        let pod = self.contents.as_mut(self.node, 0, &mut self.window, 0);
-                        V::message(
-                            pod,
-                            &mut self.state,
-                            cx,
-                            data,
-                            &mut message,
-                        )
-                    })
+                        self.contents.animate(cx, delta);
+                    });
+
+                    Action::new()
                 }
 
                 WindowMessage::CloseRequested => {
@@ -546,17 +530,29 @@ where
                     let (width, height) = self.window.get_size(&mut cx.platform);
 
                     if self.width != width || self.height != height {
-                        self.layout(cx, data)
-                    } else {
-                        Action::new()
+                        self.layout(cx);
                     }
+
+                    Action::new()
                 }
             };
         }
 
         cx.with_window(self.view_id, |cx| {
-            let pod = self.contents.as_mut(self.node, 0, &mut self.window, 0);
-            V::message(pod, &mut self.state, cx, data, message)
+            let mut parent = WindowParent {
+                native: &mut self.window,
+                layout: self.layout,
+            };
+
+            let widget = WidgetMut::new(&mut parent, &mut self.contents);
+
+            V::message(
+                widget,
+                &mut self.state,
+                cx,
+                data,
+                message,
+            )
         })
     }
 
@@ -567,7 +563,25 @@ where
         });
 
         self.window.teardown(&mut cx.platform);
-        cx.layout.remove_node(self.node);
+        cx.layout.remove_node(self.layout);
         cx.unregister(self.view_id);
+    }
+}
+
+struct WindowParent<'a, P>
+where
+    P: Platform,
+{
+    native: &'a mut P::Window,
+    layout: LayoutNode,
+}
+
+impl<P> Parent<P> for WindowParent<'_, P>
+where
+    P: Platform,
+{
+    fn replace_child(&mut self, cx: &mut Context<P>, widgets: P::WidgetRef, layout: LayoutNode) {
+        self.native.replace_contents(&mut cx.platform, widgets);
+        cx.layout.replace_child(self.layout, 0, layout);
     }
 }

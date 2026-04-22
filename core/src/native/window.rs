@@ -2,20 +2,21 @@ use std::time::Duration;
 
 use keyboard_types::{Key, Modifiers};
 
-use crate::{
-    NavigationBar, Platform, StatusBar, Unsupported, element::NativeParent, platform::unsupported,
-};
+use crate::{NavigationBar, Platform, StatusBar, Unsupported, platform::unsupported};
 
 /// A native window.
-pub trait NativeWindow<P>: NativeParent<P>
+pub trait NativeWindow<P>
 where
     P: Platform,
 {
     /// Build a window.
-    fn build(platform: &mut P, contents: &P::WidgetRef) -> Self;
+    fn build(platform: &mut P, contents: P::WidgetRef) -> Self;
 
     /// Teardown the window.
     fn teardown(self, platform: &mut P);
+
+    /// Replace contents.
+    fn replace_contents(&mut self, platform: &mut P, contents: P::WidgetRef);
 
     /// Get the current size of the window.
     fn get_size(&self, platform: &mut P) -> (f32, f32);
@@ -73,11 +74,15 @@ impl<P> NativeWindow<P> for Unsupported
 where
     P: Platform,
 {
-    fn build(_platform: &mut P, _contents: &P::WidgetRef) -> Self {
+    fn build(_platform: &mut P, _contents: P::WidgetRef) -> Self {
         unsupported!("window view")
     }
 
     fn teardown(self, _platform: &mut P) {
+        unreachable!()
+    }
+
+    fn replace_contents(&mut self, _platform: &mut P, _contents: P::WidgetRef) {
         unreachable!()
     }
 

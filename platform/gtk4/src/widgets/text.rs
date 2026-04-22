@@ -1,3 +1,4 @@
+use glib::object::Cast;
 use gtk4::prelude::{TextBufferExt, TextBufferExtManual, TextTagExt, TextViewExt, WidgetExt};
 use ori_native_core::{
     AvailableSpace, Font, Measurable, NativeWidget, Size, Stretch, TextSpan, Weight, Wrap,
@@ -11,8 +12,8 @@ pub struct Text {
 }
 
 impl NativeWidget<Platform> for Text {
-    fn widget_ref(&self) -> &gtk4::Widget {
-        self.view.as_ref()
+    fn widget_ref(&self) -> gtk4::Widget {
+        self.view.clone().upcast()
     }
 }
 

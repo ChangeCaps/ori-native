@@ -1,9 +1,9 @@
 use std::{cell::Cell, rc::Rc};
 
-use glib::object::ObjectExt;
+use glib::object::{Cast, ObjectExt};
 use gtk4::prelude::{AccessibleExt, FixedExt, GestureExt, WidgetExt};
 use ori_native_core::{
-    Key, Modifiers, NativeParent, NativeWidget,
+    Key, Modifiers, NativeWidget,
     native::{NativePressable, Press},
 };
 
@@ -15,33 +15,21 @@ pub struct Pressable {
 }
 
 impl NativeWidget<Platform> for Pressable {
-    fn widget_ref(&self) -> &gtk4::Widget {
-        self.fixed.as_ref()
-    }
-}
-
-impl NativeParent<Platform> for Pressable {
-    fn replace_child(&mut self, _platform: &mut Platform, index: usize, child: &gtk4::Widget) {
-        assert_eq!(index, 0);
-
-        if let Some(child) = self.fixed.first_child() {
-            self.fixed.remove(&child);
-        }
-
-        self.fixed.put(child, 0.0, 0.0);
+    fn widget_ref(&self) -> gtk4::Widget {
+        self.fixed.clone().upcast()
     }
 }
 
 impl NativePressable<Platform> for Pressable {
     fn build(
         _platform: &mut Platform,
-        contents: &gtk4::Widget,
+        contents: gtk4::Widget,
         on_press: impl Fn(Press) + 'static,
         on_hover: impl Fn(bool) + 'static,
         on_focus: impl Fn(bool) + 'static,
     ) -> Self {
         let fixed = gtk4::Fixed::new();
-        fixed.put(contents, 0.0, 0.0);
+        fixed.put(&contents, 0.0, 0.0);
         fixed.set_focusable(true);
         fixed.set_accessible_role(gtk4::AccessibleRole::Button);
         fixed.set_overflow(gtk4::Overflow::Visible);
@@ -120,6 +108,14 @@ impl NativePressable<Platform> for Pressable {
     }
 
     fn teardown(self, _platform: &mut Platform) {}
+
+    fn replace_contents(&mut self, _platform: &mut Platform, child: gtk4::Widget) {
+        if let Some(child) = self.fixed.first_child() {
+            self.fixed.remove(&child);
+        }
+
+        self.fixed.put(&child, 0.0, 0.0);
+    }
 
     fn set_content_size(&mut self, _platform: &mut Platform, width: f32, height: f32) {
         if let Some(child) = self.fixed.first_child() {

@@ -1,8 +1,8 @@
 use std::time::Duration;
 
-use ori::{Action, Message, Mut, View, ViewMarker};
+use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarker};
 
-use crate::{Context, Lifecycle, Platform, WidgetView};
+use crate::{Context, Platform, WidgetView, widget::WidgetMut, widgets::AnimateWidget};
 
 /// [`View`] that animates its contents.
 pub fn animate<P, T, A>(animation: A) -> impl WidgetView<P, T>
@@ -48,6 +48,11 @@ impl<A> Animate<A> {
     }
 }
 
+struct AnimateMessage(Duration);
+
+type Element<A, P, T> = <<A as Animation<T>>::View as View<Context<P>, T>>::Element;
+type State<A, P, T> = <<A as Animation<T>>::View as View<Context<P>, T>>::State;
+
 impl<A> ViewMarker for Animate<A> {}
 impl<P, T, A> View<Context<P>, T> for Animate<A>
 where
@@ -55,88 +60,138 @@ where
     A: Animation<T>,
     A::View: WidgetView<P, T>,
 {
-    type Element = <A::View as View<Context<P>, T>>::Element;
-    type State = (
-        A::State,
-        bool,
-        <A::View as View<Context<P>, T>>::State,
-    );
+    type Element = AnimateWidget<P, Element<A, P, T>>;
+    type State = AnimateState<P, T, A>;
 
     fn build(self, cx: &mut Context<P>, data: &mut T) -> (Self::Element, Self::State) {
-        let (state, should_animate) = self.animation.build(data);
+        let (anim, is_animating) = self.animation.build(data);
 
-        if should_animate {
+        if is_animating {
             cx.request_start_animating();
         }
 
-        let view = A::view(&state, data);
-        let (element, contents) = view.build(cx, data);
+        let view = A::view(&anim, data);
+        let (element, state) = view.build(cx, data);
 
-        (
-            element,
-            (state, should_animate, contents),
-        )
+        let view_id = ViewId::next();
+        cx.register(view_id);
+
+        let on_animate = {
+            let proxy = cx.proxy();
+
+            move |delta| {
+                proxy.message(Message::new(
+                    AnimateMessage(delta),
+                    view_id,
+                ));
+            }
+        };
+
+        let widget = AnimateWidget::new(element, on_animate);
+
+        let state = AnimateState {
+            view_id,
+            anim,
+            state,
+            is_animating,
+        };
+
+        (widget, state)
     }
 
     fn rebuild(
         self,
         element: Mut<'_, Self::Element>,
-        (state, is_animating, contents): &mut Self::State,
+        state: &mut Self::State,
         cx: &mut Context<P>,
         data: &mut T,
     ) {
-        let should_animate = self.animation.rebuild(state, data);
+        let should_animate = self.animation.rebuild(&mut state.anim, data);
 
-        let view = A::view(state, data);
-        view.rebuild(element, contents, cx, data);
+        let widget = WidgetMut::new(
+            element.parent,
+            element.widget.contents(),
+        );
 
-        if *is_animating != should_animate {
+        let view = A::view(&state.anim, data);
+        view.rebuild(widget, &mut state.state, cx, data);
+
+        if state.is_animating != should_animate {
             match should_animate {
                 true => cx.request_start_animating(),
                 false => cx.request_stop_animating(),
             }
 
-            *is_animating = should_animate;
+            state.is_animating = should_animate;
         }
     }
 
     fn message(
-        mut element: Mut<'_, Self::Element>,
-        (state, is_animating, contents): &mut Self::State,
+        element: Mut<'_, Self::Element>,
+        state: &mut Self::State,
         cx: &mut Context<P>,
         data: &mut T,
         message: &mut Message,
     ) -> Action {
-        if let Some(Lifecycle::Animate(delta)) = message.get()
-            && *is_animating
+        if let Some(AnimateMessage(delta)) = message.take(state.view_id)
+            && state.is_animating
         {
-            let should_animate = A::animate(state, data, *delta);
-            let view = A::view(state, data);
+            let should_animate = A::animate(&mut state.anim, data, delta);
+            let view = A::view(&state.anim, data);
 
-            view.rebuild(element.reborrow(), contents, cx, data);
+            let widget = WidgetMut::new(
+                element.parent,
+                element.widget.contents(),
+            );
 
-            if *is_animating != should_animate {
+            view.rebuild(widget, &mut state.state, cx, data);
+
+            if state.is_animating != should_animate {
                 match should_animate {
                     true => cx.request_start_animating(),
                     false => cx.request_stop_animating(),
                 }
 
-                *is_animating = should_animate;
+                state.is_animating = should_animate;
             }
+
+            return Action::new();
         }
 
-        A::View::message(element, contents, cx, data, message)
+        let widget = WidgetMut::new(
+            element.parent,
+            element.widget.contents(),
+        );
+
+        A::View::message(
+            widget,
+            &mut state.state,
+            cx,
+            data,
+            message,
+        )
     }
 
-    fn teardown(
-        element: Self::Element,
-        (_state, is_animating, contents): Self::State,
-        cx: &mut Context<P>,
-    ) {
-        A::View::teardown(element, contents, cx);
+    fn teardown(element: Self::Element, state: Self::State, cx: &mut Context<P>) {
+        let contents = element.teardown();
+        A::View::teardown(contents, state.state, cx);
+        cx.unregister(state.view_id);
 
-        if is_animating {
+        if state.is_animating {
             cx.request_stop_animating();
         }
     }
+}
+
+pub struct AnimateState<P, T, A>
+where
+    P: Platform,
+    A: Animation<T>,
+    A::View: WidgetView<P, T>,
+{
+    view_id: ViewId,
+    anim:    A::State,
+    state:   State<A, P, T>,
+
+    is_animating: bool,
 }

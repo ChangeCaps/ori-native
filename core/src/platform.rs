@@ -1,7 +1,7 @@
 use ori::Proxied;
 
 use crate::{
-    NativeParent, NativeWidget,
+    NativeWidget,
     native::{
         NativeGroup, NativeImage, NativeMeasure, NativePressable, NativeScroll, NativeText,
         NativeTextInput, NativeTransform, NativeWindow,
@@ -51,16 +51,7 @@ impl<P> NativeWidget<P> for Unsupported
 where
     P: Platform,
 {
-    fn widget_ref(&self) -> &P::WidgetRef {
-        unreachable!()
-    }
-}
-
-impl<P> NativeParent<P> for Unsupported
-where
-    P: Platform,
-{
-    fn replace_child(&mut self, _platform: &mut P, _index: usize, _child: &P::WidgetRef) {
+    fn widget_ref(&self) -> P::WidgetRef {
         unreachable!()
     }
 }

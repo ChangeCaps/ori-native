@@ -1,26 +1,12 @@
-use glib::subclass::types::ObjectSubclassIsExt;
+use glib::{object::Cast, subclass::types::ObjectSubclassIsExt};
 use gtk4::prelude::{AccessibleExt, WidgetExt};
-use ori_native_core::{
-    Color, Corners, NativeParent, NativeWidget, Overflow, Shadow, Sides, native::NativeGroup,
-};
+use ori_native_core::{Color, Corners, NativeWidget, Overflow, Shadow, Sides, native::NativeGroup};
 
 use crate::Platform;
 
 impl NativeWidget<Platform> for Group {
-    fn widget_ref(&self) -> &gtk4::Widget {
-        self.as_ref()
-    }
-}
-
-impl NativeParent<Platform> for Group {
-    fn replace_child(&mut self, _platform: &mut Platform, index: usize, child: &gtk4::Widget) {
-        let mut children = self.imp().children.borrow_mut();
-
-        if let Some(current) = children.get_mut(index) {
-            child.insert_after(self, Some(&current.widget));
-            current.widget.unparent();
-            current.widget = child.clone();
-        }
+    fn widget_ref(&self) -> gtk4::Widget {
+        self.clone().upcast()
     }
 }
 
@@ -33,7 +19,7 @@ impl NativeGroup<Platform> for Group {
 
     fn teardown(self, _platform: &mut Platform) {}
 
-    fn insert_child(&mut self, _platform: &mut Platform, index: usize, child: &gtk4::Widget) {
+    fn insert_child(&mut self, _platform: &mut Platform, index: usize, child: gtk4::Widget) {
         let mut children = self.imp().children.borrow_mut();
 
         if let Some(current) = children.get(index) {
@@ -55,6 +41,16 @@ impl NativeGroup<Platform> for Group {
     fn remove_child(&mut self, _platform: &mut Platform, index: usize) {
         let child = self.imp().children.borrow_mut().remove(index);
         child.widget.unparent();
+    }
+
+    fn replace_child(&mut self, _platform: &mut Platform, index: usize, child: gtk4::Widget) {
+        let mut children = self.imp().children.borrow_mut();
+
+        if let Some(current) = children.get_mut(index) {
+            child.insert_after(self, Some(&current.widget));
+            current.widget.unparent();
+            current.widget = child.clone();
+        }
     }
 
     fn swap_children(&mut self, _platform: &mut Platform, index_a: usize, index_b: usize) {

@@ -3,6 +3,7 @@ mod color;
 mod layout;
 mod overflow;
 mod shadow;
+mod textinput;
 mod transform;
 mod window;
 
@@ -14,5 +15,6 @@ pub use layout::{
 };
 pub use overflow::Overflow;
 pub use shadow::Shadow;
+pub use textinput::Newline;
 pub use transform::Affine;
 pub use window::Sizing;

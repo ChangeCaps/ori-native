@@ -3,7 +3,7 @@ use jni::{
     objects::{JObject, JString},
 };
 use ori_native_core::{
-    AvailableSpace, Font, Measurable, NativeWidget, Size, native::NativeTextInput, views::Newline,
+    AvailableSpace, Font, Measurable, NativeWidget, Newline, Size, native::NativeTextInput,
 };
 
 use crate::{
@@ -17,8 +17,8 @@ pub struct TextInput {
 }
 
 impl NativeWidget<Platform> for TextInput {
-    fn widget_ref(&self) -> &WidgetId {
-        &self.id
+    fn widget_ref(&self) -> WidgetId {
+        self.id
     }
 }
 

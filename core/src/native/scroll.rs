@@ -1,21 +1,22 @@
-use crate::{
-    Direction, NativeWidget, Platform, Unsupported, element::NativeParent, platform::unsupported,
-};
+use crate::{Direction, NativeWidget, Platform, Unsupported, platform::unsupported};
 
 /// A native scroll widget.
-pub trait NativeScroll<P>: NativeWidget<P> + NativeParent<P>
+pub trait NativeScroll<P>: NativeWidget<P>
 where
     P: Platform,
 {
     /// Build a scroll widget.
     fn build(
         platform: &mut P,
-        contents: &P::WidgetRef,
+        contents: P::WidgetRef,
         on_scroll: impl Fn(f32, f32) + 'static,
     ) -> Self;
 
     /// Teardown the widget.
     fn teardown(self, platform: &mut P);
+
+    /// Replace the contents.
+    fn replace_contents(&mut self, platform: &mut P, contents: P::WidgetRef);
 
     /// Set the size of the contents.
     fn set_content_size(&mut self, platform: &mut P, width: f32, height: f32);
@@ -33,13 +34,17 @@ where
 {
     fn build(
         _platform: &mut P,
-        _contents: &P::WidgetRef,
+        _contents: P::WidgetRef,
         _on_scroll: impl Fn(f32, f32) + 'static,
     ) -> Self {
         unsupported!("scroll view")
     }
 
     fn teardown(self, _platform: &mut P) {
+        unreachable!()
+    }
+
+    fn replace_contents(&mut self, _platform: &mut P, _contents: P::WidgetRef) {
         unreachable!()
     }
 

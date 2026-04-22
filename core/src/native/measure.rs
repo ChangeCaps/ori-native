@@ -1,16 +1,19 @@
-use crate::{NativeParent, NativeWidget, Platform, Unsupported, platform::unsupported};
+use crate::{NativeWidget, Platform, Unsupported, platform::unsupported};
 
 /// A native widget that measures its global position.
-pub trait NativeMeasure<P>: NativeParent<P> + NativeWidget<P>
+pub trait NativeMeasure<P>: NativeWidget<P>
 where
     P: Platform,
 {
     /// Build a measure, with callback called when global position changes.
     fn build(
         platform: &mut P,
-        contents: &P::WidgetRef,
+        contents: P::WidgetRef,
         on_position_changed: impl Fn(f32, f32) + 'static,
     ) -> Self;
+
+    /// Replace the contents.
+    fn replace_contents(&mut self, platform: &mut P, contents: P::WidgetRef);
 
     /// Teardown the widget.
     fn teardown(self, platform: &mut P);
@@ -25,10 +28,14 @@ where
 {
     fn build(
         _platform: &mut P,
-        _contents: &P::WidgetRef,
+        _contents: P::WidgetRef,
         _on_position_changed: impl Fn(f32, f32) + 'static,
     ) -> Self {
         unsupported!("measure view")
+    }
+
+    fn replace_contents(&mut self, _platform: &mut P, _contents: P::WidgetRef) {
+        unreachable!()
     }
 
     fn teardown(self, _platform: &mut P) {

@@ -2,8 +2,8 @@ use ori::{Action, Message, Mut, View, ViewMarker};
 
 use crate::{
     Border, BorderStyle, Color, Context, Corners, Direction, FlexContainer, FlexStyle, Layout,
-    LayoutStyle, Length, Lifecycle, Overflow, Padding, Platform, Pod, Shadow, Sides, Size,
-    WidgetViewSeq, native::Group,
+    LayoutStyle, Length, Overflow, Padding, Platform, Shadow, Sides, WidgetViewSeq,
+    widgets::GroupWidget,
 };
 
 /// Container [`View`] with flexbox layout.
@@ -167,27 +167,22 @@ where
     P: Platform,
     V: WidgetViewSeq<P, T>,
 {
-    type Element = Pod<P, Group<P>>;
+    type Element = GroupWidget<P>;
     type State = FlexState<P, T, V>;
 
     fn build(self, cx: &mut Context<P>, data: &mut T) -> (Self::Element, Self::State) {
-        let node = cx.layout.add_node(&[]);
-        cx.layout.set_layout(node, self.layout);
-        cx.layout.set_border(node, self.border);
-        cx.layout.set_padding(node, self.padding);
-        cx.layout.set_overflow(node, Size::all(self.overflow));
-        cx.layout.set_flex(node, self.flex);
-
-        let mut group = Group::new(cx);
+        let mut group = GroupWidget::new(cx);
         group.set_background(cx, self.background);
-        group.set_border_color(cx, self.border.color);
         group.set_corners(cx, self.corners);
         group.set_overflow(cx, self.overflow);
         group.set_shadow(cx, self.shadow);
         group.set_hardware_layer(cx, self.hardware_layer);
+        group.set_layout(cx, self.layout);
+        group.set_padding(cx, self.padding);
+        group.set_border(cx, self.border);
+        group.set_flex(cx, self.flex);
 
-        let state = self.contents.seq_build(&mut group.elements(node), cx, data);
-        let pod = Pod::new(node, group);
+        let state = self.contents.seq_build(&mut group.elements(), cx, data);
 
         let state = FlexState {
             state,
@@ -202,91 +197,83 @@ where
             hardware_layer: self.hardware_layer,
         };
 
-        (pod, state)
+        (group, state)
     }
 
     fn rebuild(
         self,
-        element: Mut<'_, Self::Element>,
+        mut element: Mut<'_, Self::Element>,
         state: &mut Self::State,
         cx: &mut Context<P>,
         data: &mut T,
     ) {
-        if state.layout != self.layout {
-            state.layout = self.layout;
-            (cx.layout).set_layout(*element.layout, self.layout);
-        }
-
-        if state.padding != self.padding {
-            state.padding = self.padding;
-            (cx.layout).set_padding(*element.layout, self.padding);
-        }
-
-        if state.overflow != self.overflow {
-            state.overflow = self.overflow;
-            (cx.layout).set_overflow(
-                *element.layout,
-                Size::all(self.overflow),
-            );
-        }
-
-        if state.flex != self.flex {
-            state.flex = self.flex;
-            (cx.layout).set_flex(*element.layout, self.flex);
-        }
-
-        if state.border != self.border {
-            state.border = self.border;
-            (cx.layout).set_border(*element.layout, self.border);
-            (element.widget).set_border_color(cx, self.border.color);
-        }
-
-        if state.background != self.background {
-            state.background = self.background;
-            (element.widget).set_background(cx, self.background);
-        }
-
-        if state.corners != self.corners {
-            state.corners = self.corners;
-            (element.widget).set_corners(cx, self.corners);
-        }
-
-        if state.overflow != self.overflow {
-            state.overflow = self.overflow;
-            (element.widget).set_overflow(cx, self.overflow);
-        }
-
-        if state.shadow != self.shadow {
-            state.shadow = self.shadow;
-            (element.widget).set_shadow(cx, self.shadow);
-        }
-
-        if state.hardware_layer != self.hardware_layer {
-            state.hardware_layer = self.hardware_layer;
-            (element.widget).set_hardware_layer(cx, self.hardware_layer);
-        }
-
         self.contents.seq_rebuild(
-            &mut element.widget.elements(*element.layout),
+            &mut element.elements(),
             &mut state.state,
             cx,
             data,
         );
+
+        if state.layout != self.layout {
+            state.layout = self.layout;
+            element.set_layout(cx, self.layout);
+        }
+
+        if state.padding != self.padding {
+            state.padding = self.padding;
+            element.set_padding(cx, self.padding);
+        }
+
+        if state.overflow != self.overflow {
+            state.overflow = self.overflow;
+            element.set_overflow(cx, self.overflow);
+        }
+
+        if state.flex != self.flex {
+            state.flex = self.flex;
+            element.set_flex(cx, self.flex);
+        }
+
+        if state.border != self.border {
+            state.border = self.border;
+            element.set_border(cx, self.border);
+        }
+
+        if state.background != self.background {
+            state.background = self.background;
+            element.set_background(cx, self.background);
+        }
+
+        if state.corners != self.corners {
+            state.corners = self.corners;
+            element.set_corners(cx, self.corners);
+        }
+
+        if state.overflow != self.overflow {
+            state.overflow = self.overflow;
+            element.set_overflow(cx, self.overflow);
+        }
+
+        if state.shadow != self.shadow {
+            state.shadow = self.shadow;
+            element.set_shadow(cx, self.shadow);
+        }
+
+        if state.hardware_layer != self.hardware_layer {
+            state.hardware_layer = self.hardware_layer;
+            element.set_hardware_layer(cx, self.hardware_layer);
+        }
     }
 
     fn message(
-        element: Mut<'_, Self::Element>,
+        mut element: Mut<'_, Self::Element>,
         state: &mut Self::State,
         cx: &mut Context<P>,
         data: &mut T,
         message: &mut Message,
     ) -> Action {
-        if let Some(Lifecycle::Layout) = message.get() {
-            element.widget.layout(cx, *element.layout);
-        }
-
         V::seq_message(
-            &mut element.widget.elements(*element.layout),
+            &mut element.elements(),
             &mut state.state,
             cx,
             data,
@@ -295,14 +282,8 @@ where
     }
 
     fn teardown(mut element: Self::Element, state: Self::State, cx: &mut Context<P>) {
-        V::seq_teardown(
-            &mut element.widget.elements(element.layout),
-            state.state,
-            cx,
-        );
-
-        element.widget.teardown(cx);
-        cx.layout.remove_node(element.layout);
+        V::seq_teardown(&mut element.elements(), state.state, cx);
+        element.teardown(cx);
     }
 }
 

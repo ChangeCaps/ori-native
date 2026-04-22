@@ -1,7 +1,5 @@
 use jni::{jni_sig, jni_str};
-use ori_native_core::{
-    Color, Corners, NativeParent, NativeWidget, Overflow, Shadow, Sides, native::NativeGroup,
-};
+use ori_native_core::{Color, Corners, NativeWidget, Overflow, Shadow, Sides, native::NativeGroup};
 
 use crate::{Platform, platform::WidgetId};
 
@@ -10,30 +8,8 @@ pub struct Group {
 }
 
 impl NativeWidget<Platform> for Group {
-    fn widget_ref(&self) -> &WidgetId {
-        &self.id
-    }
-}
-
-impl NativeParent<Platform> for Group {
-    fn replace_child(&mut self, platform: &mut Platform, index: usize, child: &WidgetId) {
-        let _ = platform.jni(|env, activity| {
-            env.call_method(
-                activity,
-                jni_str!("groupRemove"),
-                jni_sig!((long, int)),
-                &[self.id.into(), (index as i32).into()],
-            )?
-            .v()?;
-
-            env.call_method(
-                activity,
-                jni_str!("groupInsert"),
-                jni_sig!((long, int, long)),
-                &[self.id.into(), (index as i32).into(), child.into()],
-            )?
-            .v()
-        });
+    fn widget_ref(&self) -> WidgetId {
+        self.id
     }
 }
 
@@ -58,7 +34,7 @@ impl NativeGroup<Platform> for Group {
         platform.remove_widget(self.id);
     }
 
-    fn insert_child(&mut self, platform: &mut Platform, index: usize, child: &WidgetId) {
+    fn insert_child(&mut self, platform: &mut Platform, index: usize, child: WidgetId) {
         let _ = platform.jni(|env, activity| {
             env.call_method(
                 activity,
@@ -77,6 +53,26 @@ impl NativeGroup<Platform> for Group {
                 jni_str!("groupRemove"),
                 jni_sig!((long, int)),
                 &[self.id.into(), (index as i32).into()],
+            )?
+            .v()
+        });
+    }
+
+    fn replace_child(&mut self, platform: &mut Platform, index: usize, child: WidgetId) {
+        let _ = platform.jni(|env, activity| {
+            env.call_method(
+                activity,
+                jni_str!("groupRemove"),
+                jni_sig!((long, int)),
+                &[self.id.into(), (index as i32).into()],
+            )?
+            .v()?;
+
+            env.call_method(
+                activity,
+                jni_str!("groupInsert"),
+                jni_sig!((long, int, long)),
+                &[self.id.into(), (index as i32).into(), child.into()],
             )?
             .v()
         });

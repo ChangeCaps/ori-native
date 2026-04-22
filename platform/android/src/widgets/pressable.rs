@@ -1,6 +1,6 @@
 use jni::{EnvUnowned, jni_sig, jni_str, objects::JObject};
 use ori_native_core::{
-    Key, Modifiers, NativeParent, NativeWidget,
+    Key, Modifiers, NativeWidget,
     native::{NativePressable, Press},
 };
 
@@ -15,29 +15,15 @@ pub struct Pressable {
 }
 
 impl NativeWidget<Platform> for Pressable {
-    fn widget_ref(&self) -> &WidgetId {
-        &self.id
-    }
-}
-
-impl NativeParent<Platform> for Pressable {
-    fn replace_child(&mut self, platform: &mut Platform, _index: usize, child: &WidgetId) {
-        let _ = platform.jni(|env, activity| {
-            env.call_method(
-                activity,
-                jni_str!("pressableSetContents"),
-                jni_sig!((long, long)),
-                &[self.id.into(), child.into()],
-            )?
-            .v()
-        });
+    fn widget_ref(&self) -> WidgetId {
+        self.id
     }
 }
 
 impl NativePressable<Platform> for Pressable {
     fn build(
         platform: &mut Platform,
-        contents: &WidgetId,
+        contents: WidgetId,
         on_press: impl Fn(Press) + 'static,
         _on_hover: impl Fn(bool) + 'static,
         _on_focus: impl Fn(bool) + 'static,
@@ -72,6 +58,18 @@ impl NativePressable<Platform> for Pressable {
 
     fn teardown(self, platform: &mut Platform) {
         platform.remove_widget(self.id);
+    }
+
+    fn replace_contents(&mut self, platform: &mut Platform, contents: WidgetId) {
+        let _ = platform.jni(|env, activity| {
+            env.call_method(
+                activity,
+                jni_str!("pressableSetContents"),
+                jni_sig!((long, long)),
+                &[self.id.into(), contents.into()],
+            )?
+            .v()
+        });
     }
 
     fn set_content_size(&mut self, platform: &mut Platform, width: f32, height: f32) {

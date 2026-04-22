@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use ori::{Action, Message, Mut, View, ViewMarker};
 
-use crate::{Color, Context, Layout, LayoutStyle, Platform, Pod, native::NativeImage};
+use crate::{Color, Context, Layout, LayoutStyle, Platform, widgets::ImageWidget};
 
 /// [`View`] of an image.
 pub fn image(data: impl Into<Cow<'static, [u8]>>) -> Image {
@@ -46,46 +46,37 @@ impl<P, T> View<Context<P>, T> for Image
 where
     P: Platform,
 {
-    type Element = Pod<P, P::Image>;
+    type Element = ImageWidget<P>;
     type State = ImageState;
 
     fn build(self, cx: &mut Context<P>, _data: &mut T) -> (Self::Element, Self::State) {
-        let mut widget = P::Image::build(&mut cx.platform);
-        widget.set_tint(&mut cx.platform, self.tint);
+        let mut widget = ImageWidget::new(cx);
+        widget.set_tint(cx, self.tint);
 
         let hash = seahash::hash(&self.data);
-        let node = match widget.load_data(&mut cx.platform, self.data) {
-            Ok(layout) => cx.layout.add_leaf(layout),
-
-            Err(error) => {
-                tracing::error!(?error, "loading image failed");
-                cx.layout.add_node(&[])
-            }
-        };
-
-        cx.layout.set_layout(node, self.layout);
-
-        let pod = Pod::new(node, widget);
+        if let Err(error) = widget.load_data(cx, self.data) {
+            tracing::error!(?error, "loading image failed");
+        }
 
         let state = ImageState {
-            layout: self.layout,
             hash,
             tint: self.tint,
+            layout: self.layout,
         };
 
-        (pod, state)
+        (widget, state)
     }
 
     fn rebuild(
         self,
-        element: Mut<'_, Self::Element>,
+        mut element: Mut<'_, Self::Element>,
         state: &mut Self::State,
         cx: &mut Context<P>,
         _data: &mut T,
     ) {
         if state.layout != self.layout {
             state.layout = self.layout;
-            cx.layout.set_layout(*element.layout, self.layout);
+            element.set_layout(cx, self.layout);
         }
 
         let hash = seahash::hash(&self.data);
@@ -93,18 +84,14 @@ where
         if state.hash != hash {
             state.hash = hash;
 
-            match element.widget.load_data(&mut cx.platform, self.data) {
-                Ok(layout) => {
-                    cx.layout.set_measure(*element.layout, layout);
-                }
-
-                Err(error) => tracing::error!(?error, "loading image failed"),
+            if let Err(error) = element.load_data(cx, self.data) {
+                tracing::error!(?error, "loading image failed");
             }
         }
 
         if state.tint != self.tint {
             state.tint = self.tint;
-            element.widget.set_tint(&mut cx.platform, self.tint);
+            element.set_tint(cx, self.tint);
         }
     }
 
@@ -119,12 +106,12 @@ where
     }
 
     fn teardown(element: Self::Element, _state: Self::State, cx: &mut Context<P>) {
-        element.widget.teardown(&mut cx.platform);
+        element.teardown(cx);
     }
 }
 
 pub struct ImageState {
-    layout: LayoutStyle,
     hash:   u64,
     tint:   Option<Color>,
+    layout: LayoutStyle,
 }

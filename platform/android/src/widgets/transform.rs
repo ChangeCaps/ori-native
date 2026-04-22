@@ -1,5 +1,5 @@
 use jni::{jni_sig, jni_str};
-use ori_native_core::{Affine, NativeParent, NativeWidget, native::NativeTransform};
+use ori_native_core::{Affine, NativeWidget, native::NativeTransform};
 
 use crate::{Platform, platform::WidgetId};
 
@@ -8,27 +8,13 @@ pub struct Transform {
 }
 
 impl NativeWidget<Platform> for Transform {
-    fn widget_ref(&self) -> &WidgetId {
-        &self.id
-    }
-}
-
-impl NativeParent<Platform> for Transform {
-    fn replace_child(&mut self, platform: &mut Platform, _index: usize, child: &WidgetId) {
-        let _ = platform.jni(|env, activity| {
-            env.call_method(
-                activity,
-                jni_str!("transformSetContents"),
-                jni_sig!((long, long)),
-                &[self.id.into(), child.into()],
-            )?
-            .v()
-        });
+    fn widget_ref(&self) -> WidgetId {
+        self.id
     }
 }
 
 impl NativeTransform<Platform> for Transform {
-    fn build(platform: &mut Platform, contents: &WidgetId) -> Self {
+    fn build(platform: &mut Platform, contents: WidgetId) -> Self {
         let id = platform.next_id();
 
         let _ = platform.jni(|env, activity| {
@@ -54,6 +40,18 @@ impl NativeTransform<Platform> for Transform {
 
     fn teardown(self, platform: &mut Platform) {
         platform.remove_widget(self.id);
+    }
+
+    fn replace_contents(&mut self, platform: &mut Platform, contents: WidgetId) {
+        let _ = platform.jni(|env, activity| {
+            env.call_method(
+                activity,
+                jni_str!("transformSetContents"),
+                jni_sig!((long, long)),
+                &[self.id.into(), contents.into()],
+            )?
+            .v()
+        });
     }
 
     fn set_content_transform(

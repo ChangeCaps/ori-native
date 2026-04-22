@@ -1,7 +1,7 @@
 use std::{borrow::Cow, io};
 
 use gdk4::{gdk_pixbuf::prelude::PixbufLoaderExt, prelude::PaintableExt};
-use glib::subclass::types::ObjectSubclassIsExt;
+use glib::{object::Cast, subclass::types::ObjectSubclassIsExt};
 use librsvg::prelude::HandleExt;
 use ori_native_core::{AvailableSpace, Color, Measurable, NativeWidget, Size, native::NativeImage};
 
@@ -14,8 +14,8 @@ pub struct Image {
 }
 
 impl NativeWidget<Platform> for Image {
-    fn widget_ref(&self) -> &gtk4::Widget {
-        self.picture.as_ref()
+    fn widget_ref(&self) -> gtk4::Widget {
+        self.picture.clone().upcast()
     }
 }
 

@@ -3,26 +3,13 @@ use std::borrow::Cow;
 use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarker};
 
 use crate::{
-    Color, Context, Font, Layout, LayoutStyle, Platform, Pod, Stretch, Weight,
-    native::NativeTextInput,
+    Color, Context, Font, Layout, LayoutStyle, Newline, Platform, Stretch, Weight,
+    widgets::TextInputWidget,
 };
 
 /// [`View`] of a text input.
 pub fn textinput<T>() -> TextInput<T> {
     TextInput::new()
-}
-
-/// Behaviour of newlines.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Newline {
-    /// Newlines are never inserted.
-    None,
-
-    /// Newlines are inserted when `enter` is pressed.
-    Enter,
-
-    /// Newlines are inserted when `enter` is pressed while `shift` is held.
-    ShiftEnter,
 }
 
 /// [`View`] of a text input.
@@ -217,7 +204,7 @@ impl<P, T> View<Context<P>, T> for TextInput<T>
 where
     P: Platform + Proxied,
 {
-    type Element = Pod<P, P::TextInput>;
+    type Element = TextInputWidget<P>;
     type State = TextInputState<T>;
 
     fn build(self, cx: &mut Context<P>, _data: &mut T) -> (Self::Element, Self::State) {
@@ -246,30 +233,21 @@ where
             }
         };
 
-        let mut widget = P::TextInput::build(&mut cx.platform, on_change, on_submit);
-        widget.set_font(&mut cx.platform, self.font.clone());
+        let mut widget = TextInputWidget::new(cx, on_change, on_submit);
+        widget.set_layout(cx, self.layout);
+        widget.set_font(cx, self.font.clone());
 
         if let Some(text) = self.text.clone() {
-            widget.set_text(&mut cx.platform, text);
+            widget.set_text(cx, text);
         }
 
-        widget.set_placeholder_font(
-            &mut cx.platform,
-            self.placeholder_font.clone(),
-        );
-        widget.set_placeholder_text(
-            &mut cx.platform,
-            self.placeholder_text.clone(),
-        );
+        widget.set_placeholder_font(cx, self.placeholder_font.clone());
+        widget.set_placeholder_text(cx, self.placeholder_text.clone());
+        widget.update_layout(cx);
 
-        widget.set_newline(&mut cx.platform, self.newline);
-        widget.set_accept_tab(&mut cx.platform, self.accept_tab);
+        widget.set_newline(cx, self.newline);
+        widget.set_accept_tab(cx, self.accept_tab);
 
-        let layout = widget.get_measureable(&mut cx.platform);
-        let node = cx.layout.add_leaf(layout);
-        cx.layout.set_layout(node, self.layout);
-
-        let pod = Pod::new(node, widget);
         let state = TextInputState {
             layout: self.layout,
 
@@ -287,26 +265,26 @@ where
             on_submit: self.on_submit,
         };
 
-        (pod, state)
+        (widget, state)
     }
 
     fn rebuild(
         self,
-        element: Mut<'_, Self::Element>,
+        mut element: Mut<'_, Self::Element>,
         state: &mut Self::State,
         cx: &mut Context<P>,
         _data: &mut T,
     ) {
         if state.layout != self.layout {
             state.layout = self.layout;
-            cx.layout.set_layout(*element.layout, self.layout);
+            element.set_layout(cx, self.layout);
         }
 
         let mut changed = false;
 
         if state.font != self.font {
             state.font = self.font.clone();
-            element.widget.set_font(&mut cx.platform, self.font);
+            element.set_font(cx, self.font);
             changed |= true;
         }
 
@@ -314,39 +292,34 @@ where
             && state.text != text
         {
             state.text = text.clone();
-            element.widget.set_text(&mut cx.platform, text);
+            element.set_text(cx, text);
             changed |= true;
         }
 
         if state.placeholder_font != self.placeholder_font {
             state.placeholder_font = self.placeholder_font.clone();
-            element
-                .widget
-                .set_font(&mut cx.platform, self.placeholder_font);
+            element.set_font(cx, self.placeholder_font);
             changed |= true;
         }
 
         if state.placeholder_text != self.placeholder_text {
             state.placeholder_text = self.placeholder_text.clone();
-            (element.widget).set_placeholder_text(&mut cx.platform, self.placeholder_text);
+            element.set_placeholder_text(cx, self.placeholder_text);
             changed |= true;
         }
 
         if state.newline != self.newline {
             state.newline = self.newline;
-            element.widget.set_newline(&mut cx.platform, self.newline);
+            element.set_newline(cx, self.newline);
         }
 
         if state.accept_tab != self.accept_tab {
             state.accept_tab = self.accept_tab;
-            element
-                .widget
-                .set_accept_tab(&mut cx.platform, self.accept_tab);
+            element.set_accept_tab(cx, self.accept_tab);
         }
 
         if changed {
-            let layout = element.widget.get_measureable(&mut cx.platform);
-            cx.layout.set_measure(*element.layout, layout);
+            element.update_layout(cx);
         }
 
         state.on_change = self.on_change;
@@ -375,8 +348,7 @@ where
     }
 
     fn teardown(element: Self::Element, state: Self::State, cx: &mut Context<P>) {
-        element.widget.teardown(&mut cx.platform);
-        cx.layout.remove_node(element.layout);
+        element.teardown(cx);
         cx.unregister(state.view_id);
     }
 }

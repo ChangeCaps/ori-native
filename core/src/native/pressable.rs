@@ -1,16 +1,16 @@
 use keyboard_types::{Key, Modifiers};
 
-use crate::{NativeParent, NativeWidget, Platform, Unsupported, platform::unsupported};
+use crate::{NativeWidget, Platform, Unsupported, platform::unsupported};
 
 /// A native widget that receives pointer input and focus.
-pub trait NativePressable<P>: NativeWidget<P> + NativeParent<P>
+pub trait NativePressable<P>: NativeWidget<P>
 where
     P: Platform,
 {
     /// Build a pressable.
     fn build(
         platform: &mut P,
-        contents: &P::WidgetRef,
+        contents: P::WidgetRef,
         on_press: impl Fn(Press) + 'static,
         on_hover: impl Fn(bool) + 'static,
         on_focus: impl Fn(bool) + 'static,
@@ -18,6 +18,9 @@ where
 
     /// Teardown the widget.
     fn teardown(self, platform: &mut P);
+
+    /// Replace the contents;
+    fn replace_contents(&mut self, platform: &mut P, contents: P::WidgetRef);
 
     /// Set the size of the contents.
     fn set_content_size(&mut self, platform: &mut P, width: f32, height: f32);
@@ -49,7 +52,7 @@ where
 {
     fn build(
         _platform: &mut P,
-        _contents: &P::WidgetRef,
+        _contents: P::WidgetRef,
         _on_press: impl Fn(Press) + 'static,
         _on_hover: impl Fn(bool) + 'static,
         _on_focus: impl Fn(bool) + 'static,
@@ -58,6 +61,10 @@ where
     }
 
     fn teardown(self, _platform: &mut P) {
+        unreachable!()
+    }
+
+    fn replace_contents(&mut self, _platform: &mut P, _contents: P::WidgetRef) {
         unreachable!()
     }
 

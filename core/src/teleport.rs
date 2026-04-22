@@ -1,81 +1,174 @@
-use ori::{Message, Mut, Split, Teleportable};
+use std::{
+    any::Any,
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
-use crate::{Context, Lifecycle, NativeWidget, Platform, Pod, PodMut, native::NativeGroup};
+use ori::{Element, Split, Teleportable};
+
+use crate::{
+    Allocation, BoxedWidget, Context, LayoutNode, NativeWidget, Parent, Platform, Widget,
+    native::NativeGroup, widget::WidgetMut,
+};
 
 impl<P> Teleportable for Context<P>
 where
     P: Platform,
 {
-    type Left = Pod<P, WidgetProxy<P>>;
+    type Left = SplitWidget<P>;
 }
 
-pub struct WidgetProxy<P>(P::WidgetRef)
-where
-    P: Platform;
-
-impl<P> NativeWidget<P> for WidgetProxy<P>
+impl<P, T> Split<T> for Context<P>
 where
     P: Platform,
+    T: Widget<P>,
+    T: for<'a> Element<Mut<'a> = WidgetMut<'a, P, T>>,
 {
-    fn widget_ref(&self) -> &P::WidgetRef {
-        &self.0
-    }
-}
+    type Right = SplitWidget<P>;
 
-impl<P, T> Split<Context<P>> for Pod<P, T>
-where
-    P: Platform,
-    T: NativeWidget<P>,
-{
-    type Right = PodRight<P, T>;
-
-    fn split(self, cx: &mut Context<P>) -> (Pod<P, WidgetProxy<P>>, Self::Right) {
+    fn split(cx: &mut Self, widget: T) -> (Self::Left, Self::Right) {
+        let boxed: BoxedWidget<P> = Box::new(widget);
         let mut group = P::Group::build(&mut cx.platform);
-        group.insert_child(&mut cx.platform, 0, self.widget_ref());
+        group.insert_child(&mut cx.platform, 0, boxed.widget_ref());
 
-        let proxy = WidgetProxy::<P>(group.widget_ref().clone());
-        let left = Pod::new(self.layout, proxy);
-        let right = PodRight { group, pod: self };
+        let inner = SplitWidgetInner {
+            group,
+            boxed,
+            allocation: None,
+        };
+
+        let shared = Arc::new(Mutex::new(Some(inner)));
+
+        let left = SplitWidget {
+            inner: shared.clone(),
+        };
+
+        let right = SplitWidget { inner: shared };
 
         (left, right)
     }
 
-    fn as_mut<'a>(right: &'a mut Self::Right, _cx: &mut Context<P>) -> Mut<'a, Self> {
-        PodMut {
-            parent_layout: None,
-            parent_widget: &mut right.group,
-            widget_index:  0,
+    fn with_mut<U>(
+        right: &mut Self::Right,
+        cx: &mut Self,
+        f: impl FnOnce(&mut Self, T::Mut<'_>) -> U,
+    ) -> U {
+        let inner = &mut *right.inner.lock().expect("locking should not fail");
+        let inner = inner.as_mut().expect("should be some until teardown");
 
-            layout: &mut right.pod.layout,
-            widget: &mut right.pod.widget,
-        }
+        let mut parent = SplitWidgetParent {
+            group:  &mut inner.group,
+            layout: inner.boxed.layout_node(),
+        };
+
+        let contents = <dyn Any>::downcast_mut(inner.boxed.as_mut())
+            .expect("split widget was created with widget of type `T`");
+
+        let widget = WidgetMut::new(&mut parent, contents);
+
+        f(cx, widget)
     }
 
-    fn message(right: &mut Self::Right, cx: &mut Context<P>, message: &mut Message) {
-        if let Some(Lifecycle::Layout) = message.get()
-            && let Some(allocation) = cx.layout.get_allocation(right.pod.layout)
-        {
-            right.group.set_child_layout(
-                &mut cx.platform,
-                0,
-                0.0,
-                0.0,
-                allocation.size.width,
-                allocation.size.height,
-            );
-        }
-    }
+    fn teardown(right: Self::Right, cx: &mut Self) -> T {
+        let inner = &mut *right.inner.lock().expect("locking should not fail");
+        let inner = inner.take().expect("should be some until teardown");
+        inner.group.teardown(&mut cx.platform);
 
-    fn teardown(right: Self::Right, cx: &mut Context<P>) -> Self {
-        right.group.teardown(&mut cx.platform);
-        right.pod
+        *Box::<dyn Any>::downcast(inner.boxed)
+            .expect("split widget was created with widget of type `T`")
     }
 }
 
-pub struct PodRight<P, T>
+pub struct SplitWidget<P>
+where
+    P: Platform,
+{
+    inner: Arc<Mutex<Option<SplitWidgetInner<P>>>>,
+}
+
+struct SplitWidgetInner<P>
 where
     P: Platform,
 {
     group: P::Group,
-    pod:   Pod<P, T>,
+    boxed: BoxedWidget<P>,
+
+    allocation: Option<Allocation>,
+}
+
+impl<P> Widget<P> for SplitWidget<P>
+where
+    P: Platform,
+{
+    fn widget_ref(&self) -> P::WidgetRef {
+        let inner = self.inner.lock().expect("locking should not fail");
+        let inner = inner.as_ref().expect("should be Some");
+
+        inner.group.widget_ref()
+    }
+
+    fn layout_node(&self) -> LayoutNode {
+        let inner = self.inner.lock().expect("locking should not fail");
+        let inner = inner.as_ref().expect("should be Some");
+
+        inner.boxed.layout_node()
+    }
+
+    fn layout(&mut self, cx: &mut Context<P>) {
+        let mut inner = self.inner.lock().expect("locking should not fail");
+
+        if let Some(inner) = inner.as_mut() {
+            if let Some(allocation) = cx.layout.get_allocation(inner.boxed.layout_node())
+                && inner.allocation != Some(allocation)
+            {
+                inner.allocation = Some(allocation);
+                inner.group.set_child_layout(
+                    &mut cx.platform,
+                    0,
+                    0.0,
+                    0.0,
+                    allocation.size.width,
+                    allocation.size.height,
+                );
+            }
+
+            inner.boxed.layout(cx);
+        }
+    }
+
+    fn animate(&mut self, cx: &mut Context<P>, dt: Duration) {
+        let mut inner = self.inner.lock().expect("locking should not fail");
+
+        if let Some(inner) = inner.as_mut() {
+            inner.boxed.animate(cx, dt);
+        }
+    }
+}
+
+impl<P> Element for SplitWidget<P>
+where
+    P: Platform,
+{
+    type Mut<'a>
+        = WidgetMut<'a, P, Self>
+    where
+        Self: 'a;
+}
+
+struct SplitWidgetParent<'a, P>
+where
+    P: Platform,
+{
+    group:  &'a mut P::Group,
+    layout: LayoutNode,
+}
+
+impl<'a, P> Parent<P> for SplitWidgetParent<'a, P>
+where
+    P: Platform,
+{
+    fn replace_child(&mut self, cx: &mut Context<P>, widget: P::WidgetRef, layout: LayoutNode) {
+        self.group.replace_child(&mut cx.platform, 0, widget);
+        cx.layout.replace_node(self.layout, layout);
+    }
 }

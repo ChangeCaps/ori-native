@@ -1,9 +1,6 @@
 use ori::{Action, Message, Mut, View, ViewMarker};
 
-use crate::{
-    Affine, Allocation, Context, Lifecycle, NativeWidget, Platform, Pod, WidgetView,
-    native::NativeTransform,
-};
+use crate::{Affine, Context, Platform, WidgetView, widget::WidgetMut, widgets::TransformWidget};
 
 /// [`View`] that transforms its contents.
 pub fn transform<V>(contents: V) -> Transform<V> {
@@ -52,26 +49,19 @@ where
     P: Platform,
     V: WidgetView<P, T>,
 {
-    type Element = Pod<P, P::Transform>;
+    type Element = TransformWidget<P, V::Element>;
     type State = TransformState<P, T, V>;
 
     fn build(self, cx: &mut Context<P>, data: &mut T) -> (Self::Element, Self::State) {
         let (contents, state) = self.contents.build(cx, data);
+        let widget = TransformWidget::new(cx, contents);
 
-        let widget = P::Transform::build(
-            &mut cx.platform,
-            contents.widget.widget_ref(),
-        );
-
-        let pod = Pod::new(contents.layout, widget);
         let state = TransformState {
-            widget: contents.widget,
             state,
             affine: self.affine,
-            allocation: None,
         };
 
-        (pod, state)
+        (widget, state)
     }
 
     fn rebuild(
@@ -81,20 +71,15 @@ where
         cx: &mut Context<P>,
         data: &mut T,
     ) {
-        let pod = element.map_widget(&mut state.widget, 0);
-        self.contents.rebuild(pod, &mut state.state, cx, data);
-
-        if state.affine != self.affine
-            && let Some(allocation) = cx.layout.get_allocation(*element.layout)
         {
+            let (mut parent, contents) = element.contents_mut();
+            let widget = WidgetMut::new(&mut parent, contents);
+            self.contents.rebuild(widget, &mut state.state, cx, data);
+        }
+
+        if state.affine != self.affine {
             state.affine = self.affine;
-            state.allocation = Some(allocation);
-            element.widget.set_content_transform(
-                &mut cx.platform,
-                allocation.size.width,
-                allocation.size.height,
-                state.affine,
-            );
+            element.set_transform(cx, state.affine);
         }
     }
 
@@ -105,28 +90,21 @@ where
         data: &mut T,
         message: &mut Message,
     ) -> Action {
-        if let Some(Lifecycle::Layout) = message.get()
-            && let Some(allocation) = cx.layout.get_allocation(*element.layout)
-            && state.allocation != Some(allocation)
-        {
-            state.allocation = Some(allocation);
-            element.widget.set_content_transform(
-                &mut cx.platform,
-                allocation.size.width,
-                allocation.size.height,
-                state.affine,
-            );
-        }
+        let (mut parent, contents) = element.contents_mut();
+        let widget = WidgetMut::new(&mut parent, contents);
 
-        let pod = element.map_widget(&mut state.widget, 0);
-        V::message(pod, &mut state.state, cx, data, message)
+        V::message(
+            widget,
+            &mut state.state,
+            cx,
+            data,
+            message,
+        )
     }
 
     fn teardown(element: Self::Element, state: Self::State, cx: &mut Context<P>) {
-        let pod = Pod::new(element.layout, state.widget);
-        V::teardown(pod, state.state, cx);
-
-        element.widget.teardown(&mut cx.platform);
+        let element = element.teardown(cx);
+        V::teardown(element, state.state, cx);
     }
 }
 
@@ -135,8 +113,6 @@ where
     P: Platform,
     V: WidgetView<P, T>,
 {
-    widget:     V::Widget,
-    state:      V::State,
-    affine:     Affine,
-    allocation: Option<Allocation>,
+    state:  V::State,
+    affine: Affine,
 }

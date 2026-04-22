@@ -400,12 +400,12 @@ impl<P> LayoutTree<P> {
     }
 
     /// Set the measure of a layout.
-    pub fn set_measure<T>(&mut self, node: LayoutNode, leaf: T)
+    pub fn set_measure<T>(&mut self, node: LayoutNode, measure: T)
     where
         T: Measurable<P> + 'static,
     {
         self.request_layout();
-        let _ = self.tree.set_node_context(node.id, Some(Box::new(leaf)));
+        let _ = self.tree.set_node_context(node.id, Some(Box::new(measure)));
     }
 
     fn into_overflow(overflow: Overflow) -> taffy::Overflow {

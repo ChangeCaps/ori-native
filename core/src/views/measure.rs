@@ -1,8 +1,6 @@
 use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarker};
 
-use crate::{
-    Allocation, Context, Lifecycle, NativeWidget, Platform, Pod, WidgetView, native::NativeMeasure,
-};
+use crate::{Context, Platform, Widget, WidgetView, widget::WidgetMut, widgets::MeasureWidget};
 
 /// [`View`] that measures the position and size of its contents.
 pub fn measure<T, V, A>(
@@ -50,7 +48,7 @@ where
     P: Platform,
     V: WidgetView<P, T>,
 {
-    type Element = Pod<P, P::Measure>;
+    type Element = MeasureWidget<P, V::Element>;
     type State = MeasureState<P, T, V>;
 
     fn build(self, cx: &mut Context<P>, data: &mut T) -> (Self::Element, Self::State) {
@@ -70,22 +68,14 @@ where
             }
         };
 
-        let widget = P::Measure::build(
-            &mut cx.platform,
-            contents.widget.widget_ref(),
-            on_position_changed,
-        );
-
-        let pod = Pod::new(contents.layout, widget);
+        let widget = MeasureWidget::new(cx, contents, on_position_changed);
         let state = MeasureState {
-            widget: contents.widget,
             state,
             view_id,
-            allocation: None,
             on_measure: self.on_measure,
         };
 
-        (pod, state)
+        (widget, state)
     }
 
     fn rebuild(
@@ -95,8 +85,12 @@ where
         cx: &mut Context<P>,
         data: &mut T,
     ) {
-        let pod = element.map_widget(&mut state.widget, 0);
-        self.contents.rebuild(pod, &mut state.state, cx, data);
+        state.on_measure = self.on_measure;
+
+        let (mut parent, contents) = element.as_mut();
+        let widget = WidgetMut::new(&mut parent, contents);
+
+        self.contents.rebuild(widget, &mut state.state, cx, data);
     }
 
     fn message(
@@ -108,20 +102,8 @@ where
     ) -> Action {
         let mut action = Action::new();
 
-        if let Some(Lifecycle::Layout) = message.get()
-            && let Some(allocation) = cx.layout.get_allocation(*element.layout)
-            && state.allocation != Some(allocation)
-        {
-            state.allocation = Some(allocation);
-            element.widget.set_content_size(
-                &mut cx.platform,
-                allocation.size.width,
-                allocation.size.height,
-            );
-        }
-
         if let Some(MeasureMessage::PositionChanged(x, y)) = message.take(state.view_id)
-            && let Some(allocation) = cx.layout.get_allocation(*element.layout)
+            && let Some(allocation) = cx.layout.get_allocation(element.layout_node())
         {
             action |= (state.on_measure)(
                 data,
@@ -132,15 +114,22 @@ where
             );
         }
 
-        let pod = element.map_widget(&mut state.widget, 0);
-        action | V::message(pod, &mut state.state, cx, data, message)
+        let (mut parent, contents) = element.as_mut();
+        let widget = WidgetMut::new(&mut parent, contents);
+
+        action
+            | V::message(
+                widget,
+                &mut state.state,
+                cx,
+                data,
+                message,
+            )
     }
 
     fn teardown(element: Self::Element, state: Self::State, cx: &mut Context<P>) {
-        let pod = Pod::new(element.layout, state.widget);
-        V::teardown(pod, state.state, cx);
-
-        element.widget.teardown(&mut cx.platform);
+        let contents = element.teardown(cx);
+        V::teardown(contents, state.state, cx);
         cx.unregister(state.view_id);
     }
 }
@@ -152,8 +141,6 @@ where
     V: WidgetView<P, T>,
 {
     view_id:    ViewId,
-    widget:     V::Widget,
     state:      V::State,
-    allocation: Option<Allocation>,
     on_measure: Box<dyn FnMut(&mut T, f32, f32, f32, f32) -> Action>,
 }

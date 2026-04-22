@@ -2,9 +2,8 @@ use keyboard_types::Modifiers;
 use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarker};
 
 use crate::{
-    Allocation, Context, Input, InputHandler, Lifecycle, NativeWidget, Platform, Pod, WidgetView,
-    input::MatchKey,
-    native::{NativePressable, Press},
+    Context, Input, InputHandler, MatchKey, Platform, WidgetView, native::Press, widget::WidgetMut,
+    widgets::PressableWidget,
 };
 
 /// [`View`] that reacts to presses and focus.
@@ -101,7 +100,7 @@ where
     P: Platform,
     V: WidgetView<P, T>,
 {
-    type Element = Pod<P, P::Pressable>;
+    type Element = PressableWidget<P, V::Element>;
     type State = PressableState<P, T, V>;
 
     fn build(mut self, cx: &mut Context<P>, data: &mut T) -> (Self::Element, Self::State) {
@@ -150,36 +149,26 @@ where
             }
         };
 
-        let mut widget = P::Pressable::build(
-            &mut cx.platform,
-            contents.widget.widget_ref(),
-            on_press,
-            on_hover,
-            on_focus,
+        let mut widget = PressableWidget::new(
+            cx, contents, on_press, on_hover, on_focus,
         );
 
         let (filter, handler) = self.input.split();
 
         let proxy = cx.proxy();
-        widget.set_on_key(&mut cx.platform, {
-            move |key, modifiers, pressed| {
-                if let Some(message) = filter.filter_key(key, modifiers, pressed) {
-                    proxy.message(Message::new(message, view_id));
-                    true
-                } else {
-                    false
-                }
+        widget.set_on_key(cx, move |key, modifiers, pressed| {
+            if let Some(message) = filter.filter_key(key, modifiers, pressed) {
+                proxy.message(Message::new(message, view_id));
+                true
+            } else {
+                false
             }
         });
 
-        let pod = Pod::new(contents.layout, widget);
-
         let state = PressableState {
-            widget: contents.widget,
             state,
             press,
             view_id,
-            allocation: Default::default(),
             build: self.build,
             on_press: self.on_press,
             on_hover: self.on_hover,
@@ -187,7 +176,7 @@ where
             handler,
         };
 
-        (pod, state)
+        (widget, state)
     }
 
     fn rebuild(
@@ -199,19 +188,19 @@ where
     ) {
         let view = (self.build)(data, state.press);
 
-        view.rebuild(
-            element.map_widget(&mut state.widget, 0),
-            &mut state.state,
-            cx,
-            data,
-        );
+        {
+            let (mut parent, contents) = element.contents_mut();
+            let widget = WidgetMut::new(&mut parent, contents);
+            view.rebuild(widget, &mut state.state, cx, data);
+        }
+
         state.build = self.build;
         state.on_press = self.on_press;
 
         let (filter, handler) = self.input.split();
         let proxy = cx.proxy();
 
-        element.widget.set_on_key(&mut cx.platform, {
+        element.set_on_key(cx, {
             let view_id = state.view_id;
 
             move |key, modifiers, pressed| {
@@ -234,18 +223,6 @@ where
         data: &mut T,
         message: &mut Message,
     ) -> Action {
-        if let Some(Lifecycle::Layout) = message.get()
-            && let Some(allocation) = cx.layout.get_allocation(*element.layout)
-            && state.allocation != Some(allocation)
-        {
-            state.allocation = Some(allocation);
-            element.widget.set_content_size(
-                &mut cx.platform,
-                allocation.size.width,
-                allocation.size.height,
-            );
-        }
-
         if let Some(message) = message.take(state.view_id) {
             return state.handler.handle(data, message);
         }
@@ -273,31 +250,30 @@ where
                 }
             }
 
-            let view = (state.build)(data, state.press);
-            view.rebuild(
-                element.map_widget(&mut state.widget, 0),
-                &mut state.state,
-                cx,
-                data,
-            );
+            let (mut parent, contents) = element.contents_mut();
+            let widget = WidgetMut::new(&mut parent, contents);
 
-            action
-        } else {
-            V::message(
-                element.map_widget(&mut state.widget, 0),
-                &mut state.state,
-                cx,
-                data,
-                message,
-            )
+            let view = (state.build)(data, state.press);
+            view.rebuild(widget, &mut state.state, cx, data);
+
+            return action;
         }
+
+        let (mut parent, contents) = element.contents_mut();
+        let widget = WidgetMut::new(&mut parent, contents);
+
+        V::message(
+            widget,
+            &mut state.state,
+            cx,
+            data,
+            message,
+        )
     }
 
     fn teardown(element: Self::Element, state: Self::State, cx: &mut Context<P>) {
-        let pod = Pod::new(element.layout, state.widget);
-
-        V::teardown(pod, state.state, cx);
-        element.widget.teardown(&mut cx.platform);
+        let element = element.teardown(cx);
+        V::teardown(element, state.state, cx);
         cx.unregister(state.view_id);
     }
 }
@@ -309,14 +285,12 @@ where
     P: Platform,
     V: WidgetView<P, T>,
 {
-    widget:     V::Widget,
-    state:      V::State,
-    press:      PressState,
-    view_id:    ViewId,
-    allocation: Option<Allocation>,
-    build:      Box<dyn FnMut(&T, PressState) -> V>,
-    on_press:   Box<dyn FnMut(&mut T) -> Action>,
-    on_hover:   Box<dyn FnMut(&mut T, bool) -> Action>,
-    on_focus:   Box<dyn FnMut(&mut T, bool) -> Action>,
-    handler:    InputHandler<T>,
+    state:    V::State,
+    press:    PressState,
+    view_id:  ViewId,
+    build:    Box<dyn FnMut(&T, PressState) -> V>,
+    on_press: Box<dyn FnMut(&mut T) -> Action>,
+    on_hover: Box<dyn FnMut(&mut T, bool) -> Action>,
+    on_focus: Box<dyn FnMut(&mut T, bool) -> Action>,
+    handler:  InputHandler<T>,
 }

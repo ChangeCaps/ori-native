@@ -1,12 +1,13 @@
+use std::time::Duration;
+
 use glib::{
     object::{Cast, IsA},
     subclass::types::ObjectSubclassIsExt,
 };
 use gtk4::prelude::{FixedExt, PopoverExt, WidgetExt};
-use ori::{Action, Message, Mut, View, ViewMarker};
+use ori::{Action, Element, Message, Mut, View, ViewMarker};
 use ori_native_core::{
-    AvailableSpace, Context, LayoutNode, Lifecycle, NativeParent, NativeWidget, Pod, Size,
-    WidgetView,
+    AvailableSpace, Context, LayoutNode, Parent, Size, Widget, WidgetMut, WidgetView,
 };
 
 use crate::Platform;
@@ -67,64 +68,56 @@ where
     V: WidgetView<Platform, T>,
     P: WidgetView<Platform, T>,
 {
-    type Element = Pod<Platform, PopoverReceiver>;
+    type Element = PopoverWidget<V::Element, P::Element>;
     type State = PopoverState<T, V, P>;
 
     fn build(self, cx: &mut Context<Platform>, data: &mut T) -> (Self::Element, Self::State) {
         let (contents_element, contents_state) = self.contents.build(cx, data);
         let (popover_element, popover_state) = self.popover.build(cx, data);
 
-        let receiver = PopoverReceiver::new();
-        receiver.set_child(Some(
-            contents_element.widget.widget_ref(),
-        ));
-        receiver.set_popover_child(Some(
-            popover_element.widget.widget_ref(),
-        ));
-        receiver.set_position(self.position);
-        receiver.set_open(self.is_open);
+        let widget = PopoverWidget::new(cx, contents_element, popover_element);
 
-        let popover_node = cx.layout.add_node(&[popover_element.layout]);
-
-        let pod = Pod::new(contents_element.layout, receiver);
         let state = PopoverState {
-            contents_widget: contents_element.widget,
-            contents_state,
-            popover_element,
-            popover_state,
-            popover_node,
+            contents: contents_state,
+            popover:  popover_state,
             position: self.position,
         };
 
-        (pod, state)
+        (widget, state)
     }
 
     fn rebuild(
         self,
-        mut element: Mut<'_, Self::Element>,
+        element: Mut<'_, Self::Element>,
         state: &mut Self::State,
         cx: &mut Context<Platform>,
         data: &mut T,
     ) {
-        let pod = element.map_widget(&mut state.contents_widget, 0);
-        (self.contents).rebuild(pod, &mut state.contents_state, cx, data);
+        let widget = WidgetMut::new(
+            element.parent,
+            &mut element.widget.contents,
+        );
 
-        let pod = state
-            .popover_element
-            .as_mut(state.popover_node, 0, element.widget, 1);
+        self.contents.rebuild(widget, &mut state.contents, cx, data);
 
-        (self.popover).rebuild(pod, &mut state.popover_state, cx, data);
+        let mut parent = PopoverParent {
+            receiver: &mut element.widget.receiver,
+            layout:   element.widget.layout,
+        };
 
-        element.widget.set_open(self.is_open);
+        let widget = WidgetMut::new(&mut parent, &mut element.widget.popover);
+        self.popover.rebuild(widget, &mut state.popover, cx, data);
+
+        element.receiver.set_open(self.is_open);
 
         if state.position != self.position {
             state.position = self.position;
-            element.widget.set_position(self.position);
+            element.receiver.set_position(self.position);
         }
     }
 
     fn message(
-        mut element: Mut<'_, Self::Element>,
+        element: Mut<'_, Self::Element>,
         state: &mut Self::State,
         cx: &mut Context<Platform>,
         data: &mut T,
@@ -132,51 +125,28 @@ where
     ) -> Action {
         let mut action = Action::new();
 
-        if let Some(Lifecycle::Layout) = message.get() {
-            let space = Size {
-                width:  AvailableSpace::MaxContent,
-                height: AvailableSpace::MaxContent,
-            };
+        let widget = WidgetMut::new(
+            element.parent,
+            &mut element.widget.contents,
+        );
 
-            cx.layout.compute_layout(
-                &mut cx.platform,
-                state.popover_node,
-                space,
-            );
-
-            if let Some(allocation) = cx.layout.get_allocation(state.popover_node) {
-                element.widget.set_popover_size(
-                    allocation.size.width,
-                    allocation.size.height,
-                );
-            }
-
-            if let Some(allocation) = cx.layout.get_allocation(state.popover_element.layout) {
-                element.widget.set_content_layout(
-                    allocation.x,
-                    allocation.y,
-                    allocation.size.width,
-                    allocation.size.height,
-                );
-            }
-        }
-
-        let pod = element.map_widget(&mut state.contents_widget, 0);
         action |= V::message(
-            pod,
-            &mut state.contents_state,
+            widget,
+            &mut state.contents,
             cx,
             data,
             message,
         );
 
-        let pod = state
-            .popover_element
-            .as_mut(state.popover_node, 0, element.widget, 1);
+        let mut parent = PopoverParent {
+            receiver: &mut element.widget.receiver,
+            layout:   element.widget.layout,
+        };
 
+        let widget = WidgetMut::new(&mut parent, &mut element.widget.popover);
         action |= P::message(
-            pod,
-            &mut state.popover_state,
+            widget,
+            &mut state.popover,
             cx,
             data,
             message,
@@ -186,19 +156,9 @@ where
     }
 
     fn teardown(element: Self::Element, state: Self::State, cx: &mut Context<Platform>) {
-        V::teardown(
-            Pod::new(element.layout, state.contents_widget),
-            state.contents_state,
-            cx,
-        );
-
-        P::teardown(
-            state.popover_element,
-            state.popover_state,
-            cx,
-        );
-
-        cx.layout.remove_node(state.popover_node);
+        let (contents, popover) = element.teardown(cx);
+        V::teardown(contents, state.contents, cx);
+        P::teardown(popover, state.popover, cx);
     }
 }
 
@@ -207,33 +167,112 @@ where
     V: WidgetView<Platform, T>,
     P: WidgetView<Platform, T>,
 {
-    contents_widget: V::Widget,
-    contents_state:  V::State,
-    popover_element: P::Element,
-    popover_state:   P::State,
-    popover_node:    LayoutNode,
-    position:        Position,
+    contents: V::State,
+    popover:  P::State,
+    position: Position,
 }
 
-impl NativeParent<Platform> for PopoverReceiver {
-    fn replace_child(&mut self, _platform: &mut Platform, index: usize, child: &gtk4::Widget) {
-        match index {
-            0 => {
-                self.set_child(Some(child));
-            }
+pub struct PopoverWidget<T, U> {
+    receiver: PopoverReceiver,
+    contents: T,
+    popover:  U,
+    layout:   LayoutNode,
+}
 
-            1 => {
-                self.set_popover_child(Some(child));
-            }
+impl<T, U> PopoverWidget<T, U>
+where
+    T: Widget<Platform>,
+    U: Widget<Platform>,
+{
+    pub fn new(cx: &mut Context<Platform>, contents: T, popover: U) -> Self {
+        let receiver = PopoverReceiver::new();
+        receiver.set_child(Some(&contents.widget_ref()));
+        receiver.set_popover_child(Some(&popover.widget_ref()));
 
-            _ => {}
+        let layout = cx.layout.add_node(&[popover.layout_node()]);
+
+        Self {
+            receiver,
+            contents,
+            popover,
+            layout,
         }
+    }
+
+    pub fn teardown(self, cx: &mut Context<Platform>) -> (T, U) {
+        cx.layout.remove_node(self.layout);
+        (self.contents, self.popover)
     }
 }
 
-impl NativeWidget<Platform> for PopoverReceiver {
-    fn widget_ref(&self) -> &gtk4::Widget {
-        self.upcast_ref()
+impl<T, U> Element for PopoverWidget<T, U> {
+    type Mut<'a>
+        = WidgetMut<'a, Platform, Self>
+    where
+        Self: 'a;
+}
+
+impl<T, U> Widget<Platform> for PopoverWidget<T, U>
+where
+    T: Widget<Platform>,
+    U: Widget<Platform>,
+{
+    fn widget_ref(&self) -> gtk4::Widget {
+        self.receiver.clone().upcast()
+    }
+
+    fn layout_node(&self) -> LayoutNode {
+        self.contents.layout_node()
+    }
+
+    fn layout(&mut self, cx: &mut Context<Platform>) {
+        let space = Size {
+            width:  AvailableSpace::MaxContent,
+            height: AvailableSpace::MaxContent,
+        };
+
+        (cx.layout).compute_layout(&mut cx.platform, self.layout, space);
+
+        if let Some(allocation) = cx.layout.get_allocation(self.layout) {
+            self.receiver.set_popover_size(
+                allocation.size.width,
+                allocation.size.height,
+            );
+        }
+
+        if let Some(allocation) = cx.layout.get_allocation(self.popover.layout_node()) {
+            self.receiver.set_content_layout(
+                allocation.x,
+                allocation.y,
+                allocation.size.width,
+                allocation.size.height,
+            );
+        }
+
+        self.contents.layout(cx);
+        self.popover.layout(cx);
+    }
+
+    fn animate(&mut self, cx: &mut Context<Platform>, dt: Duration) {
+        self.contents.animate(cx, dt);
+        self.popover.animate(cx, dt);
+    }
+}
+
+struct PopoverParent<'a> {
+    receiver: &'a mut PopoverReceiver,
+    layout:   LayoutNode,
+}
+
+impl<'a> Parent<Platform> for PopoverParent<'a> {
+    fn replace_child(
+        &mut self,
+        cx: &mut Context<Platform>,
+        widget: gtk4::Widget,
+        layout: LayoutNode,
+    ) {
+        self.receiver.set_child(Some(&widget));
+        cx.layout.replace_child(self.layout, 0, layout);
     }
 }
 

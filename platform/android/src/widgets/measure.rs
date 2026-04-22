@@ -1,5 +1,5 @@
 use jni::{EnvUnowned, jni_sig, jni_str, objects::JObject};
-use ori_native_core::{NativeParent, NativeWidget, native::NativeMeasure};
+use ori_native_core::{NativeWidget, native::NativeMeasure};
 
 use crate::{
     Platform,
@@ -12,29 +12,15 @@ pub struct Measure {
 }
 
 impl NativeWidget<Platform> for Measure {
-    fn widget_ref(&self) -> &WidgetId {
-        &self.id
-    }
-}
-
-impl NativeParent<Platform> for Measure {
-    fn replace_child(&mut self, platform: &mut Platform, _index: usize, child: &WidgetId) {
-        let _ = platform.jni(|env, activity| {
-            env.call_method(
-                activity,
-                jni_str!("measureSetContents"),
-                jni_sig!((long, long)),
-                &[self.id.into(), child.into()],
-            )?
-            .v()
-        });
+    fn widget_ref(&self) -> WidgetId {
+        self.id
     }
 }
 
 impl NativeMeasure<Platform> for Measure {
     fn build(
         platform: &mut Platform,
-        contents: &WidgetId,
+        contents: WidgetId,
         on_position_changed: impl Fn(f32, f32) + 'static,
     ) -> Self {
         let id = platform.next_id();
@@ -67,6 +53,18 @@ impl NativeMeasure<Platform> for Measure {
 
     fn teardown(self, platform: &mut Platform) {
         platform.remove_widget(self.id);
+    }
+
+    fn replace_contents(&mut self, platform: &mut Platform, child: WidgetId) {
+        let _ = platform.jni(|env, activity| {
+            env.call_method(
+                activity,
+                jni_str!("measureSetContents"),
+                jni_sig!((long, long)),
+                &[self.id.into(), child.into()],
+            )?
+            .v()
+        });
     }
 
     fn set_content_size(&mut self, platform: &mut Platform, width: f32, height: f32) {

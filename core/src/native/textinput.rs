@@ -1,7 +1,7 @@
 use std::convert::Infallible;
 
 use crate::{
-    Font, Measurable, NativeWidget, Platform, Unsupported, platform::unsupported, views::Newline,
+    Font, Measurable, NativeWidget, Newline, Platform, Unsupported, platform::unsupported,
 };
 
 /// A native text input widget.

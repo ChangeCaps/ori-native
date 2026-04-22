@@ -5,24 +5,14 @@ use glib::{
     subclass::types::ObjectSubclassIsExt,
 };
 use gtk4::prelude::{FixedExt, GtkWindowExt, WidgetExt};
-use ori_native_core::{
-    Key, Modifiers, NativeParent, NavigationBar, StatusBar, native::NativeWindow,
-};
+use ori_native_core::{Key, Modifiers, NavigationBar, StatusBar, native::NativeWindow};
 
 use crate::{Platform, key};
 
-impl NativeParent<Platform> for Window {
-    fn replace_child(&mut self, _platform: &mut Platform, index: usize, child: &gtk4::Widget) {
-        debug_assert_eq!(index, 0);
-
-        self.set_child(child, 0.0, 0.0);
-    }
-}
-
 impl NativeWindow<Platform> for Window {
-    fn build(platform: &mut Platform, contents: &gtk4::Widget) -> Self {
+    fn build(platform: &mut Platform, contents: gtk4::Widget) -> Self {
         let window = Self::new(&platform.application);
-        window.set_child(contents, 0.0, 0.0);
+        window.set_child(&contents, 0.0, 0.0);
         window.show();
 
         // call on_snapshot callbacks on window snapshot
@@ -41,6 +31,10 @@ impl NativeWindow<Platform> for Window {
 
     fn teardown(self, _platform: &mut Platform) {
         self.destroy();
+    }
+
+    fn replace_contents(&mut self, _platform: &mut Platform, child: gtk4::Widget) {
+        self.set_child(&child, 0.0, 0.0);
     }
 
     fn get_size(&self, _platform: &mut Platform) -> (f32, f32) {

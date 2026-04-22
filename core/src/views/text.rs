@@ -3,8 +3,8 @@ use std::borrow::Cow;
 use ori::{Action, Message, Mut, View, ViewMarker};
 
 use crate::{
-    Color, Context, Font, Layout, LayoutStyle, Platform, Pod, Stretch, TextSpan, Weight, Wrap,
-    native::NativeText,
+    Color, Context, Font, Layout, LayoutStyle, Platform, Stretch, TextSpan, Weight, Wrap,
+    widgets::TextWidget,
 };
 
 /// [`View`] of a text paragraph.
@@ -91,7 +91,7 @@ impl<P, T> View<Context<P>, T> for Text
 where
     P: Platform,
 {
-    type Element = Pod<P, P::Text>;
+    type Element = TextWidget<P>;
     type State = TextState;
 
     fn build(self, cx: &mut Context<P>, _data: &mut T) -> (Self::Element, Self::State) {
@@ -100,19 +100,14 @@ where
             range: 0..self.text.len(),
         }];
 
-        let mut widget = P::Text::build(&mut cx.platform);
+        let mut widget = TextWidget::new(cx);
 
-        let layout = widget.set_text(
-            &mut cx.platform,
+        widget.set_text(
+            cx,
             spans.into(),
             self.text.clone(),
             self.wrap,
         );
-
-        let node = cx.layout.add_leaf(layout);
-        cx.layout.set_layout(node, self.layout);
-
-        let pod = Pod::new(node, widget);
 
         let state = TextState {
             layout: self.layout,
@@ -120,18 +115,18 @@ where
             text:   self.text,
         };
 
-        (pod, state)
+        (widget, state)
     }
 
     fn rebuild(
         self,
-        element: Mut<'_, Self::Element>,
+        mut element: Mut<'_, Self::Element>,
         state: &mut Self::State,
         cx: &mut Context<P>,
         _data: &mut T,
     ) {
         if state.layout != self.layout {
-            cx.layout.set_layout(*element.layout, self.layout);
+            element.set_layout(cx, self.layout);
         }
 
         if state.font == self.font && state.text == self.text {
@@ -146,14 +141,7 @@ where
             range: 0..self.text.len(),
         }];
 
-        let layout = element.widget.set_text(
-            &mut cx.platform,
-            spans.into(),
-            self.text,
-            self.wrap,
-        );
-
-        cx.layout.set_measure(*element.layout, layout);
+        element.set_text(cx, spans.into(), self.text, self.wrap);
     }
 
     fn message(
@@ -167,8 +155,7 @@ where
     }
 
     fn teardown(element: Self::Element, _state: Self::State, cx: &mut Context<P>) {
-        element.widget.teardown(&mut cx.platform);
-        cx.layout.remove_node(element.layout);
+        element.teardown(cx);
     }
 }
 

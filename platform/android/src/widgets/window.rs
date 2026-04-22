@@ -1,9 +1,7 @@
 use std::time::Duration;
 
 use jni::{EnvUnowned, jni_sig, jni_str, objects::JObject};
-use ori_native_core::{
-    Key, Modifiers, NativeParent, NavigationBar, Sides, StatusBar, native::NativeWindow,
-};
+use ori_native_core::{Key, Modifiers, NavigationBar, Sides, StatusBar, native::NativeWindow};
 
 use crate::{
     Platform,
@@ -13,22 +11,8 @@ use crate::{
 
 pub struct Window {}
 
-impl NativeParent<Platform> for Window {
-    fn replace_child(&mut self, platform: &mut Platform, _index: usize, child: &WidgetId) {
-        let _ = platform.jni(|env, activity| {
-            env.call_method(
-                activity,
-                jni_str!("windowSetContents"),
-                jni_sig!((long)),
-                &[child.into()],
-            )?
-            .v()
-        });
-    }
-}
-
 impl NativeWindow<Platform> for Window {
-    fn build(platform: &mut Platform, contents: &WidgetId) -> Self {
+    fn build(platform: &mut Platform, contents: WidgetId) -> Self {
         let _ = platform.jni(|env, activity| {
             env.call_method(
                 activity,
@@ -43,6 +27,18 @@ impl NativeWindow<Platform> for Window {
     }
 
     fn teardown(self, _platform: &mut Platform) {}
+
+    fn replace_contents(&mut self, platform: &mut Platform, contents: WidgetId) {
+        let _ = platform.jni(|env, activity| {
+            env.call_method(
+                activity,
+                jni_str!("windowSetContents"),
+                jni_sig!((long)),
+                &[contents.into()],
+            )?
+            .v()
+        });
+    }
 
     fn get_size(&self, platform: &mut Platform) -> (f32, f32) {
         let width = platform
