@@ -172,7 +172,11 @@ where
     position: Position,
 }
 
-pub struct PopoverWidget<T, U> {
+pub struct PopoverWidget<T, U>
+where
+    T: Widget<Platform>,
+    U: Widget<Platform>,
+{
     receiver: PopoverReceiver,
     contents: T,
     popover:  U,
@@ -205,7 +209,11 @@ where
     }
 }
 
-impl<T, U> Element for PopoverWidget<T, U> {
+impl<T, U> Element for PopoverWidget<T, U>
+where
+    T: Widget<Platform>,
+    U: Widget<Platform>,
+{
     type Mut<'a>
         = WidgetMut<'a, Platform, Self>
     where

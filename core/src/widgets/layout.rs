@@ -5,7 +5,11 @@ use ori::Element;
 use crate::{Context, LayoutNode, Platform, Size, Widget, WidgetMut};
 
 /// [`Widget`] that provides a callback for layout.
-pub struct LayoutWidget<P, W> {
+pub struct LayoutWidget<P, W>
+where
+    P: Platform,
+    W: Widget<P>,
+{
     contents:  W,
     on_layout: Box<dyn Fn(Size<f32>)>,
 
@@ -13,7 +17,11 @@ pub struct LayoutWidget<P, W> {
     marker: PhantomData<fn(P)>,
 }
 
-impl<P, W> LayoutWidget<P, W> {
+impl<P, W> LayoutWidget<P, W>
+where
+    P: Platform,
+    W: Widget<P>,
+{
     /// Create new [`LayoutWidget`].
     pub fn new(contents: W, on_layout: impl Fn(Size<f32>) + 'static) -> Self {
         Self {
@@ -33,6 +41,7 @@ impl<P, W> LayoutWidget<P, W> {
 impl<P, W> Element for LayoutWidget<P, W>
 where
     P: Platform,
+    W: Widget<P>,
 {
     type Mut<'a>
         = WidgetMut<'a, P, W>

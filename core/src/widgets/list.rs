@@ -101,7 +101,7 @@ where
         cx.layout.set_layout(self.scroll_layout, layout);
     }
 
-    /// Set the [`Padding`].
+    /// Set the `padding`.
     pub fn set_padding(&mut self, cx: &mut Context<P>, padding: Sides<Length>) {
         cx.layout.set_padding(self.group_layout, padding);
     }

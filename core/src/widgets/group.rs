@@ -28,7 +28,7 @@ impl<P> GroupWidget<P>
 where
     P: Platform,
 {
-    /// Create new [`Group`].
+    /// Create new [`GroupWidget`].
     pub fn new(cx: &mut Context<P>) -> Self {
         Self {
             native:       P::Group::build(&mut cx.platform),
@@ -87,18 +87,18 @@ where
         cx.layout.set_layout(self.layout, layout);
     }
 
-    /// Set the [`Border`].
+    /// Set the [`BorderStyle`].
     pub fn set_border(&mut self, cx: &mut Context<P>, border: BorderStyle) {
         self.native.set_border_color(&mut cx.platform, border.color);
         cx.layout.set_border(self.layout, border);
     }
 
-    /// Set the [`Padding`].
+    /// Set the `padding`.
     pub fn set_padding(&mut self, cx: &mut Context<P>, padding: Sides<Length>) {
         cx.layout.set_padding(self.layout, padding);
     }
 
-    /// Set the [`Flex`].
+    /// Set the [`FlexStyle`].
     pub fn set_flex(&mut self, cx: &mut Context<P>, flex: FlexStyle) {
         cx.layout.set_flex(self.layout, flex);
     }

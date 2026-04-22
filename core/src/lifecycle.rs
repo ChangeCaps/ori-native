@@ -8,7 +8,7 @@ pub enum LayoutRequest {
 /// A request regarding animation.
 ///
 /// As long as more `start` requests than `stop` requests have been received, request animation
-/// frames and sent [`Lifecycle::Animate`] events to contents.
+/// frames and animate contents.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum AnimateRequest {
     /// Start requesting animation frames.

@@ -17,7 +17,7 @@ pub struct Layout<V, F> {
 }
 
 impl<V, F> Layout<V, F> {
-    /// Create new [`OnLayout`].
+    /// Create new [`Layout`].
     pub fn new(contents: V, on_layout: F) -> Self {
         Self {
             contents,

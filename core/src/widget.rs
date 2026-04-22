@@ -86,7 +86,7 @@ where
     }
 }
 
-/// Type erased [`Pod`].
+/// Type erased [`Widget`].
 pub type BoxedWidget<P> = Box<dyn Widget<P>>;
 
 impl<P> Widget<P> for BoxedWidget<P>
@@ -168,9 +168,23 @@ where
     fn widget_ref(&self) -> P::WidgetRef;
 }
 
-/// A [`View`] with a [`Pod`] as its element.
-pub trait WidgetView<P, T>:
-    View<Context<P>, T, Element: Widget<P> + for<'a> Element<Mut<'a> = WidgetMut<'a, P, Self::Element>>>
+pub trait WidgetElement<P>:
+    Widget<P> + for<'a> Element<Mut<'a> = WidgetMut<'a, P, Self>> + Sized
+where
+    P: Platform,
+{
+}
+
+impl<P, T> WidgetElement<P> for T
+where
+    P: Platform,
+    T: Widget<P>,
+    T: for<'a> Element<Mut<'a> = WidgetMut<'a, P, Self>>,
+{
+}
+
+/// A [`View`] with a [`Widget`] as its element.
+pub trait WidgetView<P, T>: View<Context<P>, T, Element: WidgetElement<P>>
 where
     P: Platform,
 {
@@ -187,8 +201,7 @@ impl<P, T, V> WidgetView<P, T> for V
 where
     P: Platform,
     V: View<Context<P>, T>,
-    V::Element: Widget<P>,
-    V::Element: for<'a> Element<Mut<'a> = WidgetMut<'a, P, Self::Element>>,
+    V::Element: WidgetElement<P>,
 {
 }
 

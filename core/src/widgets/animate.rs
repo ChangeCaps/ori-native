@@ -5,14 +5,22 @@ use ori::Element;
 use crate::{Context, LayoutNode, Platform, Widget, WidgetMut};
 
 /// [`Widget`] with a callback on animate.
-pub struct AnimateWidget<P, W> {
+pub struct AnimateWidget<P, W>
+where
+    P: Platform,
+    W: Widget<P>,
+{
     contents:   W,
     on_animate: Box<dyn Fn(Duration)>,
 
     marker: PhantomData<fn(P)>,
 }
 
-impl<P, W> AnimateWidget<P, W> {
+impl<P, W> AnimateWidget<P, W>
+where
+    P: Platform,
+    W: Widget<P>,
+{
     /// Create new [`AnimateWidget`].
     pub fn new(contents: W, on_animate: impl Fn(Duration) + 'static) -> Self {
         Self {
@@ -59,6 +67,7 @@ where
 impl<P, W> Element for AnimateWidget<P, W>
 where
     P: Platform,
+    W: Widget<P>,
 {
     type Mut<'a>
         = WidgetMut<'a, P, Self>
