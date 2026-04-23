@@ -102,6 +102,7 @@ where
 
         let mut widget = TextWidget::new(cx);
 
+        widget.set_layout(cx, self.layout);
         widget.set_text(
             cx,
             spans.into(),

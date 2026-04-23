@@ -184,14 +184,17 @@ where
         self.offset = offset;
     }
 
+    /// Se the `gap` between items.
     pub fn set_gap(&mut self, gap: f32) {
         self.gap = gap;
     }
 
+    /// Set the minimum number of views in the `active` window.
     pub fn set_min_views(&mut self, min_views: usize) {
         self.min_views = min_views;
     }
 
+    /// Set the number of `buffer` items before and after the visible window.
     pub fn set_buffer(&mut self, buffer: usize) {
         self.buffer = buffer;
     }
