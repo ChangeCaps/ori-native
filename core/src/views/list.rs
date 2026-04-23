@@ -199,6 +199,8 @@ where
             Some(ListMessage::Layout) => {
                 state.update_active_views(&mut element, cx, data);
                 element.layout_active_views(cx);
+
+                return Action::new();
             }
 
             Some(ListMessage::Scrolled(x, y)) => {
@@ -347,11 +349,11 @@ where
         cx: &mut Context<P>,
         data: &mut T,
     ) {
+        let index = widget.start() + widget.active();
+
         if let Some(child) = widget.remove_front(cx) {
             widget.insert_back(cx, child);
         }
-
-        let index = widget.start() + widget.active() - 1;
 
         if let Some((mut parent, child)) = widget.get_active(widget.active() - 1)
             && let Some(mut state) = self.states.pop_front()

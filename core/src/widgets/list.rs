@@ -211,7 +211,7 @@ where
         let parent = ListParent {
             index,
             group: &mut self.group,
-            layout: self.group_layout,
+            layout: child.layout,
         };
 
         Some((parent, &mut child.widget))
@@ -385,6 +385,7 @@ where
         for (i, child) in self.children.iter_mut().enumerate() {
             if let Some(allocation) = cx.layout.get_allocation(child.widget.layout_node()) {
                 let size = Self::allocation_size(self.direction, allocation);
+                self.sizes[self.start + i] = Some(size);
 
                 if child.allocation != Some(allocation) || child.offset != offset {
                     child.allocation = Some(allocation);
@@ -617,6 +618,6 @@ where
 {
     fn replace_child(&mut self, cx: &mut Context<P>, widget: P::WidgetRef, layout: LayoutNode) {
         (self.group).replace_child(&mut cx.platform, self.index, widget);
-        cx.layout.replace_child(self.layout, self.index, layout);
+        cx.layout.replace_child(self.layout, 0, layout);
     }
 }
