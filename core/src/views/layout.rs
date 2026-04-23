@@ -1,6 +1,6 @@
 use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarker};
 
-use crate::{Context, Platform, Size, WidgetView, widgets::LayoutWidget};
+use crate::{Context, Platform, Size, WidgetMut, WidgetView, widgets::LayoutWidget};
 
 /// [`View`] with a callback when layout changes.
 pub fn on_layout<T, V, A>(
@@ -71,7 +71,12 @@ where
         cx: &mut Context<P>,
         data: &mut T,
     ) {
-        self.contents.rebuild(element, &mut state.state, cx, data);
+        let widget = WidgetMut::new(
+            element.parent,
+            element.widget.contents(),
+        );
+
+        self.contents.rebuild(widget, &mut state.state, cx, data);
         state.on_layout = self.on_layout;
     }
 
@@ -86,8 +91,13 @@ where
             return (state.on_layout)(data, size.width, size.height).into();
         }
 
+        let widget = WidgetMut::new(
+            element.parent,
+            element.widget.contents(),
+        );
+
         V::message(
-            element,
+            widget,
             &mut state.state,
             cx,
             data,

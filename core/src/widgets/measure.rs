@@ -50,7 +50,7 @@ where
     }
 
     /// Get the contents mutably.
-    pub fn as_mut(&mut self) -> (impl Parent<P>, &mut W) {
+    pub fn contents_mut(&mut self) -> (impl Parent<P>, &mut W) {
         let parent = MeasureParent {
             native: &mut self.native,
             layout: self.contents.layout_node(),

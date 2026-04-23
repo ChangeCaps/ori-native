@@ -96,6 +96,14 @@ where
         }
     }
 
+    /// Teardown the widget.
+    pub fn teardown(self, cx: &mut Context<P>) {
+        self.group.teardown(&mut cx.platform);
+        self.scroll.teardown(&mut cx.platform);
+        cx.layout.remove_node(self.group_layout);
+        cx.layout.remove_node(self.scroll_layout);
+    }
+
     /// Set the [`LayoutStyle`].
     pub fn set_layout(&mut self, cx: &mut Context<P>, layout: LayoutStyle) {
         cx.layout.set_layout(self.scroll_layout, layout);

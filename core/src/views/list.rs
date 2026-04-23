@@ -239,6 +239,7 @@ where
             V::teardown(child, state, cx);
         }
 
+        element.teardown(cx);
         cx.unregister(state.view_id);
     }
 }

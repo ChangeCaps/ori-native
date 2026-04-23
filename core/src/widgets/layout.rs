@@ -36,6 +36,11 @@ where
     pub fn teardown(self) -> W {
         self.contents
     }
+
+    /// Get mutable reference to contents.
+    pub fn contents(&mut self) -> &mut W {
+        &mut self.contents
+    }
 }
 
 impl<P, W> Element for LayoutWidget<P, W>
@@ -44,7 +49,7 @@ where
     W: Widget<P>,
 {
     type Mut<'a>
-        = WidgetMut<'a, P, W>
+        = WidgetMut<'a, P, Self>
     where
         Self: 'a;
 }

@@ -87,7 +87,7 @@ where
     ) {
         state.on_measure = self.on_measure;
 
-        let (mut parent, contents) = element.as_mut();
+        let (mut parent, contents) = element.contents_mut();
         let widget = WidgetMut::new(&mut parent, contents);
 
         self.contents.rebuild(widget, &mut state.state, cx, data);
@@ -114,7 +114,7 @@ where
             );
         }
 
-        let (mut parent, contents) = element.as_mut();
+        let (mut parent, contents) = element.contents_mut();
         let widget = WidgetMut::new(&mut parent, contents);
 
         action

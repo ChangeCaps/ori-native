@@ -31,6 +31,7 @@ where
     /// Teardown the widget.
     pub fn teardown(self, cx: &mut Context<P>) {
         self.native.teardown(&mut cx.platform);
+        cx.layout.remove_node(self.layout);
     }
 
     /// Set the [`LayoutStyle`].
