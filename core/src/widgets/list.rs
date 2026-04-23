@@ -111,7 +111,7 @@ where
 
     /// Set the `padding`.
     pub fn set_padding(&mut self, cx: &mut Context<P>, padding: Sides<Length>) {
-        cx.layout.set_padding(self.group_layout, padding);
+        cx.layout.set_padding(self.scroll_layout, padding);
     }
 
     /// Set the [`Direction`].
@@ -182,6 +182,18 @@ where
     /// Set the scroll `offset`.
     pub fn set_offset(&mut self, offset: f32) {
         self.offset = offset;
+    }
+
+    pub fn set_gap(&mut self, gap: f32) {
+        self.gap = gap;
+    }
+
+    pub fn set_min_views(&mut self, min_views: usize) {
+        self.min_views = min_views;
+    }
+
+    pub fn set_buffer(&mut self, buffer: usize) {
+        self.buffer = buffer;
     }
 
     /// Set the total number of elements.

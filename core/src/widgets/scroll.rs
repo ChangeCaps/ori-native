@@ -3,8 +3,8 @@ use std::time::Duration;
 use ori::Element;
 
 use crate::{
-    Allocation, Context, Direction, FlexStyle, LayoutNode, LayoutStyle, Overflow, Parent, Platform,
-    Size, Widget, WidgetMut, native::NativeScroll,
+    Allocation, Context, Direction, FlexStyle, LayoutNode, LayoutStyle, NativeWidget, Overflow,
+    Parent, Platform, Size, Widget, WidgetMut, native::NativeScroll,
 };
 
 /// A [`Widget`] that contains scrollable contents.
@@ -112,7 +112,7 @@ where
     W: Widget<P>,
 {
     fn widget_ref(&self) -> P::WidgetRef {
-        self.contents.widget_ref()
+        self.native.widget_ref()
     }
 
     fn layout_node(&self) -> LayoutNode {

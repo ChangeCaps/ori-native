@@ -122,12 +122,15 @@ where
             cx,
             self.count,
             self.min_views,
-            self.count,
+            self.buffer,
             on_scroll,
             on_layout,
         );
 
+        widget.set_layout(cx, self.layout);
         widget.set_direction(cx, self.direction);
+        widget.set_padding(cx, self.padding);
+        widget.set_gap(self.gap);
 
         let mut state = ListState {
             view_id,
@@ -138,10 +141,6 @@ where
             gap: self.gap,
 
             states: VecDeque::new(),
-
-            min_views: self.min_views,
-            buffer: self.buffer,
-            count: self.count,
             build: self.build,
         };
 
@@ -159,14 +158,14 @@ where
         cx: &mut Context<P>,
         data: &mut T,
     ) {
-        if state.direction != self.direction {
-            state.direction = self.direction;
-            element.set_direction(cx, self.direction);
-        }
-
         if state.layout != self.layout {
             state.layout = self.layout;
             element.set_layout(cx, self.layout);
+        }
+
+        if state.direction != self.direction {
+            state.direction = self.direction;
+            element.set_direction(cx, self.direction);
         }
 
         if state.padding != self.padding {
@@ -174,16 +173,14 @@ where
             element.set_padding(cx, self.padding);
         }
 
-        if state.count != self.count {
-            state.count = self.count;
-            element.resize(self.count);
+        if state.gap != self.gap {
+            state.gap = self.gap;
+            element.set_gap(self.gap);
         }
 
-        state.gap = self.gap;
-        state.min_views = self.min_views;
-        state.buffer = self.buffer;
-        state.build = self.build;
-        state.count = self.count;
+        element.resize(self.count);
+        element.set_min_views(self.min_views);
+        element.set_buffer(self.buffer);
 
         state.update_active_views(&mut element, cx, data);
         element.update_content_size(cx);
@@ -258,11 +255,7 @@ where
     gap:       f32,
 
     states: VecDeque<V::State>,
-
-    min_views: usize,
-    buffer:    usize,
-    count:     usize,
-    build:     F,
+    build:  F,
 }
 
 impl<P, T, F, V> ListState<P, T, F, V>

@@ -172,15 +172,15 @@ where
 
     fn build(self, cx: &mut Context<P>, data: &mut T) -> (Self::Element, Self::State) {
         let mut group = GroupWidget::new(cx);
+        group.set_layout(cx, self.layout);
+        group.set_padding(cx, self.padding);
+        group.set_border(cx, self.border);
+        group.set_flex(cx, self.flex);
         group.set_background(cx, self.background);
         group.set_corners(cx, self.corners);
         group.set_overflow(cx, self.overflow);
         group.set_shadow(cx, self.shadow);
         group.set_hardware_layer(cx, self.hardware_layer);
-        group.set_layout(cx, self.layout);
-        group.set_padding(cx, self.padding);
-        group.set_border(cx, self.border);
-        group.set_flex(cx, self.flex);
 
         let state = self.contents.seq_build(&mut group.elements(), cx, data);
 

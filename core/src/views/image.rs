@@ -51,6 +51,7 @@ where
 
     fn build(self, cx: &mut Context<P>, _data: &mut T) -> (Self::Element, Self::State) {
         let mut widget = ImageWidget::new(cx);
+        widget.set_layout(cx, self.layout);
         widget.set_tint(cx, self.tint);
 
         let hash = seahash::hash(&self.data);
