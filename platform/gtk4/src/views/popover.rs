@@ -76,6 +76,7 @@ where
         let (popover_element, popover_state) = self.popover.build(cx, data);
 
         let widget = PopoverWidget::new(cx, contents_element, popover_element);
+        widget.receiver.set_position(self.position);
 
         let state = PopoverState {
             contents: contents_state,
