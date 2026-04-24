@@ -1,4 +1,4 @@
-use ori::{BuildMarker, BuildView, views::using_or_default};
+use ori::{AnyView, Base, BuildMarker, BuildView, views};
 
 use crate::{
     Context, Layout, LayoutStyle, Length, Padding, Platform, SafeAreaInsets, Sides, WidgetView,
@@ -39,23 +39,24 @@ where
     T: 'static,
     V: WidgetView<P, T> + 'static,
 {
-    #[allow(refining_impl_trait)]
-    fn build(self) -> impl WidgetView<P, T> + 'static {
-        using_or_default(move |_, insets: &SafeAreaInsets| {
-            let SafeAreaInsets(insets) = insets;
+    fn build(self) -> Box<dyn AnyView<Context<P>, T, <Context<P> as Base>::Element>> {
+        Box::new(views::using_or_default(
+            move |_, insets: &SafeAreaInsets| {
+                let SafeAreaInsets(insets) = insets;
 
-            let padding = Sides {
-                top:    Length::Length(insets.top),
-                right:  Length::Length(insets.right),
-                bottom: Length::Length(insets.bottom),
-                left:   Length::Length(insets.left),
-            };
+                let padding = Sides {
+                    top:    Length::Length(insets.top),
+                    right:  Length::Length(insets.right),
+                    bottom: Length::Length(insets.bottom),
+                    left:   Length::Length(insets.left),
+                };
 
-            let mut flex = Flex::new(self.contents);
-            *flex.get_layout_style_mut() = self.style;
-            *flex.get_padding_mut() = padding;
+                let mut flex = Flex::new(self.contents);
+                *flex.get_layout_style_mut() = self.style;
+                *flex.get_padding_mut() = padding;
 
-            flex
-        })
+                flex
+            },
+        ))
     }
 }

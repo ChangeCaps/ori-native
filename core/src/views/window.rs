@@ -5,8 +5,8 @@ use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarke
 
 use crate::{
     Allocation, AnimateRequest, AvailableSpace, Context, Input, InputHandler, LayoutNode,
-    LayoutRequest, LayoutStyle, Length, MatchKey, NavigationBar, Parent, Platform, Size, Sizing,
-    StatusBar, Widget, WidgetView, native::NativeWindow, widget::WidgetMut,
+    LayoutRequest, Length, MatchKey, NavigationBar, Parent, Platform, Size, Sizing, StatusBar,
+    Widget, WidgetView, native::NativeWindow, widget::WidgetMut,
 };
 
 /// [`View`] of a window.
@@ -198,8 +198,12 @@ where
         build: impl FnOnce(&mut P, P::WidgetRef) -> P::Window,
     ) -> Self {
         let view_id = ViewId::next();
+        cx.register(view_id);
 
-        let (contents, state) = cx.with_window(view_id, |cx| contents.build(cx, data));
+        let node = cx.layout.add_node(&[]);
+        cx.layout.insert_root(node, view_id);
+
+        let (contents, state) = contents.build(cx, data);
 
         let mut window = build(&mut cx.platform, contents.widget_ref());
 
@@ -269,13 +273,11 @@ where
             attributes.navigation_bar,
         );
 
-        cx.register(view_id);
-
-        let node = cx.layout.add_node(&[contents.layout_node()]);
+        cx.layout.insert_child(node, 0, contents.layout_node());
 
         let (width, height) = window.get_size(&mut cx.platform);
 
-        let mut state = Self {
+        Self {
             window,
             view_id,
             layout: node,
@@ -291,10 +293,7 @@ where
             animating: 0,
             contents,
             state,
-        };
-
-        state.layout(cx);
-        state
+        }
     }
 
     /// Rebuild `self`.
@@ -305,15 +304,13 @@ where
         contents: V,
         attributes: WindowAttributes<T>,
     ) {
-        cx.with_window(self.view_id, |cx| {
-            let mut parent = WindowParent {
-                native: &mut self.window,
-                layout: self.layout,
-            };
+        let mut parent = WindowParent {
+            native: &mut self.window,
+            layout: self.layout,
+        };
 
-            let widget = WidgetMut::new(&mut parent, &mut self.contents);
-            contents.rebuild(widget, &mut self.state, cx, data);
-        });
+        let widget = WidgetMut::new(&mut parent, &mut self.contents);
+        contents.rebuild(widget, &mut self.state, cx, data);
 
         let (filter, handler) = attributes.input.split();
 
@@ -388,13 +385,10 @@ where
             }
         }
 
-        let style = match self.sizing {
-            Sizing::User => LayoutStyle {
-                size: Size {
-                    width:  Some(Length::Length(width)),
-                    height: Some(Length::Length(height)),
-                },
-                ..Default::default()
+        let size = match self.sizing {
+            Sizing::User => Size {
+                width:  Some(Length::Length(width)),
+                height: Some(Length::Length(height)),
             },
 
             Sizing::Content => {
@@ -411,12 +405,11 @@ where
                     size.height = Some(Length::Length(min_height));
                 }
 
-                LayoutStyle {
-                    size,
-                    ..Default::default()
-                }
+                size
             }
         };
+
+        cx.layout.set_size_without_request(self.layout, size);
 
         let size = match self.sizing {
             Sizing::User => Size {
@@ -430,7 +423,6 @@ where
             },
         };
 
-        cx.layout.set_layout(self.layout, style);
         (cx.layout).compute_layout(&mut cx.platform, self.layout, size);
 
         if let Some(allocation) = cx.layout.get_allocation(self.layout)
@@ -461,9 +453,7 @@ where
             );
         }
 
-        cx.with_window(self.view_id, |cx| {
-            self.contents.layout(cx);
-        });
+        self.contents.layout(cx);
     }
 
     /// Handle a [`Message`].
@@ -513,9 +503,7 @@ where
                         return Action::new();
                     }
 
-                    cx.with_window(self.view_id, |cx| {
-                        self.contents.animate(cx, delta);
-                    });
+                    self.contents.animate(cx, delta);
 
                     Action::new()
                 }
@@ -538,29 +526,25 @@ where
             };
         }
 
-        cx.with_window(self.view_id, |cx| {
-            let mut parent = WindowParent {
-                native: &mut self.window,
-                layout: self.layout,
-            };
+        let mut parent = WindowParent {
+            native: &mut self.window,
+            layout: self.layout,
+        };
 
-            let widget = WidgetMut::new(&mut parent, &mut self.contents);
+        let widget = WidgetMut::new(&mut parent, &mut self.contents);
 
-            V::message(
-                widget,
-                &mut self.state,
-                cx,
-                data,
-                message,
-            )
-        })
+        V::message(
+            widget,
+            &mut self.state,
+            cx,
+            data,
+            message,
+        )
     }
 
     /// Teardown the window state.
     pub fn teardown(self, cx: &mut Context<P>) {
-        cx.with_window(self.view_id, |cx| {
-            V::teardown(self.contents, self.state, cx);
-        });
+        V::teardown(self.contents, self.state, cx);
 
         self.window.teardown(&mut cx.platform);
         cx.layout.remove_node(self.layout);

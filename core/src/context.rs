@@ -1,8 +1,11 @@
-use std::any::{self, Any, TypeId};
+use std::{
+    any::{self, Any, TypeId},
+    sync::Arc,
+};
 
-use ori::{Action, AnyView, Base, Message, Provider, Proxied, Proxy, Tracker, Tree, ViewId};
+use ori::{Action, AnyView, Base, Message, Provider, Proxied, Proxy, Tracker, Tree};
 
-use crate::{AnimateRequest, BoxedWidget, LayoutRequest, LayoutTree, Platform};
+use crate::{AnimateRequest, BoxedWidget, LayoutNode, LayoutTree, Platform};
 
 /// The context of the [`View`](ori::View) tree.
 pub struct Context<P>
@@ -14,8 +17,6 @@ where
 
     /// The [`LayoutTree`].
     pub layout: LayoutTree<P>,
-
-    animation_receiver: Option<ViewId>,
 
     resources: Vec<Resource>,
 
@@ -34,82 +35,31 @@ where
     P: Platform,
 {
     /// Create a [`Context`] for a given [`Platform`].
-    pub fn new(platform: P) -> Self {
+    pub fn new(mut platform: P) -> Self {
+        let proxy = Arc::new(platform.proxy());
+
         Self {
             platform,
-            layout: LayoutTree::new(),
-            animation_receiver: None,
+            layout: LayoutTree::new(proxy),
             resources: Vec::new(),
             view_id_tree: Tree::new(),
         }
     }
 
     /// Request starting to animate.
-    pub fn request_start_animating(&mut self) {
-        if let Some(animation_controller) = self.animation_receiver {
-            self.platform.proxy().message(Message::new(
-                AnimateRequest::Start,
-                animation_controller,
-            ));
+    pub fn request_start_animating(&mut self, node: LayoutNode) {
+        if let Some(root) = self.layout.get_root(node) {
+            let message = Message::new(AnimateRequest::Start, root);
+            self.platform.proxy().message(message);
         }
     }
 
     /// Request stopping animating.
-    pub fn request_stop_animating(&mut self) {
-        if let Some(animation_controller) = self.animation_receiver {
-            self.platform.proxy().message(Message::new(
-                AnimateRequest::Stop,
-                animation_controller,
-            ));
+    pub fn request_stop_animating(&mut self, node: LayoutNode) {
+        if let Some(root) = self.layout.get_root(node) {
+            let message = Message::new(AnimateRequest::Stop, root);
+            self.platform.proxy().message(message);
         }
-    }
-
-    /// Temporarily set the layout controller.
-    ///
-    /// This view will receive [`LayoutRequest`]s from its contents.
-    pub fn with_layout_receiver<T>(
-        &mut self,
-        view_id: ViewId,
-        f: impl FnOnce(&mut Self) -> T,
-    ) -> T {
-        let previous = self.layout.set_request_layout(Some(Box::new({
-            let proxy = self.platform.proxy();
-            move || {
-                proxy.message(Message::new(
-                    LayoutRequest::Layout,
-                    view_id,
-                ));
-            }
-        })));
-
-        let output = f(self);
-
-        self.layout.set_request_layout(previous);
-
-        output
-    }
-
-    /// Temporarily set the animation controller.
-    ///
-    /// This view will receive [`AnimateRequest`]s from its contents.
-    pub fn with_animation_receiver<T>(
-        &mut self,
-        view_id: ViewId,
-        f: impl FnOnce(&mut Self) -> T,
-    ) -> T {
-        let previous = self.animation_receiver.replace(view_id);
-        let output = f(self);
-        self.animation_receiver = previous;
-        output
-    }
-
-    /// Temporarily set the current window.
-    ///
-    /// This is a shorthand for setting both the layout and animation controller.
-    pub fn with_window<T>(&mut self, view_id: ViewId, f: impl FnOnce(&mut Self) -> T) -> T {
-        self.with_layout_receiver(view_id, |this| {
-            this.with_animation_receiver(view_id, f)
-        })
     }
 }
 

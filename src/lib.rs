@@ -12,7 +12,7 @@ mod app;
 mod view;
 
 pub use app::App;
-pub use view::{Effect, View, ViewSeq};
+pub use view::{BoxedView, Effect, View, ViewSeq};
 
 pub use ori::*;
 pub use ori_native_core::*;
@@ -55,9 +55,9 @@ pub mod views {
 /// Commonly used imports.
 pub mod prelude {
     pub use crate::{
-        Action, Align, App, Border, BuildMarker, BuildView, Color, Context, Corners, Direction,
-        Effect, Element, FlexContainer, Font, Fract, Justify, Key, Layout, Length, Message,
-        Modifiers, NamedKey, NavigationBar, Newline, Overflow, Padding, Position, Proxy,
+        Action, Align, App, Border, BoxedView, BuildMarker, BuildView, Color, Context, Corners,
+        Direction, Effect, Element, FlexContainer, Font, Fract, Justify, Key, Layout, Length,
+        Message, Modifiers, NamedKey, NavigationBar, Newline, Overflow, Padding, Position, Proxy,
         SafeAreaInsets, Shadow, Sides, Size, Sizing, StatusBar, Stretch, View, ViewId, ViewSeq,
         Weight, Wrap, views::*,
     };

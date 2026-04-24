@@ -1,8 +1,14 @@
-use std::{collections::HashSet, convert::Infallible, mem};
+use std::{
+    collections::{HashMap, HashSet},
+    convert::Infallible,
+    sync::Arc,
+};
+
+use ori::{Message, Proxy, ViewId};
 
 use crate::{
-    Align, BorderStyle, Direction, FlexStyle, Justify, LayoutStyle, Length, Overflow, Position,
-    Sides, Size,
+    Align, BorderStyle, Direction, FlexStyle, Justify, LayoutRequest, LayoutStyle, Length,
+    Overflow, Position, Sides, Size,
 };
 
 /// A leaf in the layout tree.
@@ -71,40 +77,57 @@ pub struct LayoutNode {
 
 /// The layout tree of an application.
 pub struct LayoutTree<P> {
-    request_layout: Option<Box<dyn FnOnce()>>,
-    tree:           taffy::TaffyTree<Box<dyn Measurable<P>>>,
-    nodes:          HashSet<LayoutNode>,
-}
-
-impl<P> Default for LayoutTree<P> {
-    fn default() -> Self {
-        Self::new()
-    }
+    proxy:     Arc<dyn Proxy>,
+    tree:      taffy::TaffyTree<Box<dyn Measurable<P>>>,
+    nodes:     HashSet<LayoutNode>,
+    roots:     HashMap<LayoutNode, ViewId>,
+    requested: HashSet<ViewId>,
 }
 
 impl<P> LayoutTree<P> {
     /// Create new [`LayoutTree`].
-    pub fn new() -> Self {
+    pub fn new(proxy: Arc<dyn Proxy>) -> Self {
         Self {
-            request_layout: None,
-            tree:           taffy::TaffyTree::new(),
-            nodes:          HashSet::new(),
+            proxy,
+            tree: taffy::TaffyTree::new(),
+            nodes: HashSet::new(),
+            roots: HashMap::new(),
+            requested: HashSet::new(),
         }
     }
 
-    /// Set the layout request callback.
-    pub fn set_request_layout(
-        &mut self,
-        request_layout: Option<Box<dyn FnOnce()>>,
-    ) -> Option<Box<dyn FnOnce()>> {
-        mem::replace(&mut self.request_layout, request_layout)
+    /// Insert a `root`.
+    pub fn insert_root(&mut self, node: LayoutNode, view: ViewId) {
+        self.roots.insert(node, view);
+    }
+
+    /// Remove a `root`.
+    pub fn remove_root(&mut self, node: LayoutNode) {
+        self.roots.remove(&node);
     }
 
     /// Request a layout.
-    pub fn request_layout(&mut self) {
-        if let Some(request_layout) = self.request_layout.take() {
-            request_layout();
+    pub fn request_layout(&mut self, node: LayoutNode) {
+        if let Some(root) = self.get_root(node)
+            && self.requested.insert(root)
+        {
+            self.proxy.message(Message::new(
+                LayoutRequest::Layout,
+                root,
+            ));
         }
+    }
+
+    /// Get the `root` node of the tree containing `node`.
+    pub fn get_root(&self, node: LayoutNode) -> Option<ViewId> {
+        let mut current = node.id;
+
+        while let Some(parent) = self.tree.parent(current) {
+            current = parent;
+        }
+
+        let node = LayoutNode { id: current };
+        self.roots.get(&node).copied()
     }
 
     /// Get the computed layout of a layout node.
@@ -156,6 +179,10 @@ impl<P> LayoutTree<P> {
     ) where
         P: 'static,
     {
+        if let Some(root) = self.roots.get(&node) {
+            self.requested.remove(root);
+        }
+
         let _ = self.tree.compute_layout_with_measure(
             node.id,
             taffy::Size {
@@ -226,20 +253,18 @@ impl<P> LayoutTree<P> {
 
     /// Insert a child at `index` in a layout node.
     pub fn insert_child(&mut self, parent: LayoutNode, index: usize, child: LayoutNode) {
-        self.request_layout();
+        self.request_layout(parent);
         let _ = self.tree.insert_child_at_index(parent.id, index, child.id);
     }
 
     /// Replace the child at `index` in a layout node.
     pub fn replace_child(&mut self, parent: LayoutNode, index: usize, child: LayoutNode) {
-        self.request_layout();
+        self.request_layout(parent);
         let _ = self.tree.replace_child_at_index(parent.id, index, child.id);
     }
 
     /// Replace `node` with `other`.
     pub fn replace_node(&mut self, node: LayoutNode, other: LayoutNode) {
-        self.request_layout();
-
         if let Some(parent) = self.tree.parent(node.id) {
             let children = self
                 .tree
@@ -253,23 +278,37 @@ impl<P> LayoutTree<P> {
 
             let _ = self.tree.replace_child_at_index(parent, index, other.id);
         }
+
+        self.request_layout(other);
     }
 
     /// Remove a layout node.
     pub fn remove_node(&mut self, node: LayoutNode) {
-        self.request_layout();
+        self.request_layout(node);
         let _ = self.tree.remove(node.id);
-
         self.nodes.remove(&node);
+        self.roots.remove(&node);
     }
 
     /// Remove the child at `index` from a layout node.
     pub fn remove_child(&mut self, node: LayoutNode, index: usize) {
-        self.request_layout();
+        self.request_layout(node);
 
         if let Ok(id) = self.tree.remove_child_at_index(node.id, index) {
             let node = LayoutNode { id };
             self.nodes.remove(&node);
+        }
+    }
+
+    /// Set the size of a node without requesting layout.
+    pub fn set_size_without_request(&mut self, node: LayoutNode, size: Size<Option<Length>>) {
+        if let Ok(mut layout) = self.tree.style(node.id).cloned() {
+            layout.size = taffy::Size {
+                width:  Self::into_dimension(size.width),
+                height: Self::into_dimension(size.height),
+            };
+
+            let _ = self.tree.set_style(node.id, layout);
         }
     }
 
@@ -280,7 +319,6 @@ impl<P> LayoutTree<P> {
         };
 
         layout.position = Self::into_position(style.position);
-        layout.justify_self = style.justify_self.map(Self::into_align);
         layout.align_self = style.align_self.map(Self::into_align);
         layout.flex_shrink = style.flex_shrink;
         layout.flex_grow = style.flex_grow;
@@ -315,7 +353,7 @@ impl<P> LayoutTree<P> {
             height: Self::into_dimension(style.max_size.height),
         };
 
-        self.request_layout();
+        self.request_layout(node);
         let _ = self.tree.set_style(node.id, layout);
     }
 
@@ -332,7 +370,7 @@ impl<P> LayoutTree<P> {
             left:   Self::into_length(style.width.left),
         };
 
-        self.request_layout();
+        self.request_layout(node);
         let _ = self.tree.set_style(node.id, layout);
     }
 
@@ -349,7 +387,7 @@ impl<P> LayoutTree<P> {
             left:   Self::into_length(padding.left),
         };
 
-        self.request_layout();
+        self.request_layout(node);
         let _ = self.tree.set_style(node.id, layout);
     }
 
@@ -364,7 +402,7 @@ impl<P> LayoutTree<P> {
             y: Self::into_overflow(overflow.height),
         };
 
-        self.request_layout();
+        self.request_layout(node);
         let _ = self.tree.set_style(node.id, layout);
     }
 
@@ -395,7 +433,7 @@ impl<P> LayoutTree<P> {
         layout.justify_content = flex.justify_content.map(Self::into_justify);
         layout.align_items = flex.align_items.map(Self::into_align);
 
-        self.request_layout();
+        self.request_layout(node);
         let _ = self.tree.set_style(node.id, layout);
     }
 
@@ -404,7 +442,7 @@ impl<P> LayoutTree<P> {
     where
         T: Measurable<P> + 'static,
     {
-        self.request_layout();
+        self.request_layout(node);
         let _ = self.tree.set_node_context(node.id, Some(Box::new(measure)));
     }
 

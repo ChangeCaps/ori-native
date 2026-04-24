@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarker};
 
-use crate::{Context, Platform, WidgetView, widget::WidgetMut, widgets::AnimateWidget};
+use crate::{Context, Platform, Widget, WidgetView, widget::WidgetMut, widgets::AnimateWidget};
 
 /// [`View`] that animates its contents.
 pub fn animate<P, T, A>(animation: A) -> impl WidgetView<P, T>
@@ -33,7 +33,7 @@ pub trait Animation<T> {
     fn animate(state: &mut Self::State, data: &mut T, duration: Duration) -> bool;
 
     /// Build the animated [`View`].
-    fn view(state: &Self::State, data: &T) -> Self::View;
+    fn view(state: &mut Self::State, data: &T) -> Self::View;
 }
 
 /// [`View`] that animates its contents.
@@ -64,14 +64,15 @@ where
     type State = AnimateState<P, T, A>;
 
     fn build(self, cx: &mut Context<P>, data: &mut T) -> (Self::Element, Self::State) {
-        let (anim, is_animating) = self.animation.build(data);
+        let (mut anim, is_animating) = self.animation.build(data);
+
+        let view = A::view(&mut anim, data);
+        let (element, state) = view.build(cx, data);
 
         if is_animating {
-            cx.request_start_animating();
+            let layout = element.layout_node();
+            cx.request_start_animating(layout);
         }
-
-        let view = A::view(&anim, data);
-        let (element, state) = view.build(cx, data);
 
         let view_id = ViewId::next();
         cx.register(view_id);
@@ -113,13 +114,15 @@ where
             element.widget.contents(),
         );
 
-        let view = A::view(&state.anim, data);
+        let view = A::view(&mut state.anim, data);
         view.rebuild(widget, &mut state.state, cx, data);
 
         if state.is_animating != should_animate {
+            let layout = element.layout_node();
+
             match should_animate {
-                true => cx.request_start_animating(),
-                false => cx.request_stop_animating(),
+                true => cx.request_start_animating(layout),
+                false => cx.request_stop_animating(layout),
             }
 
             state.is_animating = should_animate;
@@ -137,7 +140,7 @@ where
             && state.is_animating
         {
             let should_animate = A::animate(&mut state.anim, data, delta);
-            let view = A::view(&state.anim, data);
+            let view = A::view(&mut state.anim, data);
 
             let widget = WidgetMut::new(
                 element.parent,
@@ -147,9 +150,11 @@ where
             view.rebuild(widget, &mut state.state, cx, data);
 
             if state.is_animating != should_animate {
+                let layout = element.layout_node();
+
                 match should_animate {
-                    true => cx.request_start_animating(),
-                    false => cx.request_stop_animating(),
+                    true => cx.request_start_animating(layout),
+                    false => cx.request_stop_animating(layout),
                 }
 
                 state.is_animating = should_animate;
@@ -173,13 +178,15 @@ where
     }
 
     fn teardown(element: Self::Element, state: Self::State, cx: &mut Context<P>) {
+        let layout = element.layout_node();
+
+        if state.is_animating {
+            cx.request_stop_animating(layout);
+        }
+
         let contents = element.teardown();
         A::View::teardown(contents, state.state, cx);
         cx.unregister(state.view_id);
-
-        if state.is_animating {
-            cx.request_stop_animating();
-        }
     }
 }
 

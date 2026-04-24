@@ -121,9 +121,12 @@ impl<T> Sides<T> {
     }
 }
 
-impl From<Option<Length>> for Sides<Option<Length>> {
-    fn from(value: Option<Length>) -> Self {
-        Self::all(value)
+impl<T> From<T> for Sides<Length>
+where
+    T: Into<Length>,
+{
+    fn from(value: T) -> Self {
+        Self::all(value.into())
     }
 }
 
@@ -136,12 +139,43 @@ where
     }
 }
 
-impl<T> From<T> for Sides<Length>
+impl From<Option<Length>> for Sides<Option<Length>> {
+    fn from(value: Option<Length>) -> Self {
+        Self::all(value)
+    }
+}
+
+impl<T, U, V, W> From<(T, U, V, W)> for Sides<Length>
 where
     T: Into<Length>,
+    U: Into<Length>,
+    V: Into<Length>,
+    W: Into<Length>,
 {
-    fn from(value: T) -> Self {
-        Self::all(value.into())
+    fn from((top, right, bottom, left): (T, U, V, W)) -> Self {
+        Self {
+            top:    top.into(),
+            right:  right.into(),
+            bottom: bottom.into(),
+            left:   left.into(),
+        }
+    }
+}
+
+impl<T, U, V, W> From<(T, U, V, W)> for Sides<Option<Length>>
+where
+    T: Into<Length>,
+    U: Into<Length>,
+    V: Into<Length>,
+    W: Into<Length>,
+{
+    fn from((top, right, bottom, left): (T, U, V, W)) -> Self {
+        Self {
+            top:    Some(top.into()),
+            right:  Some(right.into()),
+            bottom: Some(bottom.into()),
+            left:   Some(left.into()),
+        }
     }
 }
 
@@ -228,9 +262,6 @@ pub struct LayoutStyle {
     /// The positioning strategy.
     pub position: Position,
 
-    /// The justification within the container.
-    pub justify_self: Option<Align>,
-
     /// The alignment within the container.
     pub align_self: Option<Align>,
 
@@ -262,17 +293,16 @@ pub struct LayoutStyle {
 impl Default for LayoutStyle {
     fn default() -> Self {
         Self {
-            position:     Position::Relative,
-            justify_self: None,
-            align_self:   None,
-            flex_shrink:  1.0,
-            flex_grow:    0.0,
-            flex_basis:   None,
-            margin:       Sides::all(Some(Length::Length(0.0))),
-            inset:        Sides::all(None),
-            size:         Size::all(None),
-            min_size:     Size::all(None),
-            max_size:     Size::all(None),
+            position:    Position::Relative,
+            align_self:  None,
+            flex_shrink: 1.0,
+            flex_grow:   0.0,
+            flex_basis:  None,
+            margin:      Sides::all(Some(Length::Length(0.0))),
+            inset:       Sides::all(None),
+            size:        Size::all(None),
+            min_size:    Size::all(None),
+            max_size:    Size::all(None),
         }
     }
 }
@@ -336,21 +366,21 @@ pub trait Layout: Sized {
     /// Get a mutable reference to the layout style.
     fn get_layout_style_mut(&mut self) -> &mut LayoutStyle;
 
+    /// Override the layout style.
+    fn layout(mut self, style: LayoutStyle) -> Self {
+        *self.get_layout_style_mut() = style;
+        self
+    }
+
     /// Set the positioning strategy.
     fn position(mut self, position: Position) -> Self {
         self.get_layout_style_mut().position = position;
         self
     }
 
-    /// Set how the view should be justified in the container.
-    fn justify_self(mut self, justify_self: Align) -> Self {
-        self.get_layout_style_mut().justify_self = Some(justify_self);
-        self
-    }
-
     /// Set how the view should be aligned in the container.
-    fn align_self(mut self, align_self: Align) -> Self {
-        self.get_layout_style_mut().align_self = Some(align_self);
+    fn align_self(mut self, align_self: impl Into<Option<Align>>) -> Self {
+        self.get_layout_style_mut().align_self = align_self.into();
         self
     }
 

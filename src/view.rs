@@ -1,6 +1,10 @@
+use ori::AnyView;
 use ori_native_core::{WidgetView, WidgetViewSeq};
 
-use crate::{Context, Platform};
+use crate::{Context, Element, Platform};
+
+/// Type erased [`View`].
+pub type BoxedView<T> = Box<dyn AnyView<Context, T, Element>>;
 
 /// A [`View`](ori::View) in the selected [`Context`].
 pub trait View<T>: WidgetView<Platform, T> {}
