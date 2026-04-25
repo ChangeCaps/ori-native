@@ -94,7 +94,7 @@ where
                 (color, border_color, float),
                 Ease(0.1),
                 move |_, (color, border_color, float)| {
-                    // put the 'contents' in a `maybe` since it shouldn't rebuild based on press
+                    // put the `contents` in a `maybe` since it shouldn't rebuild based on press
                     // state or transition.
                     row(maybe(contents.take()))
                         .layout(self.layout)
