@@ -22,7 +22,7 @@ pub fn transition<P, T, U, V>(
 ) -> impl WidgetView<P, T>
 where
     P: Platform,
-    U: Lerp + Clone + PartialEq,
+    U: Transitionable,
     V: WidgetView<P, T>,
 {
     animate(TransitionAnimation {
@@ -40,7 +40,7 @@ struct TransitionAnimation<U, X, F> {
 
 impl<T, U, X, F, V> Animation<T> for TransitionAnimation<U, X, F>
 where
-    U: Lerp + Clone + PartialEq,
+    U: Transitionable,
     X: Transition,
     F: FnMut(&T, U) -> V,
 {
@@ -49,9 +49,7 @@ where
 
     fn build(self, _data: &mut T) -> (Self::State, bool) {
         let state = State {
-            current:    None,
-            target:     self.value,
-            time:       1.0,
+            state:      self.value.build(),
             transition: self.transition,
             build:      self.build,
         };
@@ -61,49 +59,39 @@ where
 
     fn rebuild(self, state: &mut Self::State, _data: &mut T) -> bool {
         state.build = self.build;
-
-        if state.target != self.value {
-            state.current = Some(state.value());
-            state.target = self.value;
-            state.time = 0.0;
-        }
-
-        state.time < 1.0
+        U::start(&mut state.state, self.value)
     }
 
     fn animate(state: &mut Self::State, _data: &mut T, duration: Duration) -> bool {
-        state.time += duration.as_secs_f32() / state.transition.duration();
-        state.time = state.time.clamp(0.0, 1.0);
-        state.time < 1.0
+        let delta = duration.as_secs_f32() / state.transition.duration();
+        U::update(&mut state.state, delta)
     }
 
     fn view(state: &mut Self::State, data: &T) -> Self::View {
-        let value = state.value();
+        let value = U::value(&state.state);
         (state.build)(data, value)
     }
 }
 
-struct State<U, X, F> {
-    current:    Option<U>,
-    target:     U,
-    time:       f32,
+struct State<U, X, F>
+where
+    U: Transitionable,
+{
+    state:      U::State,
     transition: X,
     build:      F,
 }
 
-impl<U, X, F> State<U, X, F>
-where
-    U: Lerp + Clone + PartialEq,
-    X: Transition,
-{
-    fn value(&self) -> U {
-        if let Some(ref current) = self.current {
-            let t = self.transition.curve(self.time);
-            U::lerp(current, &self.target, t)
-        } else {
-            self.target.clone()
-        }
-    }
+pub trait Transitionable {
+    type State;
+
+    fn build(self) -> Self::State;
+
+    fn start(state: &mut Self::State, target: Self) -> bool;
+
+    fn update(state: &mut Self::State, delta: f32) -> bool;
+
+    fn value(state: &Self::State) -> Self;
 }
 
 /// Type that can be linearly interpolated.
@@ -132,9 +120,6 @@ pub struct BackIn(pub f32);
 
 /// Back in out [`Transition`] curve.
 pub struct BackInOut(pub f32);
-
-const C1: f32 = 1.70158;
-const C2: f32 = C1 * 1.525;
 
 impl Transition for Linear {
     fn duration(&self) -> f32 {
@@ -175,6 +160,9 @@ impl Transition for ElasticIn {
         -f32::powf(2.0, 10.0 * t - 10.0) * f32::sin((10.0 * t - 10.75) * PI * 2.0 / 3.0)
     }
 }
+
+const C1: f32 = 1.70158;
+const C2: f32 = C1 * 1.525;
 
 impl Transition for Back {
     fn duration(&self) -> f32 {
@@ -222,32 +210,104 @@ impl Lerp for Color {
     }
 }
 
+impl<T> Transitionable for T
+where
+    T: Lerp + Clone + PartialEq,
+{
+    type State = TransitionState<Self>;
+
+    fn build(self) -> Self::State {
+        TransitionState {
+            current: None,
+            target:  self,
+            t:       0.0,
+        }
+    }
+
+    fn start(state: &mut Self::State, target: Self) -> bool {
+        if state.target != target {
+            let current = Self::value(state);
+            state.current = Some(current);
+            state.target = target;
+            state.t = 0.0;
+        }
+
+        state.t < 1.0
+    }
+
+    fn update(state: &mut Self::State, delta: f32) -> bool {
+        state.t += delta;
+        state.t = state.t.clamp(0.0, 1.0);
+        state.t < 1.0
+    }
+
+    fn value(state: &Self::State) -> Self {
+        if let Some(ref current) = state.current {
+            Self::lerp(current, &state.target, state.t)
+        } else {
+            state.target.clone()
+        }
+    }
+}
+
+pub struct TransitionState<T> {
+    current: Option<T>,
+    target:  T,
+    t:       f32,
+}
+
 macro_rules! impl_tuple {
     () => {
         impl_tuple!(@impl);
     };
 
-    ($first_name:ident: $first_b:ident $(, $rest:ident: $b:ident)*) => {
-        impl_tuple!(@impl $first_name: $first_b $(,$rest: $b)*);
-        impl_tuple!($($rest: $b),*);
+    ($first_name:ident:$first_arg:ident $(, $rest_name:ident:$rest_arg:ident)*) => {
+        impl_tuple!(@impl $first_name:$first_arg $(,$rest_name:$rest_arg)*);
+        impl_tuple!($($rest_name:$rest_arg),*);
     };
 
-    (@impl $($name:ident: $b:ident),*) => {
-        impl<$($name),*> Lerp for ($($name,)*)
+    (@impl $($name:ident:$arg:ident),*) => {
+        impl<$($name),*> Transitionable for ($($name,)*)
         where
-            $($name: Lerp),*
+            $($name: Transitionable),*
         {
+            type State = ($($name::State,)*);
+
             #[allow(
                 non_snake_case,
                 unused,
                 clippy::unused_unit,
             )]
-            fn lerp(
-                ($($name,)*): &Self,
-                ($($b,)*): &Self,
-                t: f32
-            ) -> Self {
-                ($($name::lerp($name, $b, t),)*)
+            fn build(self) -> Self::State {
+                let ($($name,)*) = self;
+                ($($name.build(),)*)
+            }
+
+            #[allow(
+                non_snake_case,
+                unused,
+                clippy::unused_unit,
+            )]
+            fn start(($($name,)*): &mut Self::State, ($($arg,)*): Self) -> bool {
+                false $(| $name::start($name, $arg))*
+            }
+
+            #[allow(
+                non_snake_case,
+                unused,
+                clippy::unused_unit,
+            )]
+            fn update(($($name,)*): &mut Self::State, delta: f32) -> bool {
+                false $(| $name::update($name, delta))*
+            }
+
+            #[allow(
+                non_snake_case,
+                unused,
+                clippy::unused_unit,
+            )]
+            fn value(($($name,)*): &Self::State) -> Self {
+                ($($name::value($name),)*)
             }
         }
     };
