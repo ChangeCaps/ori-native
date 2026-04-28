@@ -44,6 +44,7 @@ fn dropdown<T, H>(
 where
     H: View<T>,
 {
+    #[derive(Default)]
     struct State {
         x:       f32,
         y:       f32,
@@ -51,46 +52,38 @@ where
         is_open: bool,
     }
 
-    with(
-        |_| State {
-            x:       0.0,
-            y:       0.0,
-            height:  0.0,
-            is_open: false,
-        },
-        move |state, _| {
-            let header = pressable(move |_, state| {
-                map(
-                    header(state),
-                    |(_, data): &mut (_, T), map| map(data),
-                )
-            })
-            .on_press(|(state, _): &mut (State, _)| state.is_open = !state.is_open);
-
-            let body = state.is_open.then(|| {
-                teleport(
-                    MODAL,
-                    column(map(
-                        contents,
-                        |(_, data): &mut (_, T), map| map(data),
-                    ))
-                    .position(Position::Absolute)
-                    .left(state.x)
-                    .top(state.y + state.height + 4.0),
-                )
-            });
-
-            effect(
-                measure(
-                    header,
-                    |(state, _): &mut (State, _), x, y, _, height| {
-                        state.x = x;
-                        state.y = y;
-                        state.height = height;
-                    },
-                ),
-                body,
+    with_default(move |state: &State, _| {
+        let header = pressable(move |_, state| {
+            map(
+                header(state),
+                |(_, data): &mut (_, T), map| map(data),
             )
-        },
-    )
+        })
+        .on_press(|(state, _): &mut (State, _)| state.is_open = !state.is_open);
+
+        let body = state.is_open.then(|| {
+            teleport(
+                MODAL,
+                column(map(
+                    contents,
+                    |(_, data): &mut (_, T), map| map(data),
+                ))
+                .position(Position::Absolute)
+                .left(state.x)
+                .top(state.y + state.height + 4.0),
+            )
+        });
+
+        effect(
+            measure(
+                header,
+                |(state, _): &mut (State, _), x, y, _, height| {
+                    state.x = x;
+                    state.y = y;
+                    state.height = height;
+                },
+            ),
+            body,
+        )
+    })
 }
