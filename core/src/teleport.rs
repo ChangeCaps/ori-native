@@ -7,8 +7,8 @@ use std::{
 use ori::{Element, Split, Teleportable};
 
 use crate::{
-    Allocation, BoxedWidget, Context, LayoutNode, Parent, Platform, Widget, native::NativeGroup,
-    widget::WidgetMut,
+    Allocation, BoxedWidget, Context, LayoutNode, NativeWidget, Parent, Platform, Widget,
+    native::NativeGroup, widget::WidgetMut,
 };
 
 impl<P> Teleportable for Context<P>
@@ -28,12 +28,12 @@ where
 
     fn split(cx: &mut Self, widget: T) -> (Self::Left, Self::Right) {
         let boxed: BoxedWidget<P> = Box::new(widget);
-        let widget = boxed.widget_ref();
         let layout = boxed.layout_node();
 
         let mut group = P::Group::build(&mut cx.platform);
         group.insert_child(&mut cx.platform, 0, boxed.widget_ref());
 
+        let widget = group.widget_ref();
         let inner = SplitWidgetInner {
             group,
             boxed,
