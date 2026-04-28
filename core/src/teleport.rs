@@ -7,8 +7,8 @@ use std::{
 use ori::{Element, Split, Teleportable};
 
 use crate::{
-    Allocation, BoxedWidget, Context, LayoutNode, NativeWidget, Parent, Platform, Widget,
-    native::NativeGroup, widget::WidgetMut,
+    Allocation, BoxedWidget, Context, LayoutNode, Parent, Platform, Widget, native::NativeGroup,
+    widget::WidgetMut,
 };
 
 impl<P> Teleportable for Context<P>
@@ -28,6 +28,9 @@ where
 
     fn split(cx: &mut Self, widget: T) -> (Self::Left, Self::Right) {
         let boxed: BoxedWidget<P> = Box::new(widget);
+        let widget = boxed.widget_ref();
+        let layout = boxed.layout_node();
+
         let mut group = P::Group::build(&mut cx.platform);
         group.insert_child(&mut cx.platform, 0, boxed.widget_ref());
 
@@ -41,9 +44,15 @@ where
 
         let left = SplitWidget {
             inner: shared.clone(),
+            widget: widget.clone(),
+            layout,
         };
 
-        let right = SplitWidget { inner: shared };
+        let right = SplitWidget {
+            inner: shared,
+            widget,
+            layout,
+        };
 
         (left, right)
     }
@@ -83,7 +92,9 @@ pub struct SplitWidget<P>
 where
     P: Platform,
 {
-    inner: Arc<Mutex<Option<SplitWidgetInner<P>>>>,
+    inner:  Arc<Mutex<Option<SplitWidgetInner<P>>>>,
+    widget: P::WidgetRef,
+    layout: LayoutNode,
 }
 
 struct SplitWidgetInner<P>
@@ -101,17 +112,11 @@ where
     P: Platform,
 {
     fn widget_ref(&self) -> P::WidgetRef {
-        let inner = self.inner.lock().expect("locking should not fail");
-        let inner = inner.as_ref().expect("should be Some");
-
-        inner.group.widget_ref()
+        self.widget.clone()
     }
 
     fn layout_node(&self) -> LayoutNode {
-        let inner = self.inner.lock().expect("locking should not fail");
-        let inner = inner.as_ref().expect("should be Some");
-
-        inner.boxed.layout_node()
+        self.layout
     }
 
     fn layout(&mut self, cx: &mut Context<P>) {
