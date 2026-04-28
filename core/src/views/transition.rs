@@ -58,8 +58,13 @@ where
     }
 
     fn rebuild(self, state: &mut Self::State, _data: &mut T) -> bool {
+        state.transition = self.transition;
         state.build = self.build;
-        U::start(&mut state.state, self.value)
+        U::start(
+            &mut state.state,
+            &state.transition,
+            self.value,
+        )
     }
 
     fn animate(state: &mut Self::State, _data: &mut T, duration: Duration) -> bool {
@@ -68,7 +73,7 @@ where
     }
 
     fn view(state: &mut Self::State, data: &T) -> Self::View {
-        let value = U::value(&state.state);
+        let value = U::value(&state.state, &state.transition);
         (state.build)(data, value)
     }
 }
@@ -87,11 +92,11 @@ pub trait Transitionable {
 
     fn build(self) -> Self::State;
 
-    fn start(state: &mut Self::State, target: Self) -> bool;
+    fn start(state: &mut Self::State, transition: &impl Transition, target: Self) -> bool;
 
     fn update(state: &mut Self::State, delta: f32) -> bool;
 
-    fn value(state: &Self::State) -> Self;
+    fn value(state: &Self::State, transition: &impl Transition) -> Self;
 }
 
 /// Type that can be linearly interpolated.
@@ -220,30 +225,31 @@ where
         TransitionState {
             current: None,
             target:  self,
-            t:       0.0,
+            elapsed: 0.0,
         }
     }
 
-    fn start(state: &mut Self::State, target: Self) -> bool {
+    fn start(state: &mut Self::State, transition: &impl Transition, target: Self) -> bool {
         if state.target != target {
-            let current = Self::value(state);
+            let current = Self::value(state, transition);
             state.current = Some(current);
             state.target = target;
-            state.t = 0.0;
+            state.elapsed = 0.0;
         }
 
-        state.t < 1.0
+        state.elapsed < 1.0
     }
 
     fn update(state: &mut Self::State, delta: f32) -> bool {
-        state.t += delta;
-        state.t = state.t.clamp(0.0, 1.0);
-        state.t < 1.0
+        state.elapsed += delta;
+        state.elapsed = state.elapsed.clamp(0.0, 1.0);
+        state.elapsed < 1.0
     }
 
-    fn value(state: &Self::State) -> Self {
+    fn value(state: &Self::State, transition: &impl Transition) -> Self {
         if let Some(ref current) = state.current {
-            Self::lerp(current, &state.target, state.t)
+            let t = transition.curve(state.elapsed);
+            Self::lerp(current, &state.target, t)
         } else {
             state.target.clone()
         }
@@ -253,7 +259,7 @@ where
 pub struct TransitionState<T> {
     current: Option<T>,
     target:  T,
-    t:       f32,
+    elapsed: f32,
 }
 
 macro_rules! impl_tuple {
@@ -288,8 +294,12 @@ macro_rules! impl_tuple {
                 unused,
                 clippy::unused_unit,
             )]
-            fn start(($($name,)*): &mut Self::State, ($($arg,)*): Self) -> bool {
-                false $(| $name::start($name, $arg))*
+            fn start(
+                ($($name,)*): &mut Self::State,
+                transition: &impl Transition,
+                ($($arg,)*): Self,
+            ) -> bool {
+                false $(| $name::start($name, transition, $arg))*
             }
 
             #[allow(
@@ -306,8 +316,8 @@ macro_rules! impl_tuple {
                 unused,
                 clippy::unused_unit,
             )]
-            fn value(($($name,)*): &Self::State) -> Self {
-                ($($name::value($name),)*)
+            fn value(($($name,)*): &Self::State, transition: &impl Transition) -> Self {
+                ($($name::value($name, transition),)*)
             }
         }
     };
