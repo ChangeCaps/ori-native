@@ -3,9 +3,8 @@ use std::time::Duration;
 use ori::Element;
 
 use crate::{
-    Allocation, Context, Key, LayoutNode, Modifiers, NativeWidget, Parent, Platform, Widget,
-    native::{NativePressable, Press},
-    widget::WidgetMut,
+    Allocation, Context, Key, LayoutNode, Modifiers, NativeWidget, Parent, Platform,
+    PressableEvent, Widget, native::NativePressable, widget::WidgetMut,
 };
 
 /// A [`Widget`] that handles input.
@@ -29,16 +28,12 @@ where
     pub fn new(
         cx: &mut Context<P>,
         contents: W,
-        on_press: impl Fn(Press) + 'static,
-        on_hover: impl Fn(bool) + 'static,
-        on_focus: impl Fn(bool) + 'static,
+        on_event: impl Fn(PressableEvent) + 'static,
     ) -> Self {
         let pressable = P::Pressable::build(
             &mut cx.platform,
             contents.widget_ref(),
-            on_press,
-            on_hover,
-            on_focus,
+            on_event,
         );
 
         Self {

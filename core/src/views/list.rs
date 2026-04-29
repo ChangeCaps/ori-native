@@ -295,12 +295,10 @@ where
                 {
                     V::teardown(child, state, cx);
                 }
-            } else {
-                if let Some(child) = widget.remove_back(cx)
-                    && let Some(state) = self.states.pop_back()
-                {
-                    V::teardown(child, state, cx);
-                }
+            } else if let Some(child) = widget.remove_back(cx)
+                && let Some(state) = self.states.pop_back()
+            {
+                V::teardown(child, state, cx);
             }
         }
 

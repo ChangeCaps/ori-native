@@ -1,7 +1,6 @@
 use jni::{EnvUnowned, jni_sig, jni_str, objects::JObject};
 use ori_native_core::{
-    Key, Modifiers, NativeWidget,
-    native::{NativePressable, Press},
+    Key, Modifiers, NativeWidget, Pointer, PressableEvent, native::NativePressable,
 };
 
 use crate::{
@@ -24,9 +23,7 @@ impl NativePressable<Platform> for Pressable {
     fn build(
         platform: &mut Platform,
         contents: WidgetId,
-        on_press: impl Fn(Press) + 'static,
-        _on_hover: impl Fn(bool) + 'static,
-        _on_focus: impl Fn(bool) + 'static,
+        on_event: impl Fn(PressableEvent) + 'static,
     ) -> Self {
         let id = platform.next_id();
 
@@ -49,7 +46,7 @@ impl NativePressable<Platform> for Pressable {
         });
 
         platform.add_handler(id, move |event| match event {
-            WidgetEvent::Press(press) => on_press(*press),
+            WidgetEvent::Press(evnet) => on_event(*evnet),
             _ => unreachable!(),
         });
 
@@ -98,17 +95,40 @@ extern "system" fn Java_ori_OriPressable_onPress<'local>(
     _this: JObject<'local>,
     id: i64,
     state: i32,
+    x: f32,
+    y: f32,
 ) -> bool {
-    let state = match state {
-        0 => Press::Pressed,
-        1 => Press::Released,
-        2 => Press::Cancelled,
+    let pointer = Pointer { x, y };
+
+    let event = match state {
+        0 => PressableEvent::Pressed(pointer),
+        1 => PressableEvent::Released(pointer),
+        2 => PressableEvent::Cancelled(pointer),
         _ => return false,
     };
 
     GlobalState::event(
         WidgetId::new(id as u64),
-        WidgetEvent::Press(state),
+        WidgetEvent::Press(event),
+    );
+
+    true
+}
+
+#[unsafe(no_mangle)]
+extern "system" fn Java_ori_OriPressable_onMove<'local>(
+    _env: EnvUnowned<'local>,
+    _this: JObject<'local>,
+    id: i64,
+    x: f32,
+    y: f32,
+) -> bool {
+    let pointer = Pointer { x, y };
+    let event = PressableEvent::Moved(pointer);
+
+    GlobalState::event(
+        WidgetId::new(id as u64),
+        WidgetEvent::Press(event),
     );
 
     true

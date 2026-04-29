@@ -2,8 +2,8 @@ use keyboard_types::Modifiers;
 use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarker};
 
 use crate::{
-    Context, Input, InputHandler, MatchKey, Platform, WidgetView, native::Press, widget::WidgetMut,
-    widgets::PressableWidget,
+    Context, Input, InputHandler, MatchKey, Platform, PressableEvent, WidgetView,
+    widget::WidgetMut, widgets::PressableWidget,
 };
 
 /// [`View`] that reacts to presses and focus.
@@ -28,9 +28,11 @@ pub struct PressState {
 #[allow(clippy::type_complexity)]
 pub struct Pressable<V, T> {
     build:    Box<dyn FnMut(&T, PressState) -> V>,
+    on_event: Box<dyn FnMut(&mut T, PressableEvent) -> Action>,
     on_press: Box<dyn FnMut(&mut T) -> Action>,
     on_hover: Box<dyn FnMut(&mut T, bool) -> Action>,
     on_focus: Box<dyn FnMut(&mut T, bool) -> Action>,
+    on_move:  Box<dyn FnMut(&mut T, f32, f32) -> Action>,
     input:    Input<T>,
 }
 
@@ -39,11 +41,25 @@ impl<V, T> Pressable<V, T> {
     pub fn new(build: impl FnMut(&T, PressState) -> V + 'static) -> Self {
         Self {
             build:    Box::new(build),
+            on_event: Box::new(|_, _| Action::new()),
             on_press: Box::new(|_| Action::new()),
             on_hover: Box::new(|_, _| Action::new()),
             on_focus: Box::new(|_, _| Action::new()),
+            on_move:  Box::new(|_, _, _| Action::new()),
             input:    Input::new(),
         }
+    }
+
+    /// Set the callback for all events.
+    pub fn on_event<A>(
+        mut self,
+        mut on_event: impl FnMut(&mut T, PressableEvent) -> A + 'static,
+    ) -> Self
+    where
+        A: Into<Action>,
+    {
+        self.on_event = Box::new(move |data, event| on_event(data, event).into());
+        self
     }
 
     /// Set the callback for when the [`View`] is pressed.
@@ -73,6 +89,15 @@ impl<V, T> Pressable<V, T> {
         self
     }
 
+    /// Set the callback for when the pointer is moved over the [`View`].
+    pub fn on_move<A>(mut self, mut on_focus: impl FnMut(&mut T, f32, f32) -> A + 'static) -> Self
+    where
+        A: Into<Action>,
+    {
+        self.on_move = Box::new(move |data, x, y| on_focus(data, x, y).into());
+        self
+    }
+
     /// Set a callback for when `key` is pressed.
     pub fn on_key<A>(
         mut self,
@@ -86,12 +111,6 @@ impl<V, T> Pressable<V, T> {
         self.input.add_key(key, mods, on_key);
         self
     }
-}
-
-enum PressableMessage {
-    Pressed(Press),
-    Hovered(bool),
-    Focused(bool),
 }
 
 impl<T, V> ViewMarker for Pressable<V, T> {}
@@ -116,42 +135,15 @@ where
         let view_id = ViewId::next();
         cx.register(view_id);
 
-        let on_press = {
+        let on_event = {
             let proxy = cx.proxy();
 
-            move |pressed| {
-                proxy.message(Message::new(
-                    PressableMessage::Pressed(pressed),
-                    view_id,
-                ));
+            move |event| {
+                proxy.message(Message::new(event, view_id));
             }
         };
 
-        let on_hover = {
-            let proxy = cx.proxy();
-
-            move |hovered| {
-                proxy.message(Message::new(
-                    PressableMessage::Hovered(hovered),
-                    view_id,
-                ));
-            }
-        };
-
-        let on_focus = {
-            let proxy = cx.proxy();
-
-            move |focused| {
-                proxy.message(Message::new(
-                    PressableMessage::Focused(focused),
-                    view_id,
-                ));
-            }
-        };
-
-        let mut widget = PressableWidget::new(
-            cx, contents, on_press, on_hover, on_focus,
-        );
+        let mut widget = PressableWidget::new(cx, contents, on_event);
 
         let (filter, handler) = self.input.split();
 
@@ -170,9 +162,11 @@ where
             press,
             view_id,
             build: self.build,
+            on_event: self.on_event,
             on_press: self.on_press,
             on_hover: self.on_hover,
             on_focus: self.on_focus,
+            on_move: self.on_move,
             handler,
         };
 
@@ -186,16 +180,12 @@ where
         cx: &mut Context<P>,
         data: &mut T,
     ) {
-        let view = (self.build)(data, state.press);
-
         {
+            let view = (self.build)(data, state.press);
             let (mut parent, contents) = element.contents_mut();
             let widget = WidgetMut::new(&mut parent, contents);
             view.rebuild(widget, &mut state.state, cx, data);
         }
-
-        state.build = self.build;
-        state.on_press = self.on_press;
 
         let (filter, handler) = self.input.split();
         let proxy = cx.proxy();
@@ -213,6 +203,12 @@ where
             }
         });
 
+        state.build = self.build;
+        state.on_event = self.on_event;
+        state.on_press = self.on_press;
+        state.on_hover = self.on_hover;
+        state.on_focus = self.on_focus;
+        state.on_move = self.on_move;
         state.handler = handler;
     }
 
@@ -227,28 +223,36 @@ where
             return state.handler.handle(data, message);
         }
 
-        if let Some(message) = message.take(state.view_id) {
+        if let Some(event) = message.take(state.view_id) {
             let mut action = Action::new();
 
-            match message {
-                PressableMessage::Pressed(pressed) => {
-                    state.press.pressed = matches!(pressed, Press::Pressed);
+            match event {
+                PressableEvent::Pressed(_) => {
+                    state.press.pressed = true;
+                }
 
-                    if let Press::Released = pressed {
+                PressableEvent::Released(_) | PressableEvent::Cancelled(_) => {
+                    state.press.pressed = false;
+
+                    if let PressableEvent::Released(_) = event {
                         action |= (state.on_press)(data);
                     }
                 }
 
-                PressableMessage::Hovered(hovered) => {
+                PressableEvent::Moved(_) => {}
+
+                PressableEvent::Hovered(hovered) => {
                     state.press.hovered = hovered;
                     action |= (state.on_hover)(data, hovered);
                 }
 
-                PressableMessage::Focused(focused) => {
+                PressableEvent::Focused(focused) => {
                     state.press.focused = focused;
                     action |= (state.on_focus)(data, focused);
                 }
             }
+
+            action |= (state.on_event)(data, event);
 
             let (mut parent, contents) = element.contents_mut();
             let widget = WidgetMut::new(&mut parent, contents);
@@ -289,8 +293,10 @@ where
     press:    PressState,
     view_id:  ViewId,
     build:    Box<dyn FnMut(&T, PressState) -> V>,
+    on_event: Box<dyn FnMut(&mut T, PressableEvent) -> Action>,
     on_press: Box<dyn FnMut(&mut T) -> Action>,
     on_hover: Box<dyn FnMut(&mut T, bool) -> Action>,
     on_focus: Box<dyn FnMut(&mut T, bool) -> Action>,
+    on_move:  Box<dyn FnMut(&mut T, f32, f32) -> Action>,
     handler:  InputHandler<T>,
 }

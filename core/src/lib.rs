@@ -3,6 +3,7 @@
 //! Core implementation of `ori-native`.
 
 mod context;
+mod event;
 mod input;
 mod layout;
 mod lifecycle;
@@ -18,6 +19,7 @@ pub mod views;
 pub mod widgets;
 
 pub use context::{BoxedEffect, Context};
+pub use event::{Pointer, PressableEvent};
 pub use input::{Input, InputFilter, InputHandler, InputMessage, MatchKey};
 pub use layout::{Allocation, AvailableSpace, LayoutNode, LayoutTree, Measurable};
 pub use lifecycle::{AnimateRequest, LayoutRequest};

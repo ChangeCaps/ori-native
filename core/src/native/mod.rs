@@ -13,7 +13,7 @@ mod window;
 pub use group::NativeGroup;
 pub use image::NativeImage;
 pub use measure::NativeMeasure;
-pub use pressable::{NativePressable, Press};
+pub use pressable::NativePressable;
 pub use scroll::NativeScroll;
 pub use text::NativeText;
 pub use textinput::NativeTextInput;

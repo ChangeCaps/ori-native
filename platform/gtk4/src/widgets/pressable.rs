@@ -3,8 +3,7 @@ use std::{cell::Cell, rc::Rc};
 use glib::object::{Cast, ObjectExt};
 use gtk4::prelude::{AccessibleExt, FixedExt, GestureExt, WidgetExt};
 use ori_native_core::{
-    Key, Modifiers, NativeWidget,
-    native::{NativePressable, Press},
+    Key, Modifiers, NativeWidget, Pointer, PressableEvent, native::NativePressable,
 };
 
 use crate::{Platform, key};
@@ -24,9 +23,7 @@ impl NativePressable<Platform> for Pressable {
     fn build(
         _platform: &mut Platform,
         contents: gtk4::Widget,
-        on_press: impl Fn(Press) + 'static,
-        on_hover: impl Fn(bool) + 'static,
-        on_focus: impl Fn(bool) + 'static,
+        on_event: impl Fn(PressableEvent) + 'static,
     ) -> Self {
         let fixed = gtk4::Fixed::new();
         fixed.put(&contents, 0.0, 0.0);
@@ -34,36 +31,55 @@ impl NativePressable<Platform> for Pressable {
         fixed.set_accessible_role(gtk4::AccessibleRole::Button);
         fixed.set_overflow(gtk4::Overflow::Visible);
 
-        let on_press = Rc::new(on_press);
+        let on_event = Rc::new(on_event);
 
         let controller = gtk4::GestureClick::new();
         controller.connect_pressed({
-            let on_press = on_press.clone();
-            move |controller, _, _, _| {
-                controller.set_state(gtk4::EventSequenceState::Claimed);
-                on_press(Press::Pressed)
+            let on_event = on_event.clone();
+            move |click, _, x, y| {
+                click.set_state(gtk4::EventSequenceState::Claimed);
+
+                let pointer = Pointer {
+                    x: x as f32,
+                    y: y as f32,
+                };
+
+                on_event(PressableEvent::Pressed(pointer));
             }
         });
 
         controller.connect_released({
-            let on_press = on_press.clone();
-            move |_, _, _, _| on_press(Press::Released)
+            let on_event = on_event.clone();
+            move |_, _, x, y| {
+                let pointer = Pointer {
+                    x: x as f32,
+                    y: y as f32,
+                };
+
+                on_event(PressableEvent::Released(pointer));
+            }
         });
 
         controller.connect_unpaired_release({
-            let on_press = on_press.clone();
-            move |_, _, _, _, _| on_press(Press::Cancelled)
+            let on_event = on_event.clone();
+            move |_, x, y, _, _| {
+                let pointer = Pointer {
+                    x: x as f32,
+                    y: y as f32,
+                };
+
+                on_event(PressableEvent::Cancelled(pointer))
+            }
         });
 
         fixed.add_controller(controller);
 
-        let on_hover = Rc::new(on_hover);
         let hovered = Rc::new(Cell::new(false));
 
         let controller = gtk4::EventControllerMotion::new();
         controller.connect_motion({
             let fixed = fixed.downgrade();
-            let on_hover = on_hover.clone();
+            let on_event = on_event.clone();
             let hovered = hovered.clone();
 
             move |_, x, y| {
@@ -74,32 +90,38 @@ impl NativePressable<Platform> for Pressable {
                     && y < fixed.height() as f64
                     && !hovered.get()
                 {
-                    on_hover(true);
+                    on_event(PressableEvent::Hovered(true));
                     hovered.set(true);
                 }
+
+                let pointer = Pointer {
+                    x: x as f32,
+                    y: y as f32,
+                };
+
+                on_event(PressableEvent::Moved(pointer));
             }
         });
 
         controller.connect_leave({
-            let on_hover = on_hover.clone();
+            let on_event = on_event.clone();
             move |_| {
-                on_hover(false);
+                on_event(PressableEvent::Hovered(false));
                 hovered.set(false);
             }
         });
 
         fixed.add_controller(controller);
 
-        let on_focus = Rc::new(on_focus);
         let controller = gtk4::EventControllerFocus::new();
         controller.connect_enter({
-            let on_focus = on_focus.clone();
-            move |_| on_focus(true)
+            let on_event = on_event.clone();
+            move |_| on_event(PressableEvent::Focused(true))
         });
 
         controller.connect_leave({
-            let on_focus = on_focus.clone();
-            move |_| on_focus(false)
+            let on_event = on_event.clone();
+            move |_| on_event(PressableEvent::Focused(false))
         });
 
         fixed.add_controller(controller);

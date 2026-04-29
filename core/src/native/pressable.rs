@@ -1,6 +1,6 @@
 use keyboard_types::{Key, Modifiers};
 
-use crate::{NativeWidget, Platform, Unsupported, platform::unsupported};
+use crate::{NativeWidget, Platform, Unsupported, event::PressableEvent, platform::unsupported};
 
 /// A native widget that receives pointer input and focus.
 pub trait NativePressable<P>: NativeWidget<P>
@@ -11,9 +11,7 @@ where
     fn build(
         platform: &mut P,
         contents: P::WidgetRef,
-        on_press: impl Fn(Press) + 'static,
-        on_hover: impl Fn(bool) + 'static,
-        on_focus: impl Fn(bool) + 'static,
+        on_event: impl Fn(PressableEvent) + 'static,
     ) -> Self;
 
     /// Teardown the widget.
@@ -33,19 +31,6 @@ where
     );
 }
 
-/// The state of a press.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Press {
-    /// The pointer was depressed.
-    Pressed,
-
-    /// The pointer was released.
-    Released,
-
-    /// The press has been cancelled.
-    Cancelled,
-}
-
 impl<P> NativePressable<P> for Unsupported
 where
     P: Platform,
@@ -53,9 +38,7 @@ where
     fn build(
         _platform: &mut P,
         _contents: P::WidgetRef,
-        _on_press: impl Fn(Press) + 'static,
-        _on_hover: impl Fn(bool) + 'static,
-        _on_focus: impl Fn(bool) + 'static,
+        _on_event: impl Fn(PressableEvent) + 'static,
     ) -> Self {
         unsupported!("pressable view")
     }
