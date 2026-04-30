@@ -49,6 +49,7 @@ fn modal_button() -> impl View<Data> + use<> {
             column(pressable(|_, _| {
                 column(text("This is a modal!").size(20.0))
                     .background(Color::WHITE)
+                    .top(-50.0)
                     .padding(20.0)
                     .corner(12.0)
                     .shadow(16.0, 16.0, 20.0, Color::BLACK.fade(0.4))
@@ -59,7 +60,8 @@ fn modal_button() -> impl View<Data> + use<> {
             .position(Position::Absolute)
             .inset(0.0)
         })
-        .on_press(|(open, _): &mut (bool, _)| *open = false)
+        .transparent(true)
+        .on_down(|(open, _): &mut (bool, _)| *open = false)
     }
 
     with_default(|_, _| {

@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    io,
+    fmt, io,
     pin::Pin,
     sync::{Arc, mpsc::Sender},
     time::Duration,
@@ -76,17 +76,20 @@ impl Platform {
         }
     }
 
+    #[track_caller]
     pub fn jni<T, E>(
         &self,
         f: impl FnOnce(&mut Env<'_>, &JObject<'_>) -> Result<T, E>,
     ) -> Result<T, E>
     where
-        E: From<jni::errors::Error>,
+        E: From<jni::errors::Error> + fmt::Display,
     {
-        self.jvm.attach_current_thread(move |env| {
-            let activity = self.activity.as_obj();
-            f(env, activity)
-        })
+        self.jvm
+            .attach_current_thread(move |env| {
+                let activity = self.activity.as_obj();
+                f(env, activity)
+            })
+            .inspect_err(|err| tracing::error!("jni error: {err}"))
     }
 
     pub fn remove_widget(&mut self, widget: WidgetId) {

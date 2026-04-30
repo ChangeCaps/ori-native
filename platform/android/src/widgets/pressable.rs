@@ -81,6 +81,18 @@ impl NativePressable<Platform> for Pressable {
         });
     }
 
+    fn set_transparent(&mut self, platform: &mut Platform, is_transparent: bool) {
+        let _ = platform.jni(|env, activity| {
+            env.call_method(
+                activity,
+                jni_str!("pressableSetTransparent"),
+                jni_sig!((long, boolean)),
+                &[self.id.into(), is_transparent.into()],
+            )?
+            .v()
+        });
+    }
+
     fn set_on_key(
         &mut self,
         _platform: &mut Platform,

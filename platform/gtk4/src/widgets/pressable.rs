@@ -11,6 +11,8 @@ use crate::{Platform, key};
 pub struct Pressable {
     fixed: gtk4::Fixed,
     key:   Option<gtk4::EventControllerKey>,
+
+    is_transparent: Rc<Cell<bool>>,
 }
 
 impl NativeWidget<Platform> for Pressable {
@@ -32,12 +34,17 @@ impl NativePressable<Platform> for Pressable {
         fixed.set_overflow(gtk4::Overflow::Visible);
 
         let on_event = Rc::new(on_event);
+        let is_transparent = Rc::new(Cell::new(false));
 
         let controller = gtk4::GestureClick::new();
         controller.connect_pressed({
             let on_event = on_event.clone();
+            let is_transparent = is_transparent.clone();
+
             move |click, _, x, y| {
-                click.set_state(gtk4::EventSequenceState::Claimed);
+                if !is_transparent.get() {
+                    click.set_state(gtk4::EventSequenceState::Claimed);
+                }
 
                 let pointer = Pointer {
                     x: x as f32,
@@ -50,6 +57,7 @@ impl NativePressable<Platform> for Pressable {
 
         controller.connect_released({
             let on_event = on_event.clone();
+
             move |_, _, x, y| {
                 let pointer = Pointer {
                     x: x as f32,
@@ -62,13 +70,14 @@ impl NativePressable<Platform> for Pressable {
 
         controller.connect_unpaired_release({
             let on_event = on_event.clone();
+
             move |_, x, y, _, _| {
                 let pointer = Pointer {
                     x: x as f32,
                     y: y as f32,
                 };
 
-                on_event(PressableEvent::Cancelled(pointer))
+                on_event(PressableEvent::Cancelled(pointer));
             }
         });
 
@@ -105,6 +114,7 @@ impl NativePressable<Platform> for Pressable {
 
         controller.connect_leave({
             let on_event = on_event.clone();
+
             move |_| {
                 on_event(PressableEvent::Hovered(false));
                 hovered.set(false);
@@ -126,7 +136,11 @@ impl NativePressable<Platform> for Pressable {
 
         fixed.add_controller(controller);
 
-        Self { fixed, key: None }
+        Self {
+            fixed,
+            key: None,
+            is_transparent,
+        }
     }
 
     fn teardown(self, _platform: &mut Platform) {}
@@ -146,6 +160,10 @@ impl NativePressable<Platform> for Pressable {
                 height.round() as i32,
             );
         }
+    }
+
+    fn set_transparent(&mut self, _platform: &mut Platform, is_transparent: bool) {
+        self.is_transparent.set(is_transparent);
     }
 
     fn set_on_key(

@@ -23,6 +23,9 @@ where
     /// Set the size of the contents.
     fn set_content_size(&mut self, platform: &mut P, width: f32, height: f32);
 
+    /// Set whether the widget should be let inputs pass through.
+    fn set_transparent(&mut self, platform: &mut P, is_transparent: bool);
+
     /// Set the `on_key` callback.
     fn set_on_key(
         &mut self,
@@ -52,6 +55,10 @@ where
     }
 
     fn set_content_size(&mut self, _platform: &mut P, _width: f32, _height: f32) {
+        unreachable!()
+    }
+
+    fn set_transparent(&mut self, _platform: &mut P, _is_transparent: bool) {
         unreachable!()
     }
 

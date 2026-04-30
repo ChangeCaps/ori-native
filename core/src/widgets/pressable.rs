@@ -60,7 +60,12 @@ where
         (parent, &mut self.contents)
     }
 
-    /// The the `on_key` callback.
+    /// Set whether the widget allows clicks to pass through itself.
+    pub fn set_transparent(&mut self, cx: &mut Context<P>, is_transparent: bool) {
+        (self.native).set_transparent(&mut cx.platform, is_transparent);
+    }
+
+    /// Set the `on_key` callback.
     pub fn set_on_key(
         &mut self,
         cx: &mut Context<P>,
