@@ -14,8 +14,14 @@ fn ui(data: &Data) -> impl Effect<Data> + use<> {
     window(
         column(
             popup(
-                pressable(|_, _| {
+                pressable(|_, state| {
+                    let color = match state.hovered {
+                        true => Color::BLACK.fade(0.04),
+                        false => Color::TRANSPARENT,
+                    };
+
                     column(text("Click to open dropdown"))
+                        .background(color)
                         .padding(8.0)
                         .border(1.0, Color::BLACK.fade(0.2))
                         .corner(8.0)
