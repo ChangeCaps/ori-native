@@ -1,11 +1,9 @@
 use std::convert::Infallible;
 
-use crate::{
-    Font, Measurable, NativeWidget, Newline, Platform, Unsupported, platform::unsupported,
-};
+use crate::{Font, Measurable, Newline, Platform, Unsupported, platform::unsupported};
 
 /// A native text input widget.
-pub trait NativeTextInput<P>: NativeWidget<P>
+pub trait NativeTextInput<P>
 where
     P: Platform,
 {
@@ -18,6 +16,9 @@ where
 
     /// Teardown the widget.
     fn teardown(self, platform: &mut P);
+
+    /// Get a reference to the widget.
+    fn widget_ref(&self) -> P::WidgetRef;
 
     /// Set the `newline` behaviour.
     fn set_newline(&mut self, platform: &mut P, newline: Newline);
@@ -54,6 +55,10 @@ where
     }
 
     fn teardown(self, _platform: &mut P) {
+        unreachable!()
+    }
+
+    fn widget_ref(&self) -> P::WidgetRef {
         unreachable!()
     }
 

@@ -1,11 +1,9 @@
 use std::convert::Infallible;
 
-use crate::{
-    Measurable, NativeWidget, Platform, TextSpan, Unsupported, Wrap, platform::unsupported,
-};
+use crate::{Measurable, Platform, TextSpan, Unsupported, Wrap, platform::unsupported};
 
 /// A native text widget.
-pub trait NativeText<P>: NativeWidget<P> + Sized
+pub trait NativeText<P>
 where
     P: Platform,
 {
@@ -14,6 +12,9 @@ where
 
     /// Teardown the widget.
     fn teardown(self, platform: &mut P);
+
+    /// Get a reference to the widget.
+    fn widget_ref(&self) -> P::WidgetRef;
 
     /// Set the text.
     fn set_text(
@@ -34,6 +35,10 @@ where
     }
 
     fn teardown(self, _platform: &mut P) {
+        unreachable!()
+    }
+
+    fn widget_ref(&self) -> P::WidgetRef {
         unreachable!()
     }
 

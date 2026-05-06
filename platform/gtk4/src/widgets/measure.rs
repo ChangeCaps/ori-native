@@ -1,18 +1,12 @@
 use glib::object::Cast;
 use gtk4::prelude::{FixedExt, WidgetExt};
-use ori_native_core::{NativeWidget, native::NativeMeasure};
+use ori_native_core::native::NativeMeasure;
 
 use crate::Platform;
 
 pub struct Measure {
     contents: gtk4::Widget,
     fixed:    gtk4::Fixed,
-}
-
-impl NativeWidget<Platform> for Measure {
-    fn widget_ref(&self) -> gtk4::Widget {
-        self.fixed.clone().upcast()
-    }
 }
 
 impl NativeMeasure<Platform> for Measure {
@@ -58,6 +52,10 @@ impl NativeMeasure<Platform> for Measure {
     fn teardown(self, platform: &mut Platform) {
         let widget: &gtk4::Widget = self.fixed.as_ref();
         platform.on_snapshot.borrow_mut().remove(widget);
+    }
+
+    fn widget_ref(&self) -> gtk4::Widget {
+        self.fixed.clone().upcast()
     }
 
     fn replace_contents(&mut self, _platform: &mut Platform, child: gtk4::Widget) {

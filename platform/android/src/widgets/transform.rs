@@ -1,16 +1,10 @@
 use jni::{jni_sig, jni_str};
-use ori_native_core::{Affine, NativeWidget, native::NativeTransform};
+use ori_native_core::{Affine, native::NativeTransform};
 
 use crate::{Platform, platform::WidgetId};
 
 pub struct Transform {
     id: WidgetId,
-}
-
-impl NativeWidget<Platform> for Transform {
-    fn widget_ref(&self) -> WidgetId {
-        self.id
-    }
 }
 
 impl NativeTransform<Platform> for Transform {
@@ -40,6 +34,10 @@ impl NativeTransform<Platform> for Transform {
 
     fn teardown(self, platform: &mut Platform) {
         platform.remove_widget(self.id);
+    }
+
+    fn widget_ref(&self) -> WidgetId {
+        self.id
     }
 
     fn replace_contents(&mut self, platform: &mut Platform, contents: WidgetId) {

@@ -1,17 +1,11 @@
 use glib::object::Cast;
 use gtk4::prelude::{FixedExt, WidgetExt};
-use ori_native_core::{Affine, NativeWidget, native::NativeTransform};
+use ori_native_core::{Affine, native::NativeTransform};
 
 use crate::Platform;
 
 pub struct Transform {
     fixed: gtk4::Fixed,
-}
-
-impl NativeWidget<Platform> for Transform {
-    fn widget_ref(&self) -> gtk4::Widget {
-        self.fixed.clone().upcast()
-    }
 }
 
 impl NativeTransform<Platform> for Transform {
@@ -24,6 +18,10 @@ impl NativeTransform<Platform> for Transform {
     }
 
     fn teardown(self, _platform: &mut Platform) {}
+
+    fn widget_ref(&self) -> gtk4::Widget {
+        self.fixed.clone().upcast()
+    }
 
     fn replace_contents(&mut self, _platform: &mut Platform, child: gtk4::Widget) {
         if let Some(child) = self.fixed.first_child() {

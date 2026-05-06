@@ -3,8 +3,8 @@ use std::time::Duration;
 use ori::Element;
 
 use crate::{
-    Context, Font, LayoutNode, LayoutStyle, NativeWidget, Newline, Platform, Widget,
-    native::NativeTextInput, widget::WidgetMut,
+    Context, Font, LayoutNode, LayoutStyle, Newline, Platform, Widget, native::NativeTextInput,
+    widget::WidgetMut,
 };
 
 /// A [`Widget`] that handles text input.

@@ -1,9 +1,9 @@
 use std::{borrow::Cow, convert::Infallible, error::Error};
 
-use crate::{Color, Measurable, NativeWidget, Platform, Unsupported, platform::unsupported};
+use crate::{Color, Measurable, Platform, Unsupported, platform::unsupported};
 
 /// A native image widget.
-pub trait NativeImage<P>: NativeWidget<P>
+pub trait NativeImage<P>
 where
     P: Platform,
 {
@@ -15,6 +15,9 @@ where
 
     /// Teardown the image.
     fn teardown(self, platform: &mut P);
+
+    /// Get a reference to the widget.
+    fn widget_ref(&self) -> P::WidgetRef;
 
     /// Load an image from `data`.
     fn load_data(
@@ -38,6 +41,10 @@ where
     }
 
     fn teardown(self, _platform: &mut P) {
+        unreachable!()
+    }
+
+    fn widget_ref(&self) -> P::WidgetRef {
         unreachable!()
     }
 

@@ -3,8 +3,7 @@ use std::time::Duration;
 use ori::Element;
 
 use crate::{
-    Allocation, Context, LayoutNode, NativeWidget, Parent, Platform, Widget, WidgetMut,
-    native::NativeMeasure,
+    Allocation, Context, LayoutNode, Parent, Platform, Widget, WidgetMut, native::NativeMeasure,
 };
 
 /// A [`Widget`] for measuring contents relative to the window.

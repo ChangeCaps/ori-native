@@ -3,8 +3,8 @@ use std::time::Duration;
 use ori::Element;
 
 use crate::{
-    Context, LayoutNode, LayoutStyle, NativeWidget, Platform, TextSpan, Widget, Wrap,
-    native::NativeText, widget::WidgetMut,
+    Context, LayoutNode, LayoutStyle, Platform, TextSpan, Widget, Wrap, native::NativeText,
+    widget::WidgetMut,
 };
 
 /// A [`Widget`] that shows texts.

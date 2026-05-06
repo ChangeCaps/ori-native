@@ -1,9 +1,9 @@
 use keyboard_types::{Key, Modifiers};
 
-use crate::{NativeWidget, Platform, Unsupported, event::PressableEvent, platform::unsupported};
+use crate::{Platform, Unsupported, event::PressableEvent, platform::unsupported};
 
 /// A native widget that receives pointer input and focus.
-pub trait NativePressable<P>: NativeWidget<P>
+pub trait NativePressable<P>
 where
     P: Platform,
 {
@@ -17,14 +17,14 @@ where
     /// Teardown the widget.
     fn teardown(self, platform: &mut P);
 
+    /// Get a reference to the widget.
+    fn widget_ref(&self) -> P::WidgetRef;
+
     /// Replace the contents;
     fn replace_contents(&mut self, platform: &mut P, contents: P::WidgetRef);
 
     /// Set the size of the contents.
     fn set_content_size(&mut self, platform: &mut P, width: f32, height: f32);
-
-    /// Set whether the widget should be let inputs pass through.
-    fn set_transparent(&mut self, platform: &mut P, is_transparent: bool);
 
     /// Set the `on_key` callback.
     fn set_on_key(
@@ -50,15 +50,15 @@ where
         unreachable!()
     }
 
+    fn widget_ref(&self) -> P::WidgetRef {
+        unreachable!()
+    }
+
     fn replace_contents(&mut self, _platform: &mut P, _contents: P::WidgetRef) {
         unreachable!()
     }
 
     fn set_content_size(&mut self, _platform: &mut P, _width: f32, _height: f32) {
-        unreachable!()
-    }
-
-    fn set_transparent(&mut self, _platform: &mut P, _is_transparent: bool) {
         unreachable!()
     }
 

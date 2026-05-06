@@ -1,7 +1,3 @@
-mod popover;
-
-pub use popover::{Popover, Position, popover};
-
 #[cfg(feature = "layer-shell")]
 mod layer_shell;
 #[cfg(feature = "session-lock")]

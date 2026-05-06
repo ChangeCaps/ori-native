@@ -1,7 +1,7 @@
-use crate::{NativeWidget, Platform, Unsupported, platform::unsupported};
+use crate::{Platform, Unsupported, platform::unsupported};
 
 /// A native widget that measures its global position.
-pub trait NativeMeasure<P>: NativeWidget<P>
+pub trait NativeMeasure<P>
 where
     P: Platform,
 {
@@ -11,6 +11,9 @@ where
         contents: P::WidgetRef,
         on_position_changed: impl Fn(f32, f32) + 'static,
     ) -> Self;
+
+    /// Get a reference to the widget.
+    fn widget_ref(&self) -> P::WidgetRef;
 
     /// Replace the contents.
     fn replace_contents(&mut self, platform: &mut P, contents: P::WidgetRef);
@@ -32,6 +35,10 @@ where
         _on_position_changed: impl Fn(f32, f32) + 'static,
     ) -> Self {
         unsupported!("measure view")
+    }
+
+    fn widget_ref(&self) -> P::WidgetRef {
+        unreachable!()
     }
 
     fn replace_contents(&mut self, _platform: &mut P, _contents: P::WidgetRef) {

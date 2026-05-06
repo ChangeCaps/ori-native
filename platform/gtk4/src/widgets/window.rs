@@ -1,10 +1,10 @@
 use std::{rc::Rc, time::Duration};
 
 use glib::{
-    object::{Cast, IsA},
+    object::{Cast, IsA, ObjectExt},
     subclass::types::ObjectSubclassIsExt,
 };
-use gtk4::prelude::{FixedExt, GtkWindowExt, WidgetExt};
+use gtk4::prelude::{EventControllerExt, FixedExt, GtkWindowExt, WidgetExt};
 use ori_native_core::{Key, Modifiers, NavigationBar, StatusBar, native::NativeWindow};
 
 use crate::{Platform, key};
@@ -14,6 +14,21 @@ impl NativeWindow<Platform> for Window {
         let window = Self::new(&platform.application);
         window.set_child(&contents, 0.0, 0.0);
         window.show();
+
+        let controller = gtk4::GestureClick::new();
+        controller.set_propagation_phase(gtk4::PropagationPhase::Capture);
+
+        controller.connect_pressed({
+            let window = window.downgrade();
+
+            move |_, _, _, _| {
+                if let Some(window) = window.upgrade() {
+                    window.set_focus(None::<&gtk4::Widget>);
+                }
+            }
+        });
+
+        window.add_controller(controller);
 
         // call on_snapshot callbacks on window snapshot
         window.set_on_snapshot({

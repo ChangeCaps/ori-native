@@ -4,8 +4,8 @@ use ori::{Element, Elements, Mut};
 
 use crate::{
     Allocation, BorderStyle, BoxedWidget, Color, Context, Corners, FlexStyle, LayoutNode,
-    LayoutStyle, Length, NativeWidget, Overflow, Parent, Platform, Shadow, Sides, Size, Widget,
-    WidgetMut, native::NativeGroup,
+    LayoutStyle, Length, Overflow, Parent, Platform, Shadow, Sides, Size, Widget, WidgetMut,
+    native::NativeGroup,
 };
 
 /// A utility wrapper for a [`NativeGroup`], maintaining an [`Elements`].
@@ -147,15 +147,6 @@ where
         for child in &mut self.children {
             child.element.animate(cx, dt);
         }
-    }
-}
-
-impl<P> NativeWidget<P> for GroupWidget<P>
-where
-    P: Platform,
-{
-    fn widget_ref(&self) -> P::WidgetRef {
-        self.native.widget_ref()
     }
 }
 

@@ -1,7 +1,5 @@
 use jni::{EnvUnowned, jni_sig, jni_str, objects::JObject};
-use ori_native_core::{
-    Key, Modifiers, NativeWidget, Pointer, PressableEvent, native::NativePressable,
-};
+use ori_native_core::{Key, Modifiers, Pointer, PressableEvent, native::NativePressable};
 
 use crate::{
     Platform,
@@ -11,12 +9,6 @@ use crate::{
 
 pub struct Pressable {
     id: WidgetId,
-}
-
-impl NativeWidget<Platform> for Pressable {
-    fn widget_ref(&self) -> WidgetId {
-        self.id
-    }
 }
 
 impl NativePressable<Platform> for Pressable {
@@ -57,6 +49,10 @@ impl NativePressable<Platform> for Pressable {
         platform.remove_widget(self.id);
     }
 
+    fn widget_ref(&self) -> WidgetId {
+        self.id
+    }
+
     fn replace_contents(&mut self, platform: &mut Platform, contents: WidgetId) {
         let _ = platform.jni(|env, activity| {
             env.call_method(
@@ -76,18 +72,6 @@ impl NativePressable<Platform> for Pressable {
                 jni_str!("pressableSetContentSize"),
                 jni_sig!((long, float, float)),
                 &[self.id.into(), width.into(), height.into()],
-            )?
-            .v()
-        });
-    }
-
-    fn set_transparent(&mut self, platform: &mut Platform, is_transparent: bool) {
-        let _ = platform.jni(|env, activity| {
-            env.call_method(
-                activity,
-                jni_str!("pressableSetTransparent"),
-                jni_sig!((long, boolean)),
-                &[self.id.into(), is_transparent.into()],
             )?
             .v()
         });

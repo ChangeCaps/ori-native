@@ -7,8 +7,8 @@ use std::{
 use ori::{Element, Split, Teleportable};
 
 use crate::{
-    Allocation, BoxedWidget, Context, LayoutNode, NativeWidget, Parent, Platform, Widget,
-    native::NativeGroup, widget::WidgetMut,
+    Allocation, BoxedWidget, Context, LayoutNode, Parent, Platform, Widget, native::NativeGroup,
+    widget::WidgetMut,
 };
 
 impl<P> Teleportable for Context<P>

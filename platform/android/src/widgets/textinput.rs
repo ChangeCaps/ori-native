@@ -2,9 +2,7 @@ use jni::{
     EnvUnowned, jni_sig, jni_str,
     objects::{JObject, JString},
 };
-use ori_native_core::{
-    AvailableSpace, Font, Measurable, NativeWidget, Newline, Size, native::NativeTextInput,
-};
+use ori_native_core::{AvailableSpace, Font, Measurable, Newline, Size, native::NativeTextInput};
 
 use crate::{
     Platform,
@@ -14,12 +12,6 @@ use crate::{
 
 pub struct TextInput {
     id: WidgetId,
-}
-
-impl NativeWidget<Platform> for TextInput {
-    fn widget_ref(&self) -> WidgetId {
-        self.id
-    }
 }
 
 impl NativeTextInput<Platform> for TextInput {
@@ -57,6 +49,10 @@ impl NativeTextInput<Platform> for TextInput {
 
     fn teardown(self, platform: &mut Platform) {
         platform.remove_widget(self.id);
+    }
+
+    fn widget_ref(&self) -> WidgetId {
+        self.id
     }
 
     fn set_newline(&mut self, platform: &mut Platform, newline: Newline) {

@@ -1,20 +1,13 @@
 use glib::object::Cast;
 use gtk4::prelude::{TextBufferExt, TextBufferExtManual, TextTagExt, TextViewExt, WidgetExt};
 use ori_native_core::{
-    AvailableSpace, Font, Measurable, NativeWidget, Size, Stretch, TextSpan, Weight, Wrap,
-    native::NativeText,
+    AvailableSpace, Font, Measurable, Size, Stretch, TextSpan, Weight, Wrap, native::NativeText,
 };
 
 use crate::Platform;
 
 pub struct Text {
     view: gtk4::TextView,
-}
-
-impl NativeWidget<Platform> for Text {
-    fn widget_ref(&self) -> gtk4::Widget {
-        self.view.clone().upcast()
-    }
 }
 
 impl NativeText<Platform> for Text {
@@ -28,6 +21,10 @@ impl NativeText<Platform> for Text {
     }
 
     fn teardown(self, _platform: &mut Platform) {}
+
+    fn widget_ref(&self) -> gtk4::Widget {
+        self.view.clone().upcast()
+    }
 
     fn set_text(
         &mut self,

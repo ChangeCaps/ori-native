@@ -3,8 +3,8 @@ use std::time::Duration;
 use ori::Element;
 
 use crate::{
-    Allocation, Context, Key, LayoutNode, Modifiers, NativeWidget, Parent, Platform,
-    PressableEvent, Widget, native::NativePressable, widget::WidgetMut,
+    Allocation, Context, Key, LayoutNode, Modifiers, Parent, Platform, PressableEvent, Widget,
+    native::NativePressable, widget::WidgetMut,
 };
 
 /// A [`Widget`] that handles input.
@@ -58,11 +58,6 @@ where
         };
 
         (parent, &mut self.contents)
-    }
-
-    /// Set whether the widget allows clicks to pass through itself.
-    pub fn set_transparent(&mut self, cx: &mut Context<P>, is_transparent: bool) {
-        (self.native).set_transparent(&mut cx.platform, is_transparent);
     }
 
     /// Set the `on_key` callback.

@@ -159,15 +159,6 @@ where
     }
 }
 
-/// A native widget.
-pub trait NativeWidget<P>
-where
-    P: Platform,
-{
-    /// Get a reference to the [`Platform`] base widget.
-    fn widget_ref(&self) -> P::WidgetRef;
-}
-
 pub trait WidgetElement<P>:
     Widget<P> + for<'a> Element<Mut<'a> = WidgetMut<'a, P, Self>> + Sized
 where

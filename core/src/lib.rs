@@ -28,9 +28,9 @@ pub use safearea::SafeAreaInsets;
 pub use style::{
     Affine, Align, Border, BorderStyle, Color, Corners, Direction, FlexContainer, FlexStyle, Fract,
     Justify, Layout, LayoutStyle, Length, NavigationBar, Newline, Overflow, Padding, Position,
-    Shadow, Sides, Size, Sizing, StatusBar,
+    Shadow, Side, Sides, Size, Sizing, StatusBar,
 };
 pub use text::{Font, Stretch, TextSpan, Weight, Wrap};
-pub use widget::{BoxedWidget, NativeWidget, Parent, Widget, WidgetMut, WidgetView, WidgetViewSeq};
+pub use widget::{BoxedWidget, Parent, Widget, WidgetMut, WidgetView, WidgetViewSeq};
 
 pub use keyboard_types::{Key, Modifiers, NamedKey};

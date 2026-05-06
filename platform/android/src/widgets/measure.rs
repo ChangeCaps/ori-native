@@ -1,5 +1,5 @@
 use jni::{EnvUnowned, jni_sig, jni_str, objects::JObject};
-use ori_native_core::{NativeWidget, native::NativeMeasure};
+use ori_native_core::native::NativeMeasure;
 
 use crate::{
     Platform,
@@ -9,12 +9,6 @@ use crate::{
 
 pub struct Measure {
     id: WidgetId,
-}
-
-impl NativeWidget<Platform> for Measure {
-    fn widget_ref(&self) -> WidgetId {
-        self.id
-    }
 }
 
 impl NativeMeasure<Platform> for Measure {
@@ -53,6 +47,10 @@ impl NativeMeasure<Platform> for Measure {
 
     fn teardown(self, platform: &mut Platform) {
         platform.remove_widget(self.id);
+    }
+
+    fn widget_ref(&self) -> WidgetId {
+        self.id
     }
 
     fn replace_contents(&mut self, platform: &mut Platform, child: WidgetId) {

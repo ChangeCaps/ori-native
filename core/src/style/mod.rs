@@ -2,6 +2,7 @@ mod bars;
 mod color;
 mod layout;
 mod overflow;
+mod popup;
 mod shadow;
 mod textinput;
 mod transform;
@@ -14,6 +15,7 @@ pub use layout::{
     Layout, LayoutStyle, Length, Padding, Position, Sides, Size,
 };
 pub use overflow::Overflow;
+pub use popup::Side;
 pub use shadow::Shadow;
 pub use textinput::Newline;
 pub use transform::Affine;

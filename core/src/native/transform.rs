@@ -1,7 +1,7 @@
-use crate::{Affine, NativeWidget, Platform, Unsupported, platform::unsupported};
+use crate::{Affine, Platform, Unsupported, platform::unsupported};
 
 /// A native view that transforms its contents.
-pub trait NativeTransform<P>: NativeWidget<P>
+pub trait NativeTransform<P>
 where
     P: Platform,
 {
@@ -10,6 +10,9 @@ where
 
     /// Teardown the widget.
     fn teardown(self, platform: &mut P);
+
+    /// Get a reference to the widget.
+    fn widget_ref(&self) -> P::WidgetRef;
 
     /// Replace the contents.
     fn replace_contents(&mut self, platform: &mut P, contents: P::WidgetRef);
@@ -27,6 +30,10 @@ where
     }
 
     fn teardown(self, _platform: &mut P) {
+        unreachable!()
+    }
+
+    fn widget_ref(&self) -> P::WidgetRef {
         unreachable!()
     }
 

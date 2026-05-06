@@ -2,23 +2,13 @@ use std::{cell::Cell, rc::Rc};
 
 use glib::object::{Cast, ObjectExt};
 use gtk4::prelude::{AccessibleExt, FixedExt, GestureExt, WidgetExt};
-use ori_native_core::{
-    Key, Modifiers, NativeWidget, Pointer, PressableEvent, native::NativePressable,
-};
+use ori_native_core::{Key, Modifiers, Pointer, PressableEvent, native::NativePressable};
 
 use crate::{Platform, key};
 
 pub struct Pressable {
     fixed: gtk4::Fixed,
     key:   Option<gtk4::EventControllerKey>,
-
-    is_transparent: Rc<Cell<bool>>,
-}
-
-impl NativeWidget<Platform> for Pressable {
-    fn widget_ref(&self) -> gtk4::Widget {
-        self.fixed.clone().upcast()
-    }
 }
 
 impl NativePressable<Platform> for Pressable {
@@ -34,17 +24,12 @@ impl NativePressable<Platform> for Pressable {
         fixed.set_overflow(gtk4::Overflow::Visible);
 
         let on_event = Rc::new(on_event);
-        let is_transparent = Rc::new(Cell::new(false));
-
         let controller = gtk4::GestureClick::new();
         controller.connect_pressed({
             let on_event = on_event.clone();
-            let is_transparent = is_transparent.clone();
 
             move |click, _, x, y| {
-                if !is_transparent.get() {
-                    click.set_state(gtk4::EventSequenceState::Claimed);
-                }
+                click.set_state(gtk4::EventSequenceState::Claimed);
 
                 let pointer = Pointer {
                     x: x as f32,
@@ -136,14 +121,14 @@ impl NativePressable<Platform> for Pressable {
 
         fixed.add_controller(controller);
 
-        Self {
-            fixed,
-            key: None,
-            is_transparent,
-        }
+        Self { fixed, key: None }
     }
 
     fn teardown(self, _platform: &mut Platform) {}
+
+    fn widget_ref(&self) -> gtk4::Widget {
+        self.fixed.clone().upcast()
+    }
 
     fn replace_contents(&mut self, _platform: &mut Platform, child: gtk4::Widget) {
         if let Some(child) = self.fixed.first_child() {
@@ -160,10 +145,6 @@ impl NativePressable<Platform> for Pressable {
                 height.round() as i32,
             );
         }
-    }
-
-    fn set_transparent(&mut self, _platform: &mut Platform, is_transparent: bool) {
-        self.is_transparent.set(is_transparent);
     }
 
     fn set_on_key(

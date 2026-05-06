@@ -3,8 +3,7 @@ use std::{borrow::Cow, time::Duration};
 use ori::Element;
 
 use crate::{
-    Color, Context, LayoutNode, LayoutStyle, NativeWidget, Platform, Widget, WidgetMut,
-    native::NativeImage,
+    Color, Context, LayoutNode, LayoutStyle, Platform, Widget, WidgetMut, native::NativeImage,
 };
 
 /// A [`Widget`] representing an image.

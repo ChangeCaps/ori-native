@@ -1,18 +1,10 @@
 use jni::{jni_sig, jni_str, objects::JString};
-use ori_native_core::{
-    AvailableSpace, Measurable, NativeWidget, Size, TextSpan, Wrap, native::NativeText,
-};
+use ori_native_core::{AvailableSpace, Measurable, Size, TextSpan, Wrap, native::NativeText};
 
 use crate::{Platform, platform::WidgetId};
 
 pub struct Text {
     id: WidgetId,
-}
-
-impl NativeWidget<Platform> for Text {
-    fn widget_ref(&self) -> WidgetId {
-        self.id
-    }
 }
 
 impl NativeText<Platform> for Text {
@@ -34,6 +26,10 @@ impl NativeText<Platform> for Text {
 
     fn teardown(self, platform: &mut Platform) {
         platform.remove_widget(self.id);
+    }
+
+    fn widget_ref(&self) -> WidgetId {
+        self.id
     }
 
     fn set_text(

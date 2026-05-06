@@ -1,5 +1,5 @@
 use jni::{EnvUnowned, jni_sig, jni_str, objects::JObject};
-use ori_native_core::{Direction, NativeWidget, native::NativeScroll};
+use ori_native_core::{Direction, native::NativeScroll};
 
 use crate::{
     Platform,
@@ -9,12 +9,6 @@ use crate::{
 
 pub struct Scroll {
     id: WidgetId,
-}
-
-impl NativeWidget<Platform> for Scroll {
-    fn widget_ref(&self) -> WidgetId {
-        self.id
-    }
 }
 
 impl NativeScroll<Platform> for Scroll {
@@ -53,6 +47,10 @@ impl NativeScroll<Platform> for Scroll {
 
     fn teardown(self, platform: &mut Platform) {
         platform.remove_widget(self.id);
+    }
+
+    fn widget_ref(&self) -> WidgetId {
+        self.id
     }
 
     fn replace_contents(&mut self, platform: &mut Platform, contents: WidgetId) {

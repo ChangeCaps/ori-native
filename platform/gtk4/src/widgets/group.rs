@@ -1,14 +1,8 @@
 use glib::{object::Cast, subclass::types::ObjectSubclassIsExt};
 use gtk4::prelude::{AccessibleExt, WidgetExt};
-use ori_native_core::{Color, Corners, NativeWidget, Overflow, Shadow, Sides, native::NativeGroup};
+use ori_native_core::{Color, Corners, Overflow, Shadow, Sides, native::NativeGroup};
 
 use crate::Platform;
-
-impl NativeWidget<Platform> for Group {
-    fn widget_ref(&self) -> gtk4::Widget {
-        self.clone().upcast()
-    }
-}
 
 impl NativeGroup<Platform> for Group {
     fn build(_platform: &mut Platform) -> Self {
@@ -18,6 +12,10 @@ impl NativeGroup<Platform> for Group {
     }
 
     fn teardown(self, _platform: &mut Platform) {}
+
+    fn widget_ref(&self) -> gtk4::Widget {
+        self.clone().upcast()
+    }
 
     fn insert_child(&mut self, _platform: &mut Platform, index: usize, child: gtk4::Widget) {
         let mut children = self.imp().children.borrow_mut();

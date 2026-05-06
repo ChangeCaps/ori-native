@@ -8,6 +8,7 @@ use std::{
 
 use jni::{Env, JValue, jni_sig, jni_str, objects::JObject, refs::Global, vm::JavaVM};
 use ori::{Message, Proxied, Proxy};
+use ori_native_core::Unsupported;
 
 use crate::{
     application::{Event, GlobalState, WidgetEvent},
@@ -162,6 +163,8 @@ impl ori_native_core::Platform for Platform {
     type Transform = widgets::Transform;
     type Measure = widgets::Measure;
     type Window = widgets::Window;
+
+    type Popup = Unsupported;
 
     fn quit(&mut self) {}
 }

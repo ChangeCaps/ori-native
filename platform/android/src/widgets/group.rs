@@ -1,16 +1,10 @@
 use jni::{jni_sig, jni_str};
-use ori_native_core::{Color, Corners, NativeWidget, Overflow, Shadow, Sides, native::NativeGroup};
+use ori_native_core::{Color, Corners, Overflow, Shadow, Sides, native::NativeGroup};
 
 use crate::{Platform, platform::WidgetId};
 
 pub struct Group {
     id: WidgetId,
-}
-
-impl NativeWidget<Platform> for Group {
-    fn widget_ref(&self) -> WidgetId {
-        self.id
-    }
 }
 
 impl NativeGroup<Platform> for Group {
@@ -32,6 +26,10 @@ impl NativeGroup<Platform> for Group {
 
     fn teardown(self, platform: &mut Platform) {
         platform.remove_widget(self.id);
+    }
+
+    fn widget_ref(&self) -> WidgetId {
+        self.id
     }
 
     fn insert_child(&mut self, platform: &mut Platform, index: usize, child: WidgetId) {

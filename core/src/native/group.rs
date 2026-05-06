@@ -1,12 +1,11 @@
 use crate::{
-    Color, Corners, NativeWidget, Overflow, Platform, Shadow, Sides, Unsupported,
-    platform::unsupported,
+    Color, Corners, Overflow, Platform, Shadow, Sides, Unsupported, platform::unsupported,
 };
 
 /// A native group widget.
 ///
 /// A group is a widget with multiple children, a background, border and a shadow.
-pub trait NativeGroup<P>: NativeWidget<P>
+pub trait NativeGroup<P>
 where
     P: Platform,
 {
@@ -15,6 +14,9 @@ where
 
     /// Teardown the widget.
     fn teardown(self, platform: &mut P);
+
+    /// Get a reference to the widget.
+    fn widget_ref(&self) -> P::WidgetRef;
 
     /// Insert a `child` at `index`.
     fn insert_child(&mut self, platform: &mut P, index: usize, child: P::WidgetRef);
@@ -75,6 +77,10 @@ where
     }
 
     fn teardown(self, _platform: &mut P) {
+        unreachable!()
+    }
+
+    fn widget_ref(&self) -> P::WidgetRef {
         unreachable!()
     }
 

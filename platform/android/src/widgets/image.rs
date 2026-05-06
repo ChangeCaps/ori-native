@@ -1,18 +1,12 @@
 use std::{borrow::Cow, convert::Infallible};
 
 use jni::{jni_sig, jni_str};
-use ori_native_core::{AvailableSpace, Color, Measurable, NativeWidget, Size, native::NativeImage};
+use ori_native_core::{AvailableSpace, Color, Measurable, Size, native::NativeImage};
 
 use crate::{Platform, platform::WidgetId};
 
 pub struct Image {
     id: WidgetId,
-}
-
-impl NativeWidget<Platform> for Image {
-    fn widget_ref(&self) -> WidgetId {
-        self.id
-    }
 }
 
 impl NativeImage<Platform> for Image {
@@ -36,6 +30,10 @@ impl NativeImage<Platform> for Image {
 
     fn teardown(self, platform: &mut Platform) {
         platform.remove_widget(self.id);
+    }
+
+    fn widget_ref(&self) -> WidgetId {
+        self.id
     }
 
     fn load_data(

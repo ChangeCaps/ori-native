@@ -1,11 +1,8 @@
 use ori::Proxied;
 
-use crate::{
-    NativeWidget,
-    native::{
-        NativeGroup, NativeImage, NativeMeasure, NativePressable, NativeScroll, NativeText,
-        NativeTextInput, NativeTransform, NativeWindow,
-    },
+use crate::native::{
+    NativeGroup, NativeImage, NativeMeasure, NativePopup, NativePressable, NativeScroll,
+    NativeText, NativeTextInput, NativeTransform, NativeWindow,
 };
 
 /// A native platform, e.g. windows or gtk4.
@@ -37,6 +34,9 @@ pub trait Platform: Proxied + Sized + 'static {
     /// The native measure widget of this platform.
     type Measure: NativeMeasure<Self>;
 
+    /// The native popup widget of this platform.
+    type Popup: NativePopup<Self>;
+
     /// The native window widget of this platform.
     type Window: NativeWindow<Self>;
 
@@ -46,15 +46,6 @@ pub trait Platform: Proxied + Sized + 'static {
 
 /// A widget that is not supported on a given platform.
 pub struct Unsupported;
-
-impl<P> NativeWidget<P> for Unsupported
-where
-    P: Platform,
-{
-    fn widget_ref(&self) -> P::WidgetRef {
-        unreachable!()
-    }
-}
 
 macro_rules! unsupported {
     ($($arg:tt)+) => {

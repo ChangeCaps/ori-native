@@ -31,8 +31,6 @@ pub struct Pressable<T, F> {
     build:    F,
     on_event: Vec<BoxedCallback<T>>,
     input:    Input<T>,
-
-    is_transparent: bool,
 }
 
 type BoxedCallback<T> = Box<dyn FnMut(&mut T, PressableEvent) -> Action>;
@@ -44,7 +42,6 @@ impl<T, F> Pressable<T, F> {
             build,
             on_event: Vec::new(),
             input: Input::new(),
-            is_transparent: false,
         }
     }
 
@@ -86,12 +83,23 @@ impl<T, F> Pressable<T, F> {
     }
 
     /// Set the callback for when the [`View`] is focused.
-    pub fn on_focus<A>(self, mut on_focus: impl FnMut(&mut T, bool) -> A + 'static) -> Self
+    pub fn on_focus<A>(self, mut on_focus: impl FnMut(&mut T) -> A + 'static) -> Self
     where
         A: Into<Action>,
     {
         self.on_event(move |data, event| match event {
-            PressableEvent::Focused(hovered) => on_focus(data, hovered).into(),
+            PressableEvent::Focused(focused) if focused => on_focus(data).into(),
+            _ => Action::new(),
+        })
+    }
+
+    /// Set the callback for when the [`View`] is blurred (unfocused).
+    pub fn on_blur<A>(self, mut on_blur: impl FnMut(&mut T) -> A + 'static) -> Self
+    where
+        A: Into<Action>,
+    {
+        self.on_event(move |data, event| match event {
+            PressableEvent::Focused(focused) if !focused => on_blur(data).into(),
             _ => Action::new(),
         })
     }
@@ -131,12 +139,6 @@ impl<T, F> Pressable<T, F> {
         self.input.add_key(key, mods, on_key);
         self
     }
-
-    /// Set whether the to let pointer events pass through to views below itself.
-    pub fn transparent(mut self, is_transparent: bool) -> Self {
-        self.is_transparent = is_transparent;
-        self
-    }
 }
 
 impl<T, F> ViewMarker for Pressable<T, F> {}
@@ -171,11 +173,11 @@ where
         };
 
         let mut widget = PressableWidget::new(cx, contents, on_event);
-        widget.set_transparent(cx, self.is_transparent);
 
         let (filter, handler) = self.input.split();
 
         let proxy = cx.proxy();
+
         widget.set_on_key(cx, move |key, modifiers, pressed| {
             if let Some(message) = filter.filter_key(key, modifiers, pressed) {
                 proxy.message(Message::new(message, view_id));
@@ -192,7 +194,6 @@ where
             build: self.build,
             on_event: self.on_event,
             handler,
-            is_transparent: self.is_transparent,
         };
 
         (widget, state)
@@ -227,11 +228,6 @@ where
                 }
             }
         });
-
-        if state.is_transparent != self.is_transparent {
-            state.is_transparent = self.is_transparent;
-            element.set_transparent(cx, self.is_transparent);
-        }
 
         state.build = self.build;
         state.on_event = self.on_event;
@@ -271,10 +267,6 @@ where
                 PressableEvent::Focused(focused) => {
                     press.focused = focused;
                 }
-            }
-
-            if state.is_transparent {
-                press.pressed = false;
             }
 
             for on_event in &mut state.on_event {
@@ -325,6 +317,4 @@ where
     build:    F,
     on_event: Vec<BoxedCallback<T>>,
     handler:  InputHandler<T>,
-
-    is_transparent: bool,
 }

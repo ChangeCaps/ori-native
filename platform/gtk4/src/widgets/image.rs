@@ -3,7 +3,7 @@ use std::{borrow::Cow, io};
 use gdk4::{gdk_pixbuf::prelude::PixbufLoaderExt, prelude::PaintableExt};
 use glib::{object::Cast, subclass::types::ObjectSubclassIsExt};
 use librsvg::prelude::HandleExt;
-use ori_native_core::{AvailableSpace, Color, Measurable, NativeWidget, Size, native::NativeImage};
+use ori_native_core::{AvailableSpace, Color, Measurable, Size, native::NativeImage};
 
 use crate::Platform;
 
@@ -11,12 +11,6 @@ pub struct Image {
     picture:   gtk4::Picture,
     paintable: Option<Paintable>,
     tint:      Option<Color>,
-}
-
-impl NativeWidget<Platform> for Image {
-    fn widget_ref(&self) -> gtk4::Widget {
-        self.picture.clone().upcast()
-    }
 }
 
 impl NativeImage<Platform> for Image {
@@ -33,6 +27,10 @@ impl NativeImage<Platform> for Image {
     }
 
     fn teardown(self, _platform: &mut Platform) {}
+
+    fn widget_ref(&self) -> gtk4::Widget {
+        self.picture.clone().upcast()
+    }
 
     fn load_data(
         &mut self,

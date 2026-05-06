@@ -3,7 +3,7 @@ use std::{cell::Cell, rc::Rc};
 use glib::object::{Cast, ObjectExt};
 use gtk4::prelude::{TextBufferExt, TextViewExt, WidgetExt};
 use ori_native_core::{
-    AvailableSpace, Font, Measurable, NativeWidget, Newline, Size, Stretch, native::NativeTextInput,
+    AvailableSpace, Font, Measurable, Newline, Size, Stretch, native::NativeTextInput,
 };
 
 use crate::{Platform, platform::StyleNode};
@@ -18,12 +18,6 @@ pub struct TextInput {
     font:             Font,
     placeholder_font: Font,
     newline:          Rc<Cell<Newline>>,
-}
-
-impl NativeWidget<Platform> for TextInput {
-    fn widget_ref(&self) -> gtk4::Widget {
-        self.overlay.clone().upcast()
-    }
 }
 
 impl NativeTextInput<Platform> for TextInput {
@@ -130,6 +124,10 @@ impl NativeTextInput<Platform> for TextInput {
 
     fn teardown(self, platform: &mut Platform) {
         platform.remove_style(self.view_style);
+    }
+
+    fn widget_ref(&self) -> gtk4::Widget {
+        self.overlay.clone().upcast()
     }
 
     fn set_newline(&mut self, _platform: &mut Platform, newline: Newline) {

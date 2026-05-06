@@ -1,6 +1,7 @@
 mod group;
 mod image;
 mod measure;
+mod popup;
 mod pressable;
 mod scroll;
 mod text;
@@ -11,6 +12,7 @@ mod window;
 pub use group::Group;
 pub use image::Image;
 pub use measure::Measure;
+pub use popup::Popup;
 pub use pressable::Pressable;
 pub use scroll::Scroll;
 pub use text::Text;

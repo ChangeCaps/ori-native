@@ -1,7 +1,7 @@
-use crate::{Direction, NativeWidget, Platform, Unsupported, platform::unsupported};
+use crate::{Direction, Platform, Unsupported, platform::unsupported};
 
 /// A native scroll widget.
-pub trait NativeScroll<P>: NativeWidget<P>
+pub trait NativeScroll<P>
 where
     P: Platform,
 {
@@ -14,6 +14,9 @@ where
 
     /// Teardown the widget.
     fn teardown(self, platform: &mut P);
+
+    /// Get a reference to the widget.
+    fn widget_ref(&self) -> P::WidgetRef;
 
     /// Replace the contents.
     fn replace_contents(&mut self, platform: &mut P, contents: P::WidgetRef);
@@ -41,6 +44,10 @@ where
     }
 
     fn teardown(self, _platform: &mut P) {
+        unreachable!()
+    }
+
+    fn widget_ref(&self) -> P::WidgetRef {
         unreachable!()
     }
 

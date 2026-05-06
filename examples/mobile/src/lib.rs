@@ -45,23 +45,21 @@ fn ui(_data: &Data) -> impl Effect<Data> + use<> {
 
 fn modal_button() -> impl View<Data> + use<> {
     fn modal() -> impl View<(bool, Data)> + use<> {
-        pressable(|_, _| {
-            column(pressable(|_, _| {
+        column(
+            pressable(|_, _| {
                 column(text("This is a modal!").size(20.0))
                     .background(Color::WHITE)
                     .top(-50.0)
                     .padding(20.0)
                     .corner(12.0)
                     .shadow(16.0, 16.0, 20.0, Color::BLACK.fade(0.4))
-            }))
-            .justify_content(Justify::Center)
-            .align_items(Align::Center)
-            .background(Color::BLACK.fade(0.2))
-            .position(Position::Absolute)
-            .inset(0.0)
-        })
-        .transparent(true)
-        .on_down(|(open, _): &mut (bool, _)| *open = false)
+            })
+            .on_blur(|(open, _): &mut (bool, _)| *open = false),
+        )
+        .justify_content(Justify::Center)
+        .align_items(Align::Center)
+        .position(Position::Absolute)
+        .inset(0.0)
     }
 
     with_default(|_, _| {
