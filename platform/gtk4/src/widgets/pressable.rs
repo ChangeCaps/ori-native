@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{cell::Cell, rc::Rc};
 
 use glib::object::{Cast, ObjectExt};
 use gtk4::prelude::{AccessibleExt, FixedExt, GestureExt, WidgetExt};
@@ -67,11 +67,13 @@ impl NativePressable<Platform> for Pressable {
         });
 
         fixed.add_controller(controller);
+        let hovered = Rc::new(Cell::new(false));
 
         let controller = gtk4::EventControllerMotion::new();
-        controller.connect_enter({
+        controller.connect_motion({
             let fixed = fixed.downgrade();
             let on_event = on_event.clone();
+            let hovered = hovered.clone();
 
             move |_, x, y| {
                 if let Some(fixed) = fixed.upgrade()
@@ -80,7 +82,13 @@ impl NativePressable<Platform> for Pressable {
                     && x <= fixed.width() as f64
                     && y <= fixed.height() as f64
                 {
-                    on_event(PressableEvent::Hovered(true));
+                    if !hovered.get() {
+                        on_event(PressableEvent::Hovered(true));
+                        hovered.set(true);
+                    }
+                } else if !hovered.get() {
+                    on_event(PressableEvent::Hovered(false));
+                    hovered.set(false);
                 }
 
                 let pointer = Pointer {
@@ -94,8 +102,14 @@ impl NativePressable<Platform> for Pressable {
 
         controller.connect_leave({
             let on_event = on_event.clone();
+            let hovered = hovered.clone();
 
-            move |_| on_event(PressableEvent::Hovered(false))
+            move |_| {
+                if hovered.get() {
+                    on_event(PressableEvent::Hovered(false));
+                    hovered.set(false);
+                }
+            }
         });
 
         fixed.add_controller(controller);
