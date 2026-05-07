@@ -149,8 +149,8 @@ where
                 element.open(cx, contents);
                 element.layout(cx);
             }
-        } else if let Some(contents) = element.close(cx)
-            && let Some(state) = state.contents_state.take()
+        } else if let Some(state) = state.contents_state.take()
+            && let Some(contents) = element.close(cx)
         {
             W::teardown(contents, state, cx);
         }
