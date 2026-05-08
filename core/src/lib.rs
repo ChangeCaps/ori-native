@@ -21,7 +21,9 @@ pub mod widgets;
 pub use context::{BoxedEffect, Context};
 pub use event::{Pointer, PressableEvent};
 pub use input::{Input, InputFilter, InputHandler, InputMessage, MatchKey};
-pub use layout::{Allocation, AvailableSpace, LayoutNode, LayoutTree, Measurable};
+pub use layout::{
+    Allocation, AvailableSpace, CachedMeasurable, LayoutNode, LayoutTree, Measurable,
+};
 pub use lifecycle::{AnimateRequest, LayoutRequest};
 pub use platform::{Platform, Unsupported};
 pub use safearea::SafeAreaInsets;

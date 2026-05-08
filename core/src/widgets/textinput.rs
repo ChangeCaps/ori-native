@@ -3,8 +3,8 @@ use std::time::Duration;
 use ori::Element;
 
 use crate::{
-    Context, Font, LayoutNode, LayoutStyle, Newline, Platform, Widget, native::NativeTextInput,
-    widget::WidgetMut,
+    CachedMeasurable, Context, Font, LayoutNode, LayoutStyle, Newline, Platform, Widget,
+    native::NativeTextInput, widget::WidgetMut,
 };
 
 /// A [`Widget`] that handles text input.
@@ -75,8 +75,9 @@ where
 
     /// Update the layout after changing text properties.
     pub fn update_layout(&mut self, cx: &mut Context<P>) {
-        let layout = self.native.get_measureable(&mut cx.platform);
-        cx.layout.set_measure(self.layout, layout);
+        let measurable = self.native.get_measureable(&mut cx.platform);
+        let cached = CachedMeasurable::new(measurable);
+        cx.layout.set_measure(self.layout, cached);
     }
 }
 

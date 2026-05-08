@@ -3,8 +3,8 @@ use std::time::Duration;
 use ori::Element;
 
 use crate::{
-    Context, LayoutNode, LayoutStyle, Platform, TextSpan, Widget, Wrap, native::NativeText,
-    widget::WidgetMut,
+    CachedMeasurable, Context, LayoutNode, LayoutStyle, Platform, TextSpan, Widget, Wrap,
+    native::NativeText, widget::WidgetMut,
 };
 
 /// A [`Widget`] that shows texts.
@@ -48,7 +48,8 @@ where
         wrap: Wrap,
     ) {
         let measurable = self.native.set_text(&mut cx.platform, spans, text, wrap);
-        cx.layout.set_measure(self.layout, measurable);
+        let cached = CachedMeasurable::new(measurable);
+        cx.layout.set_measure(self.layout, cached);
     }
 }
 

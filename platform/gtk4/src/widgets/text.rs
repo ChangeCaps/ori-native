@@ -58,7 +58,6 @@ impl NativeText<Platform> for Text {
             spans,
             text,
             wrap,
-            cache: Vec::new(),
         }
     }
 }
@@ -68,13 +67,6 @@ pub struct TextLayout {
     spans: Box<[TextSpan]>,
     text:  String,
     wrap:  Wrap,
-    cache: Vec<CachedSize>,
-}
-
-struct CachedSize {
-    size:            Size<f32>,
-    known_size:      Size<Option<f32>>,
-    available_space: Size<AvailableSpace>,
 }
 
 impl Measurable<Platform> for TextLayout {
@@ -84,14 +76,6 @@ impl Measurable<Platform> for TextLayout {
         known_size: Size<Option<f32>>,
         available_space: Size<AvailableSpace>,
     ) -> Size<f32> {
-        for cached_size in self.cache.iter() {
-            if cached_size.known_size == known_size
-                && cached_size.available_space == available_space
-            {
-                return cached_size.size;
-            }
-        }
-
         let context = self.view.pango_context();
         let layout = pango::Layout::new(&context);
 
@@ -123,29 +107,24 @@ impl Measurable<Platform> for TextLayout {
         }
 
         if !matches!(self.wrap, Wrap::None) {
-            match available_space.width {
-                AvailableSpace::MinContent => layout.set_width(0),
-                AvailableSpace::MaxContent => layout.set_width(-1),
-                AvailableSpace::Definite(width) => {
-                    let width = known_size.width.unwrap_or(width);
-                    layout.set_width((width * pango::SCALE as f32).round() as i32);
+            let width = match (known_size.width, available_space.width) {
+                (Some(width), _) | (_, AvailableSpace::Definite(width)) => {
+                    (width * pango::SCALE as f32).round() as i32
                 }
-            }
+
+                (_, AvailableSpace::MinContent) => 0,
+                (_, AvailableSpace::MaxContent) => -1,
+            };
+
+            layout.set_width(width);
         }
 
         let (width, height) = layout.pixel_size();
-        let size = Size {
-            width:  known_size.width.unwrap_or(width as f32 + 1.0),
-            height: known_size.height.unwrap_or(min_height.max(height as f32)),
-        };
 
-        self.cache.push(CachedSize {
-            size,
-            known_size,
-            available_space,
-        });
-
-        size
+        Size {
+            width:  width as f32 + 1.0,
+            height: min_height.max(height as f32),
+        }
     }
 }
 

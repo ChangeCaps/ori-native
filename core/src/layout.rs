@@ -33,6 +33,65 @@ impl<P> Measurable<P> for Infallible {
     }
 }
 
+/// A [`Measurable`] that caches its measurements.
+#[derive(Clone, Debug)]
+pub struct CachedMeasurable<T> {
+    inner: T,
+    cache: Vec<CachedSize>,
+}
+
+impl<T> CachedMeasurable<T> {
+    /// Create new [`CachedMeasurable`].
+    pub const fn new(measurable: T) -> Self {
+        Self {
+            inner: measurable,
+            cache: Vec::new(),
+        }
+    }
+
+    /// Unwrap the inner measurable.
+    pub fn into_inner(self) -> T {
+        self.inner
+    }
+}
+
+#[derive(Clone, Debug)]
+struct CachedSize {
+    size:            Size<f32>,
+    known_size:      Size<Option<f32>>,
+    available_space: Size<AvailableSpace>,
+}
+
+impl<P, T> Measurable<P> for CachedMeasurable<T>
+where
+    T: Measurable<P>,
+{
+    fn measure(
+        &mut self,
+        platform: &mut P,
+        known_size: Size<Option<f32>>,
+        available_space: Size<AvailableSpace>,
+    ) -> Size<f32> {
+        for cached_size in &self.cache {
+            if cached_size.known_size == known_size
+                && cached_size.available_space == available_space
+            {
+                return cached_size.size;
+            }
+        }
+
+        let size = self.inner.measure(platform, known_size, available_space);
+
+        self.cache.push(CachedSize {
+            size,
+            known_size,
+            available_space,
+        });
+
+        size
+    }
+}
+
 /// Available space in a given dimension.
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 pub enum AvailableSpace {

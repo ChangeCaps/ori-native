@@ -118,39 +118,21 @@ impl NativeText<Platform> for Text {
             Ok::<_, jni::errors::Error>(())
         });
 
-        TextLayout {
-            id:    self.id,
-            cache: Vec::new(),
-        }
+        TextLayout { id: self.id }
     }
 }
 
 pub struct TextLayout {
-    id:    WidgetId,
-    cache: Vec<CachedSize>,
-}
-
-struct CachedSize {
-    size:            Size<f32>,
-    known_size:      Size<Option<f32>>,
-    available_space: Size<AvailableSpace>,
+    id: WidgetId,
 }
 
 impl Measurable<Platform> for TextLayout {
     fn measure(
         &mut self,
         platform: &mut Platform,
-        known_size: Size<Option<f32>>,
-        available_space: Size<AvailableSpace>,
+        _known_size: Size<Option<f32>>,
+        _available_space: Size<AvailableSpace>,
     ) -> Size<f32> {
-        for cached_size in self.cache.iter() {
-            if cached_size.known_size == known_size
-                && cached_size.available_space == available_space
-            {
-                return cached_size.size;
-            }
-        }
-
         let width = platform
             .jni(|env, activity| {
                 env.call_method(
@@ -175,17 +157,9 @@ impl Measurable<Platform> for TextLayout {
             })
             .unwrap_or(0.0);
 
-        let size = Size {
+        Size {
             width: width + 1.0,
             height,
-        };
-
-        self.cache.push(CachedSize {
-            size,
-            known_size,
-            available_space,
-        });
-
-        size
+        }
     }
 }

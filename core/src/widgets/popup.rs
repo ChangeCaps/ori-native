@@ -133,11 +133,6 @@ where
     }
 
     fn layout(&mut self, cx: &mut Context<P>) {
-        let space = Size {
-            width:  AvailableSpace::MaxContent,
-            height: AvailableSpace::MaxContent,
-        };
-
         if let Some(allocation) = cx.layout.get_allocation(self.anchor.layout_node())
             && self.anchor_allocation != Some(allocation)
         {
@@ -152,6 +147,11 @@ where
         self.anchor.layout(cx);
 
         if let Some(ref mut contents) = self.contents {
+            let space = Size {
+                width:  AvailableSpace::MaxContent,
+                height: AvailableSpace::MaxContent,
+            };
+
             cx.layout.compute_layout(
                 &mut cx.platform,
                 contents.layout_node(),
