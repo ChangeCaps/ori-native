@@ -178,6 +178,8 @@ where
             element.set_gap(self.gap);
         }
 
+        state.build = self.build;
+
         element.resize(self.count);
         element.set_min_views(self.min_views);
         element.set_buffer(self.buffer);
@@ -275,7 +277,7 @@ where
         let start = widget.compute_start_index();
         let count = widget.compute_active_view_count(start);
 
-        if widget.start() == start && widget.active() == count {
+        if widget.start() == start && widget.active_count() == count {
             return;
         }
 
@@ -288,7 +290,7 @@ where
             return;
         }
 
-        while widget.active() > count {
+        while widget.active_count() > count {
             if widget.start() < start {
                 if let Some(child) = widget.remove_front(cx)
                     && let Some(state) = self.states.pop_front()
@@ -302,7 +304,7 @@ where
             }
         }
 
-        while widget.active() < count {
+        while widget.active_count() < count {
             if widget.start() > start {
                 self.build_front(widget, cx, data);
             } else {
@@ -347,13 +349,13 @@ where
         cx: &mut Context<P>,
         data: &mut T,
     ) {
-        let index = widget.start() + widget.active();
+        let index = widget.start() + widget.active_count();
 
         if let Some(child) = widget.remove_front(cx) {
             widget.insert_back(cx, child);
         }
 
-        if let Some((mut parent, child)) = widget.get_active(widget.active() - 1)
+        if let Some((mut parent, child)) = widget.get_active(widget.active_count() - 1)
             && let Some(mut state) = self.states.pop_front()
         {
             let view = (self.build)(data, index);
@@ -386,7 +388,7 @@ where
         data: &mut T,
         count: usize,
     ) {
-        while widget.active() < count {
+        while widget.active_count() < count {
             self.build_back(widget, cx, data);
         }
     }
@@ -397,7 +399,7 @@ where
         cx: &mut Context<P>,
         count: usize,
     ) {
-        while widget.active() > count {
+        while widget.active_count() > count {
             if let Some(child) = widget.remove_back(cx)
                 && let Some(state) = self.states.pop_back()
             {
@@ -425,7 +427,7 @@ where
         cx: &mut Context<P>,
         data: &mut T,
     ) {
-        let index = widget.start() + widget.active();
+        let index = widget.start() + widget.active_count();
         let view = (self.build)(data, index);
         let (element, state) = view.build(cx, data);
         widget.insert_back(cx, element);

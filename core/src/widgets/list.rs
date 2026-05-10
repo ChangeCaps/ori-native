@@ -170,7 +170,7 @@ where
     }
 
     /// Get the number `active` widgets.
-    pub fn active(&self) -> usize {
+    pub fn active_count(&self) -> usize {
         self.children.len()
     }
 
