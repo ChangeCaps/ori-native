@@ -1,7 +1,7 @@
 use std::{cell::Cell, rc::Rc};
 
 use glib::object::{Cast, ObjectExt};
-use gtk4::prelude::{AccessibleExt, FixedExt, GestureExt, WidgetExt};
+use gtk4::prelude::{AccessibleExt, FixedExt, GestureExt, GestureSingleExt, WidgetExt};
 use ori_native_core::{
     Button, Key, Modifiers, MoveEvent, Point, PressEvent, PressableEvent, native::NativePressable,
 };
@@ -27,14 +27,15 @@ impl NativePressable<Platform> for Pressable {
 
         let on_event = Rc::new(on_event);
         let controller = gtk4::GestureClick::new();
+        controller.set_button(0);
         controller.connect_pressed({
             let on_event = on_event.clone();
 
-            move |click, button, x, y| {
+            move |click, _, x, y| {
                 click.set_state(gtk4::EventSequenceState::Claimed);
 
                 let event = PressEvent {
-                    button:   to_button(button as u32),
+                    button:   to_button(click.current_button()),
                     position: Point {
                         x: x as f32,
                         y: y as f32,
@@ -48,9 +49,9 @@ impl NativePressable<Platform> for Pressable {
         controller.connect_released({
             let on_event = on_event.clone();
 
-            move |_, button, x, y| {
+            move |click, _, x, y| {
                 let event = PressEvent {
-                    button:   to_button(button as u32),
+                    button:   to_button(click.current_button()),
                     position: Point {
                         x: x as f32,
                         y: y as f32,
