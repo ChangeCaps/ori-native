@@ -26,7 +26,7 @@ fn ui(data: &Data) -> impl Effect<Data> + use<> {
                         .border(1.0, Color::BLACK.fade(0.2))
                         .corner(8.0)
                 })
-                .on_press(|data: &mut Data| data.is_open = !data.is_open),
+                .on_press(|data: &mut Data, _| data.is_open = !data.is_open),
                 data.is_open.then(|| {
                     column((text("stuff"), text("things")))
                         .margin(12.0)

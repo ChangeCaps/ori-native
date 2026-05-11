@@ -81,6 +81,6 @@ fn modal_button() -> impl View<Data> + use<> {
                 open.then(|| teleport(MODAL, modal())),
             )
         })
-        .on_press(|(open, _): &mut (bool, _)| *open = !*open)
+        .on_press(|(open, _): &mut (bool, _), _| *open = !*open)
     })
 }

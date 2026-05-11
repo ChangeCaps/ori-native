@@ -64,7 +64,7 @@ where
     F: FnMut(&mut T) -> A + 'static,
     A: Into<Action>,
 {
-    fn build(self) -> BoxedView<T> {
+    fn build(mut self) -> BoxedView<T> {
         let mut contents = Some(self.contents);
 
         let view = pressable(move |_, state| {
@@ -112,7 +112,7 @@ where
                 },
             )
         })
-        .on_press(self.on_press);
+        .on_press(move |data, _| (self.on_press)(data));
 
         Box::new(view)
     }

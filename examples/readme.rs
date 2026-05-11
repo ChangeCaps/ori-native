@@ -14,7 +14,7 @@ fn ui(data: &Data) -> impl Effect<Data> + use<> {
             text("Press me!")
         }
     })
-    .on_press(|data: &mut Data| data.count += 1);
+    .on_press(|data: &mut Data, _| data.count += 1);
 
     let label = text(format!("Pressed {} times.", data.count));
 

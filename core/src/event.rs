@@ -1,27 +1,58 @@
-/// The state of a press.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Pointer {
-    /// The `x` coordinate on the pointer.
-    pub x: f32,
+use crate::Point;
 
-    /// The `y` coordinate on the pointer.
-    pub y: f32,
+/// An event regarding pointer presses.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PressEvent {
+    /// The [`Button`] that was pressed.
+    pub button: Button,
+
+    /// The position where the pointer was pressed.
+    pub position: Point<f32>,
+}
+
+/// An event emitted then a pointer is moved.
+#[derive(Clone, Debug, PartialEq)]
+pub struct MoveEvent {
+    /// The new position of the pointer.
+    pub position: Point<f32>,
+}
+
+/// A pointer button.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Button {
+    /// The primary button, usually left click.
+    Primary,
+
+    /// The secondary button, usually right click.
+    Secondary,
+
+    /// The tertiary button, usually middle click.
+    Tertiary,
+
+    /// The back button.
+    Backward,
+
+    /// The forward button.
+    Forward,
+
+    /// A button identified by its raw code.
+    Unidentified(u16),
 }
 
 /// An event that can happen to a [`pressable`](crate::views::pressable).
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum PressableEvent {
     /// The pointer was pressed.
-    Pressed(Pointer),
+    Pressed(PressEvent),
 
     /// The pointer was released.
-    Released(Pointer),
+    Released(PressEvent),
 
     /// The press was cancelled.
-    Cancelled(Pointer),
+    Cancelled(PressEvent),
 
     /// The pointer moved.
-    Moved(Pointer),
+    Moved(MoveEvent),
 
     /// The view changed hovered state.
     Hovered(bool),

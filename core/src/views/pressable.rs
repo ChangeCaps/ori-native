@@ -2,8 +2,8 @@ use keyboard_types::Modifiers;
 use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarker};
 
 use crate::{
-    Context, Input, InputHandler, MatchKey, Platform, PressableEvent, WidgetView,
-    widget::WidgetMut, widgets::PressableWidget,
+    Context, Input, InputHandler, MatchKey, Platform, PressEvent, PressableEvent, WidgetView,
+    event::MoveEvent, widget::WidgetMut, widgets::PressableWidget,
 };
 
 /// [`View`] that reacts to presses and focus.
@@ -61,12 +61,12 @@ impl<T, F> Pressable<T, F> {
     }
 
     /// Set the callback for when the [`View`] is pressed.
-    pub fn on_press<A>(self, mut on_press: impl FnMut(&mut T) -> A + 'static) -> Self
+    pub fn on_press<A>(self, mut on_press: impl FnMut(&mut T, PressEvent) -> A + 'static) -> Self
     where
         A: Into<Action>,
     {
         self.on_event(move |data, event| match event {
-            PressableEvent::Released(_) => on_press(data).into(),
+            PressableEvent::Released(event) => on_press(data, event).into(),
             _ => Action::new(),
         })
     }
@@ -105,23 +105,23 @@ impl<T, F> Pressable<T, F> {
     }
 
     /// Set the callback for when the pointer is pressed down over the [`View`].
-    pub fn on_down<A>(self, mut on_down: impl FnMut(&mut T) -> A + 'static) -> Self
+    pub fn on_down<A>(self, mut on_down: impl FnMut(&mut T, PressEvent) -> A + 'static) -> Self
     where
         A: Into<Action>,
     {
         self.on_event(move |data, event| match event {
-            PressableEvent::Pressed(_) => on_down(data).into(),
+            PressableEvent::Pressed(event) => on_down(data, event).into(),
             _ => Action::new(),
         })
     }
 
     /// Set the callback for when the pointer is moved over the [`View`].
-    pub fn on_move<A>(self, mut on_move: impl FnMut(&mut T, f32, f32) -> A + 'static) -> Self
+    pub fn on_move<A>(self, mut on_move: impl FnMut(&mut T, MoveEvent) -> A + 'static) -> Self
     where
         A: Into<Action>,
     {
         self.on_event(move |data, event| match event {
-            PressableEvent::Moved(pointer) => on_move(data, pointer.x, pointer.y).into(),
+            PressableEvent::Moved(event) => on_move(data, event).into(),
             _ => Action::new(),
         })
     }
@@ -270,7 +270,7 @@ where
             }
 
             for on_event in &mut state.on_event {
-                action |= on_event(data, event);
+                action |= on_event(data, event.clone());
             }
 
             if state.press != press {

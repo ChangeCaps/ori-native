@@ -17,7 +17,7 @@ fn ui(data: &Data) -> impl Effect<Data> + use<> {
             .padding(8.0)
             .corner(8.0)
     })
-    .on_press(|data: &mut Data| data.toggle = !data.toggle);
+    .on_press(|data: &mut Data, _| data.toggle = !data.toggle);
 
     window(
         row(column((toggle, self::toggle(data))))

@@ -2,7 +2,9 @@ use std::{cell::Cell, rc::Rc};
 
 use glib::object::{Cast, ObjectExt};
 use gtk4::prelude::{AccessibleExt, FixedExt, GestureExt, WidgetExt};
-use ori_native_core::{Key, Modifiers, Pointer, PressableEvent, native::NativePressable};
+use ori_native_core::{
+    Button, Key, Modifiers, MoveEvent, Point, PressEvent, PressableEvent, native::NativePressable,
+};
 
 use crate::{Platform, key};
 
@@ -28,41 +30,50 @@ impl NativePressable<Platform> for Pressable {
         controller.connect_pressed({
             let on_event = on_event.clone();
 
-            move |click, _, x, y| {
+            move |click, button, x, y| {
                 click.set_state(gtk4::EventSequenceState::Claimed);
 
-                let pointer = Pointer {
-                    x: x as f32,
-                    y: y as f32,
+                let event = PressEvent {
+                    button:   to_button(button as u32),
+                    position: Point {
+                        x: x as f32,
+                        y: y as f32,
+                    },
                 };
 
-                on_event(PressableEvent::Pressed(pointer));
+                on_event(PressableEvent::Pressed(event));
             }
         });
 
         controller.connect_released({
             let on_event = on_event.clone();
 
-            move |_, _, x, y| {
-                let pointer = Pointer {
-                    x: x as f32,
-                    y: y as f32,
+            move |_, button, x, y| {
+                let event = PressEvent {
+                    button:   to_button(button as u32),
+                    position: Point {
+                        x: x as f32,
+                        y: y as f32,
+                    },
                 };
 
-                on_event(PressableEvent::Released(pointer));
+                on_event(PressableEvent::Released(event));
             }
         });
 
         controller.connect_unpaired_release({
             let on_event = on_event.clone();
 
-            move |_, x, y, _, _| {
-                let pointer = Pointer {
-                    x: x as f32,
-                    y: y as f32,
+            move |_, x, y, button, _| {
+                let event = PressEvent {
+                    button:   to_button(button),
+                    position: Point {
+                        x: x as f32,
+                        y: y as f32,
+                    },
                 };
 
-                on_event(PressableEvent::Cancelled(pointer));
+                on_event(PressableEvent::Cancelled(event));
             }
         });
 
@@ -91,12 +102,14 @@ impl NativePressable<Platform> for Pressable {
                     hovered.set(false);
                 }
 
-                let pointer = Pointer {
-                    x: x as f32,
-                    y: y as f32,
+                let event = MoveEvent {
+                    position: Point {
+                        x: x as f32,
+                        y: y as f32,
+                    },
                 };
 
-                on_event(PressableEvent::Moved(pointer));
+                on_event(PressableEvent::Moved(event));
             }
         });
 
@@ -192,5 +205,17 @@ impl NativePressable<Platform> for Pressable {
 
         self.key = Some(controller.clone());
         self.fixed.add_controller(controller);
+    }
+}
+
+fn to_button(button: u32) -> Button {
+    match button {
+        gdk4::BUTTON_PRIMARY => Button::Primary,
+        gdk4::BUTTON_SECONDARY => Button::Secondary,
+        gdk4::BUTTON_MIDDLE => Button::Tertiary,
+        8 => Button::Backward,
+        9 => Button::Forward,
+
+        button => Button::Unidentified(button as u16),
     }
 }

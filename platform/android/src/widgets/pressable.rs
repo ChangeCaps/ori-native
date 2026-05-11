@@ -1,5 +1,7 @@
 use jni::{EnvUnowned, jni_sig, jni_str, objects::JObject};
-use ori_native_core::{Key, Modifiers, Pointer, PressableEvent, native::NativePressable};
+use ori_native_core::{
+    Button, Key, Modifiers, MoveEvent, Point, PressEvent, PressableEvent, native::NativePressable,
+};
 
 use crate::{
     Platform,
@@ -38,7 +40,7 @@ impl NativePressable<Platform> for Pressable {
         });
 
         platform.add_handler(id, move |event| match event {
-            WidgetEvent::Press(evnet) => on_event(*evnet),
+            WidgetEvent::Press(evnet) => on_event(evnet.clone()),
             _ => unreachable!(),
         });
 
@@ -94,12 +96,15 @@ extern "system" fn Java_ori_OriPressable_onPress<'local>(
     x: f32,
     y: f32,
 ) -> bool {
-    let pointer = Pointer { x, y };
+    let event = PressEvent {
+        button:   Button::Primary,
+        position: Point { x, y },
+    };
 
     let event = match state {
-        0 => PressableEvent::Pressed(pointer),
-        1 => PressableEvent::Released(pointer),
-        2 => PressableEvent::Cancelled(pointer),
+        0 => PressableEvent::Pressed(event),
+        1 => PressableEvent::Released(event),
+        2 => PressableEvent::Cancelled(event),
         _ => return false,
     };
 
@@ -119,8 +124,11 @@ extern "system" fn Java_ori_OriPressable_onMove<'local>(
     x: f32,
     y: f32,
 ) -> bool {
-    let pointer = Pointer { x, y };
-    let event = PressableEvent::Moved(pointer);
+    let event = MoveEvent {
+        position: Point { x, y },
+    };
+
+    let event = PressableEvent::Moved(event);
 
     GlobalState::event(
         WidgetId::new(id as u64),

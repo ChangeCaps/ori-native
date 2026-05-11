@@ -120,7 +120,7 @@ fn todo(index: usize, _todo: &Todo) -> impl View<Data> + use<> {
             Color::TRANSPARENT
         })
     })
-    .on_press(|todo: &mut Todo| todo.done = !todo.done);
+    .on_press(|todo: &mut Todo, _| todo.done = !todo.done);
 
     map(view, move |data: &mut Data, map| {
         map(&mut data.todos[index])
@@ -150,5 +150,5 @@ fn remove<T>(index: usize) -> impl View<T> {
             .justify_content(Justify::Center)
             .align_items(Align::Center)
     })
-    .on_press(move |_| Message::new(Remove(index), None))
+    .on_press(move |_, _| Message::new(Remove(index), None))
 }
