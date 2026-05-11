@@ -29,8 +29,8 @@ pub use platform::{Platform, Unsupported};
 pub use safearea::SafeAreaInsets;
 pub use style::{
     Affine, Align, Border, BorderStyle, Color, Corners, Direction, FlexContainer, FlexStyle, Fract,
-    Justify, Layout, LayoutStyle, Length, NavigationBar, Newline, Overflow, Padding, Position,
-    Shadow, Side, Sides, Size, Sizing, StatusBar,
+    Justify, Layout, LayoutStyle, Length, NavigationBar, Newline, Overflow, Padding, Point,
+    PopupPosition, Position, Shadow, Side, Sides, Size, Sizing, StatusBar,
 };
 pub use text::{Font, Stretch, TextSpan, Weight, Wrap};
 pub use widget::{BoxedWidget, Parent, Widget, WidgetMut, WidgetView, WidgetViewSeq};

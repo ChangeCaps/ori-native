@@ -3,7 +3,7 @@ use std::time::Duration;
 use ori::Element;
 
 use crate::{
-    Allocation, AvailableSpace, Context, LayoutNode, Parent, Platform, Side, Size, Widget,
+    Allocation, AvailableSpace, Context, LayoutNode, Parent, Platform, PopupPosition, Size, Widget,
     WidgetMut, native::NativePopup,
 };
 
@@ -73,9 +73,9 @@ where
         self.contents.take()
     }
 
-    /// Set which side the popup should be anchored to.
-    pub fn set_side(&mut self, cx: &mut Context<P>, side: Side) {
-        self.native.set_side(&mut cx.platform, side);
+    /// Set the positioning scheme of the popup.
+    pub fn set_position(&mut self, cx: &mut Context<P>, position: PopupPosition) {
+        self.native.set_position(&mut cx.platform, position);
     }
 
     /// Set whether the popup is modal.

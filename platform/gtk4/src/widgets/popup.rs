@@ -3,7 +3,7 @@ use glib::{
     subclass::types::ObjectSubclassIsExt,
 };
 use gtk4::prelude::{FixedExt, PopoverExt, WidgetExt};
-use ori_native_core::{Side, native::NativePopup};
+use ori_native_core::{PopupPosition, Side, native::NativePopup};
 
 use crate::Platform;
 
@@ -39,15 +39,33 @@ impl NativePopup<Platform> for Popup {
         self.imp().popover.popdown();
     }
 
-    fn set_side(&mut self, _platform: &mut Platform, side: Side) {
-        let position = match side {
-            Side::Top => gtk4::PositionType::Top,
-            Side::Right => gtk4::PositionType::Right,
-            Side::Bottom => gtk4::PositionType::Bottom,
-            Side::Left => gtk4::PositionType::Left,
-        };
+    fn set_position(&mut self, _platform: &mut Platform, position: PopupPosition) {
+        match position {
+            PopupPosition::Absolute(position) => {
+                let width = self.imp().popover.width_request();
+                let x = width / 2 + position.x.round() as i32 - 2;
+                let y = position.y.round() as i32;
 
-        self.imp().popover.set_position(position);
+                let rect = gdk4::Rectangle::new(x, y, x, y);
+
+                self.imp().popover.set_position(gtk4::PositionType::Bottom);
+                self.imp().popover.set_pointing_to(Some(&rect));
+                self.imp().position.set(Some(position));
+            }
+
+            PopupPosition::Relative(side) => {
+                let position = match side {
+                    Side::Top => gtk4::PositionType::Top,
+                    Side::Right => gtk4::PositionType::Right,
+                    Side::Bottom => gtk4::PositionType::Bottom,
+                    Side::Left => gtk4::PositionType::Left,
+                };
+
+                self.imp().popover.set_position(position);
+                self.imp().popover.set_pointing_to(None);
+                self.imp().position.set(None);
+            }
+        }
     }
 
     fn set_modal(&mut self, _platform: &mut Platform, is_modal: bool) {
@@ -61,6 +79,15 @@ impl NativePopup<Platform> for Popup {
             width.round() as i32,
             height.round() as i32,
         );
+
+        if let Some(position) = self.imp().position.get() {
+            let width = self.imp().popover.width_request();
+            let x = width / 2 + position.x.round() as i32 - 2;
+            let y = position.y.round() as i32;
+
+            let rect = gdk4::Rectangle::new(x, y, 0, 0);
+            self.imp().popover.set_pointing_to(Some(&rect));
+        }
     }
 
     fn set_content_layout(
@@ -122,18 +149,20 @@ glib::wrapper! {
 }
 
 mod imp {
-    use std::cell::RefCell;
+    use std::cell::{Cell, RefCell};
 
     use glib::subclass::{object::ObjectImpl, types::ObjectSubclass};
     use gtk4::{
         prelude::{PopoverExt, WidgetExt},
         subclass::widget::WidgetImpl,
     };
+    use ori_native_core::Point;
 
     pub struct Popup {
-        pub(super) anchor:  RefCell<Option<gtk4::Widget>>,
-        pub(super) popover: gtk4::Popover,
-        pub(super) fixed:   gtk4::Fixed,
+        pub(super) anchor:   RefCell<Option<gtk4::Widget>>,
+        pub(super) position: Cell<Option<Point<f32>>>,
+        pub(super) popover:  gtk4::Popover,
+        pub(super) fixed:    gtk4::Fixed,
     }
 
     impl Default for Popup {
@@ -142,11 +171,18 @@ mod imp {
             let popover = gtk4::Popover::new();
             popover.set_has_arrow(false);
             popover.set_child(Some(&fixed));
+
+            // this helps with the first popup, since wayland
+            // doesn't like surfaces with zero area
             popover.set_size_request(1, 1);
+
+            // for some ungodly reason the popover is offset by (-1, 1) pixels
+            // this offsets it in the opposite direction to cancel it out
             popover.set_offset(1, -1);
 
             Self {
                 anchor: Default::default(),
+                position: Cell::new(None),
                 popover,
                 fixed,
             }

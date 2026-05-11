@@ -38,6 +38,7 @@ fn ui(data: &Data) -> impl Effect<Data> + use<> {
                         .shadow(4.0, 4.0, 8.0, Color::BLACK.fade(0.4))
                 }),
             )
+            .side(Side::Bottom)
             .on_dismiss(|data: &mut Data| data.is_open = false),
         )
         .background(Color::WHITE)

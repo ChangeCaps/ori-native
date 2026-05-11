@@ -1,4 +1,4 @@
-use crate::{Platform, Side, Unsupported, platform::unsupported};
+use crate::{Platform, PopupPosition, Unsupported, platform::unsupported};
 
 /// A native widget that shows a popup relative to an anchor.
 pub trait NativePopup<P>
@@ -23,8 +23,8 @@ where
     /// Close the popup.
     fn close(&mut self, platform: &mut P);
 
-    /// Set which side the popup is anchored to.
-    fn set_side(&mut self, platform: &mut P, side: Side);
+    /// Set the positioning scheme of the popup.
+    fn set_position(&mut self, platform: &mut P, position: PopupPosition);
 
     /// Set whether the popup is modal.
     fn set_modal(&mut self, platform: &mut P, is_modal: bool);
@@ -67,7 +67,7 @@ where
         unreachable!()
     }
 
-    fn set_side(&mut self, _platform: &mut P, _side: Side) {
+    fn set_position(&mut self, _platform: &mut P, _position: PopupPosition) {
         unreachable!()
     }
 

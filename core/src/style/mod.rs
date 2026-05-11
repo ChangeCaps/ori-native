@@ -12,10 +12,10 @@ pub use bars::{NavigationBar, StatusBar};
 pub use color::Color;
 pub use layout::{
     Align, Border, BorderStyle, Corners, Direction, FlexContainer, FlexStyle, Fract, Justify,
-    Layout, LayoutStyle, Length, Padding, Position, Sides, Size,
+    Layout, LayoutStyle, Length, Padding, Point, Position, Sides, Size,
 };
 pub use overflow::Overflow;
-pub use popup::Side;
+pub use popup::{PopupPosition, Side};
 pub use shadow::Shadow;
 pub use textinput::Newline;
 pub use transform::Affine;

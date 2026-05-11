@@ -1,7 +1,8 @@
 use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarker};
 
 use crate::{
-    Context, LayoutRequest, Platform, Side, Widget, WidgetMut, WidgetView, widgets::PopupWidget,
+    Context, LayoutRequest, Platform, Point, PopupPosition, Side, Widget, WidgetMut, WidgetView,
+    widgets::PopupWidget,
 };
 
 /// A [`View`] that shows a popup relative to an anchor.
@@ -13,7 +14,7 @@ pub fn popup<T, V, W>(anchor: V, contents: Option<W>) -> Popup<T, V, W> {
 pub struct Popup<T, V, W> {
     anchor:     V,
     contents:   Option<W>,
-    side:       Side,
+    position:   PopupPosition,
     on_dismiss: Option<OnDismiss<T>>,
 }
 
@@ -23,14 +24,20 @@ impl<T, V, W> Popup<T, V, W> {
         Popup {
             anchor,
             contents,
-            side: Side::Bottom,
+            position: PopupPosition::Relative(Side::Bottom),
             on_dismiss: None,
         }
     }
 
     /// Set which side the popup is anchored to.
     pub fn side(mut self, side: Side) -> Self {
-        self.side = side;
+        self.position = PopupPosition::Relative(side);
+        self
+    }
+
+    /// Place the popup at a specific position in the coordinate space of the anchor.
+    pub fn position(mut self, x: f32, y: f32) -> Self {
+        self.position = PopupPosition::Absolute(Point { x, y });
         self
     }
 
@@ -61,7 +68,7 @@ where
     W: WidgetView<P, T>,
 {
     view_id:        ViewId,
-    side:           Side,
+    position:       PopupPosition,
     on_dismiss:     Option<OnDismiss<T>>,
     anchor_state:   V::State,
     contents_state: Option<W::State>,
@@ -95,12 +102,12 @@ where
         };
 
         let mut widget = PopupWidget::new(cx, anchor, on_dismiss);
-        widget.set_side(cx, self.side);
+        widget.set_position(cx, self.position);
         widget.set_modal(cx, self.on_dismiss.is_some());
 
         let mut state = PopupState {
             view_id,
-            side: self.side,
+            position: self.position,
             on_dismiss: self.on_dismiss,
             anchor_state,
             contents_state: None,
@@ -155,9 +162,9 @@ where
             W::teardown(contents, state, cx);
         }
 
-        if state.side != self.side {
-            state.side = self.side;
-            element.set_side(cx, self.side);
+        if state.position != self.position {
+            state.position = self.position;
+            element.set_position(cx, self.position);
         }
 
         if state.on_dismiss.is_some() != self.on_dismiss.is_some() {

@@ -233,7 +233,27 @@ impl<T> From<Corners<T>> for [T; 4] {
     }
 }
 
-/// Values the width and height of a size.
+/// A two dimensional point.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Point<T> {
+    /// The x value.
+    pub x: T,
+
+    /// The y value.
+    pub y: T,
+}
+
+impl<T> Point<T> {
+    /// Create new [`Point`] with the same value for `x` and `y`.
+    pub const fn all(value: T) -> Self
+    where
+        T: Copy,
+    {
+        Self { x: value, y: value }
+    }
+}
+
+/// A two dimensional size.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Size<T> {
     /// The width value.
