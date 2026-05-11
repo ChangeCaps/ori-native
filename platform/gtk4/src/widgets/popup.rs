@@ -46,7 +46,7 @@ impl NativePopup<Platform> for Popup {
                 let x = width / 2 + position.x.round() as i32 - 2;
                 let y = position.y.round() as i32;
 
-                let rect = gdk4::Rectangle::new(x, y, x, y);
+                let rect = gdk4::Rectangle::new(x, y, 0, 0);
 
                 self.imp().popover.set_position(gtk4::PositionType::Bottom);
                 self.imp().popover.set_pointing_to(Some(&rect));
