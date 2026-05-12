@@ -43,13 +43,14 @@ impl NativePopup<Platform> for Popup {
         match position {
             PopupPosition::Absolute(position) => {
                 let width = self.imp().popover.width_request();
-                let x = width / 2 + position.x.round() as i32 - 2;
+                let x = position.x.round() as i32 - 2;
                 let y = position.y.round() as i32;
 
                 let rect = gdk4::Rectangle::new(x, y, 0, 0);
 
                 self.imp().popover.set_position(gtk4::PositionType::Bottom);
                 self.imp().popover.set_pointing_to(Some(&rect));
+                self.imp().popover.set_offset(width / 2, 0);
                 self.imp().position.set(Some(position));
             }
 
@@ -64,6 +65,10 @@ impl NativePopup<Platform> for Popup {
                 self.imp().popover.set_position(position);
                 self.imp().popover.set_pointing_to(None);
                 self.imp().position.set(None);
+
+                // for some ungodly reason the popover is offset by (-1, 1) pixels
+                // this offsets it in the opposite direction to cancel it out
+                self.imp().popover.set_offset(1, -1);
             }
         }
     }
@@ -82,11 +87,12 @@ impl NativePopup<Platform> for Popup {
 
         if let Some(position) = self.imp().position.get() {
             let width = self.imp().popover.width_request();
-            let x = width / 2 + position.x.round() as i32 - 2;
+            let x = position.x.round() as i32 - 2;
             let y = position.y.round() as i32;
 
             let rect = gdk4::Rectangle::new(x, y, 0, 0);
             self.imp().popover.set_pointing_to(Some(&rect));
+            self.imp().popover.set_offset(width / 2, 0);
         }
     }
 
@@ -175,10 +181,6 @@ mod imp {
             // this helps with the first popup, since wayland
             // doesn't like surfaces with zero area
             popover.set_size_request(1, 1);
-
-            // for some ungodly reason the popover is offset by (-1, 1) pixels
-            // this offsets it in the opposite direction to cancel it out
-            popover.set_offset(1, -1);
 
             Self {
                 anchor: Default::default(),
