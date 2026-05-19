@@ -1,8 +1,8 @@
 use ori::{Action, Message, Mut, Proxied, Proxy, Tracker, View, ViewId, ViewMarker};
 
 use crate::{
-    Context, LayoutRequest, Platform, Point, PopupPosition, Side, Widget, WidgetMut, WidgetView,
-    widgets::PopupWidget,
+    AnimateRequest, Context, LayoutRequest, Platform, Point, PopupPosition, Side, Widget,
+    WidgetMut, WidgetView, widgets::PopupWidget,
 };
 
 /// A [`View`] that shows a popup relative to an anchor.
@@ -184,6 +184,12 @@ where
         if let Some(LayoutRequest::Layout) = message.take(state.view_id) {
             element.layout(cx);
             return Action::new();
+        }
+
+        match message.take(state.view_id) {
+            Some(AnimateRequest::Start) => cx.request_start_animating(element.layout_node()),
+            Some(AnimateRequest::Stop) => cx.request_stop_animating(element.layout_node()),
+            None => {}
         }
 
         if let Some(PopupMessage::Dismissed) = message.take(state.view_id)
