@@ -33,7 +33,7 @@ impl<P, T, V, F, A> View<Context<P>, T> for Layout<V, F>
 where
     P: Platform,
     V: WidgetView<P, T>,
-    F: FnMut(&mut T, f32, f32) -> A + 'static,
+    F: FnMut(&mut T, f32, f32) -> A,
     A: Into<Action>,
 {
     type Element = LayoutWidget<P, V::Element>;
