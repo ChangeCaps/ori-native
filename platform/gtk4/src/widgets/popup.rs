@@ -65,10 +65,6 @@ impl NativePopup<Platform> for Popup {
                 self.imp().popover.set_position(position);
                 self.imp().popover.set_pointing_to(None);
                 self.imp().position.set(None);
-
-                // for some ungodly reason the popover is offset by (-1, 1) pixels
-                // this offsets it in the opposite direction to cancel it out
-                self.imp().popover.set_offset(1, -1);
             }
         }
     }
