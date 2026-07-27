@@ -105,9 +105,9 @@ impl Measurable<Platform> for ImageLayout {
         &mut self,
         platform: &mut Platform,
         known_size: Size<Option<f32>>,
-        _available_space: Size<AvailableSpace>,
+        available_space: Size<AvailableSpace>,
     ) -> Size<f32> {
-        let width = self.width.get_or_insert_with(|| {
+        let width = *self.width.get_or_insert_with(|| {
             platform
                 .jni(|env, activity| {
                     env.call_method(
@@ -121,7 +121,7 @@ impl Measurable<Platform> for ImageLayout {
                 .unwrap_or(0.0)
         });
 
-        let height = self.height.get_or_insert_with(|| {
+        let height = *self.height.get_or_insert_with(|| {
             platform
                 .jni(|env, activity| {
                     env.call_method(
@@ -135,9 +135,21 @@ impl Measurable<Platform> for ImageLayout {
                 .unwrap_or(0.0)
         });
 
+        let width = match available_space.width {
+            AvailableSpace::Definite(available) => available.min(width),
+            AvailableSpace::MinContent => 0.0,
+            AvailableSpace::MaxContent => width,
+        };
+
+        let height = match available_space.height {
+            AvailableSpace::Definite(available) => available.min(height),
+            AvailableSpace::MinContent => 0.0,
+            AvailableSpace::MaxContent => height,
+        };
+
         Size {
-            width:  known_size.width.unwrap_or(*width),
-            height: known_size.height.unwrap_or(*height),
+            width:  known_size.width.unwrap_or(width),
+            height: known_size.height.unwrap_or(height),
         }
     }
 }
