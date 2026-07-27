@@ -1,7 +1,7 @@
 use std::{cell::Cell, rc::Rc};
 
 use glib::object::{Cast, ObjectExt};
-use gtk4::prelude::{AccessibleExt, FixedExt, GestureExt, GestureSingleExt, WidgetExt};
+use gtk4::prelude::{FixedExt, GestureExt, GestureSingleExt, WidgetExt};
 use ori_native_core::{
     Button, Key, Modifiers, MoveEvent, Point, PressEvent, PressableEvent, native::NativePressable,
 };
@@ -22,7 +22,6 @@ impl NativePressable<Platform> for Pressable {
         let fixed = gtk4::Fixed::new();
         fixed.put(&contents, 0.0, 0.0);
         fixed.set_focusable(true);
-        fixed.set_accessible_role(gtk4::AccessibleRole::Button);
         fixed.set_overflow(gtk4::Overflow::Visible);
 
         let on_event = Rc::new(on_event);

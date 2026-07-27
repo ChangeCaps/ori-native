@@ -244,7 +244,6 @@ glib::wrapper! {
             gtk4::Widget,
         @implements
             gtk4::Buildable,
-            gtk4::Accessible,
             gtk4::ConstraintTarget,
             gtk4::Root,
             gtk4::Native,

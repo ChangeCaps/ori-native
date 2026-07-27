@@ -1,14 +1,12 @@
 use glib::{object::Cast, subclass::types::ObjectSubclassIsExt};
-use gtk4::prelude::{AccessibleExt, WidgetExt};
+use gtk4::prelude::WidgetExt;
 use ori_native_core::{Color, Corners, Overflow, Shadow, Sides, native::NativeGroup};
 
 use crate::Platform;
 
 impl NativeGroup<Platform> for Group {
     fn build(_platform: &mut Platform) -> Self {
-        let group = Self::new();
-        group.set_accessible_role(gtk4::AccessibleRole::Group);
-        group
+        Self::new()
     }
 
     fn teardown(self, _platform: &mut Platform) {}
@@ -138,7 +136,6 @@ glib::wrapper! {
             gtk4::Widget,
         @implements
             gtk4::Buildable,
-            gtk4::Accessible,
             gtk4::ConstraintTarget;
 }
 
