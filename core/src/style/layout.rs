@@ -222,6 +222,37 @@ impl From<f32> for Corners<f32> {
     }
 }
 
+impl<I, T, U, V, W> From<(T, U, V, W)> for Corners<I>
+where
+    T: Into<I>,
+    U: Into<I>,
+    V: Into<I>,
+    W: Into<I>,
+{
+    fn from((top_left, top_right, bottom_right, bottom_left): (T, U, V, W)) -> Self {
+        Self {
+            top_left:     top_left.into(),
+            top_right:    top_right.into(),
+            bottom_right: bottom_right.into(),
+            bottom_left:  bottom_left.into(),
+        }
+    }
+}
+
+impl<T, U> From<[T; 4]> for Corners<U>
+where
+    T: Into<U>,
+{
+    fn from([top_left, top_right, bottom_right, bottom_left]: [T; 4]) -> Self {
+        Self {
+            top_left:     top_left.into(),
+            top_right:    top_right.into(),
+            bottom_right: bottom_right.into(),
+            bottom_left:  bottom_left.into(),
+        }
+    }
+}
+
 impl<T> From<Corners<T>> for [T; 4] {
     fn from(corners: Corners<T>) -> Self {
         [
