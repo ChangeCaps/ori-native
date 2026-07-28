@@ -26,6 +26,9 @@ where
     /// Imagine a phone app where the window size is fixed.
     fn get_preferred_size(&self, platform: &mut P) -> (Option<f32>, Option<f32>);
 
+    /// Check if the window is decorated.
+    fn is_decorated(&self, platform: &mut P) -> bool;
+
     /// Set the `on_frame` callback.
     fn set_on_animation_frame(&mut self, platform: &mut P, on_frame: impl Fn(Duration) + 'static);
 
@@ -60,6 +63,9 @@ where
     /// Set the size.
     fn set_size(&mut self, platform: &mut P, width: f32, height: f32);
 
+    /// Set whether the window should be decorated.
+    fn set_decorated(&mut self, platform: &mut P, decorated: bool);
+
     /// Set whether the window is resizable.
     fn set_resizable(&mut self, platform: &mut P, resizable: bool);
 
@@ -91,6 +97,10 @@ where
     }
 
     fn get_preferred_size(&self, _platform: &mut P) -> (Option<f32>, Option<f32>) {
+        unreachable!()
+    }
+
+    fn is_decorated(&self, _platform: &mut P) -> bool {
         unreachable!()
     }
 
@@ -150,6 +160,10 @@ where
     }
 
     fn set_size(&mut self, _platform: &mut P, _width: f32, _height: f32) {
+        unreachable!()
+    }
+
+    fn set_decorated(&mut self, _platform: &mut P, _decorated: bool) {
         unreachable!()
     }
 

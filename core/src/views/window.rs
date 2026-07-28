@@ -41,6 +41,12 @@ impl<T, V> Window<T, V> {
         self
     }
 
+    /// Set Whether the window should be decorated.
+    pub fn decorated(mut self, decorated: bool) -> Self {
+        self.attributes.decorated = decorated;
+        self
+    }
+
     /// Set the style of the [`StatusBar`].
     pub fn status_bar(mut self, status_bar: StatusBar) -> Self {
         self.attributes.status_bar = status_bar;
@@ -132,6 +138,9 @@ pub struct WindowAttributes<T> {
     /// The input handlers of the window.
     pub input: Input<T>,
 
+    /// Whether the window is decorated.
+    pub decorated: bool,
+
     /// The style of the status bar.
     pub status_bar: StatusBar,
 
@@ -142,9 +151,10 @@ pub struct WindowAttributes<T> {
 impl<T> Default for WindowAttributes<T> {
     fn default() -> Self {
         Self {
-            title:  String::new(),
-            sizing: Sizing::User,
-            input:  Default::default(),
+            title:     String::new(),
+            sizing:    Sizing::User,
+            input:     Default::default(),
+            decorated: true,
 
             status_bar:     Default::default(),
             navigation_bar: Default::default(),
@@ -171,9 +181,10 @@ where
     status_bar:     StatusBar,
     navigation_bar: NavigationBar,
 
-    title:   String,
-    sizing:  Sizing,
-    handler: InputHandler<T>,
+    title:     String,
+    sizing:    Sizing,
+    handler:   InputHandler<T>,
+    decorated: bool,
 
     width:  f32,
     height: f32,
@@ -266,6 +277,8 @@ where
             }
         });
 
+        window.set_decorated(&mut cx.platform, attributes.decorated);
+
         window.set_status_bar(&mut cx.platform, attributes.status_bar);
 
         window.set_navigation_bar(
@@ -286,6 +299,7 @@ where
             title: attributes.title,
             sizing: attributes.sizing,
             handler,
+            decorated: attributes.decorated,
             status_bar: attributes.status_bar,
             navigation_bar: attributes.navigation_bar,
             width,
@@ -342,8 +356,13 @@ where
             self.sizing = attributes.sizing;
             self.window.set_resizable(
                 &mut cx.platform,
-                matches!(attributes.sizing, Sizing::User,),
+                matches!(attributes.sizing, Sizing::User),
             );
+        }
+
+        if self.decorated != attributes.decorated {
+            self.decorated = attributes.decorated;
+            (self.window).set_decorated(&mut cx.platform, attributes.decorated);
         }
 
         if self.status_bar != attributes.status_bar {

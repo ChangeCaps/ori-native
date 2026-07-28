@@ -74,6 +74,10 @@ impl NativeWindow<Platform> for Window {
         (Some(width), Some(height))
     }
 
+    fn is_decorated(&self, _platform: &mut Platform) -> bool {
+        true
+    }
+
     fn set_on_animation_frame(
         &mut self,
         platform: &mut Platform,
@@ -144,6 +148,7 @@ impl NativeWindow<Platform> for Window {
     fn set_title(&mut self, _platform: &mut Platform, _title: String) {}
     fn set_min_size(&mut self, _platform: &mut Platform, _width: f32, _height: f32) {}
     fn set_size(&mut self, _platform: &mut Platform, _width: f32, _height: f32) {}
+    fn set_decorated(&mut self, _platform: &mut Platform, _decorated: bool) {}
     fn set_resizable(&mut self, _platform: &mut Platform, _resizable: bool) {}
 
     fn set_status_bar(&mut self, platform: &mut Platform, bar: StatusBar) {

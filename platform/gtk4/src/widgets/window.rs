@@ -87,6 +87,10 @@ impl NativeWindow<Platform> for Window {
         (min_width, min_height)
     }
 
+    fn is_decorated(&self, _platform: &mut Platform) -> bool {
+        gtk4::prelude::GtkWindowExt::is_decorated(self)
+    }
+
     fn set_on_animation_frame(
         &mut self,
         _platform: &mut Platform,
@@ -233,6 +237,10 @@ impl NativeWindow<Platform> for Window {
     fn set_status_bar(&mut self, _platform: &mut Platform, _bar: StatusBar) {}
 
     fn set_navigation_bar(&mut self, _platform: &mut Platform, _bar: NavigationBar) {}
+
+    fn set_decorated(&mut self, _platform: &mut Platform, decorated: bool) {
+        gtk4::prelude::GtkWindowExt::set_decorated(self, decorated);
+    }
 }
 
 glib::wrapper! {
