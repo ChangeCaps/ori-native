@@ -1,6 +1,6 @@
 use std::{
     hash::{Hash, Hasher},
-    ops::{Add, AddAssign, Mul},
+    ops::{Add, AddAssign, Mul, RangeInclusive},
 };
 
 /// An rgb color.
@@ -204,6 +204,16 @@ impl Color {
         } else {
             1.055 * f32::powf(x, 0.416_666_66) - 0.055
         }
+    }
+
+    /// Check if the color is valid.
+    pub fn is_valid(self) -> bool {
+        const VALID: RangeInclusive<f32> = 0.0..=1.0;
+
+        VALID.contains(&self.r)
+            && VALID.contains(&self.g)
+            && VALID.contains(&self.b)
+            && VALID.contains(&self.a)
     }
 
     /// Convert a color from oklab to sRGB.

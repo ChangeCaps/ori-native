@@ -103,7 +103,7 @@ glib::wrapper! {
 
 impl Paintable {
     fn new(data: &[u8]) -> io::Result<Self> {
-        if data[..64].windows(4).any(|w| w == b"<svg") {
+        if data.windows(4).take(64).any(|w| w == b"<svg") {
             Self::new_svg(data)
         } else {
             Self::new_texture(data)
